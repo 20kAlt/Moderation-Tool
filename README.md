@@ -9,9 +9,9 @@
 ## 📚 Table of Contents
 
 - [🌟 Features Overview](#-features-overview)
-- [🚀 Quick Setup](#-video-tutorial)
-- [⚙️ Manual Installation Steps](#-installation-steps)
-- [🗄️ Database System](#️-database-system)
+- [🚀 Quick Setup](#-quick-setup-recommend)
+- [⚙️ Manual Installation Steps](#-manual-installation-steps)
+- [🗄️ Database System](#-database-system)
 - [🌐 Support Server](https://discord.gg/QnWNz2dKCE)
 - [🏗️ Bot Architecture](#-bot-architecture)
 - [🤝 Contributing](#-contributing)
