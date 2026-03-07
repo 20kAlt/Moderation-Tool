@@ -10,9 +10,9 @@
 
 - [🌟 Features Overview](#-features-overview)
 - [🚀 Quick Setup](#-video-tutorial)
-- [💡 Manual Installation Steps](#installation-steps)
+- [⚙️ Manual Installation Steps](#-manual-installation-steps)
 - [🗄️ Database System](#️-database-system)
-- [🌐 Support Server](#-support-server)
+- [🌐 Support Server](https://discord.gg/QnWNz2dKCE)
 - [🏗️ Bot Architecture](#-bot-architecture)
 - [🤝 Contributing](#-contributing)
 
@@ -90,14 +90,14 @@ TitanBot offers a complete suite of tools for Discord server management and comm
 
 ### 📹 Video Tutorial
 For a detailed step-by-step setup guide, watch our comprehensive video tutorial:
-[**TitanBot Setup Tutorial**](https://www.youtube.com/watch?v=YOUR_TUTORIAL_ID)
+[**TitanBot Setup Tutorial**](https://www.youtube.com/@TouchDisc)
+
+## ⚙️ Manual Installation Steps
 
 ### Prerequisites
 - Node.js 18.0.0 or higher
 - PostgreSQL server (recommended) or memory storage fallback
 - Discord bot application with proper intents
-
-### Installation Steps
 
 1. **Clone the Repository**
    ```bash
@@ -114,38 +114,24 @@ For a detailed step-by-step setup guide, watch our comprehensive video tutorial:
    ```bash
    cp .env.example .env
    ```
-   Edit `.env` with your configuration:
+   Edit `.env` with your configuration (only the following variables require configuration, leave remaining variables as default):
    ```env
    # Discord Bot Configuration
    DISCORD_TOKEN=your_discord_bot_token_here
    CLIENT_ID=your_discord_client_id_here
    GUILD_ID=your_discord_guild_id_here
 
-   # PostgreSQL Configuration (Recommended)
-   POSTGRES_URL=postgresql://titanbot:yourpassword@localhost:5432/titanbot
+   # PostgreSQL Configuration (Primary Database)
+   POSTGRES_URL=postgresql://postgres:yourpassword@localhost:5432/titanbot
    POSTGRES_HOST=localhost
    POSTGRES_PORT=5432
    POSTGRES_DB=titanbot
-   POSTGRES_USER=titanbot
+   POSTGRES_USER=postgres
    POSTGRES_PASSWORD=yourpassword
-   POSTGRES_SSL=false
-   # Optional trusted CA for TLS validation (recommended in production)
-   # POSTGRES_CA_CERT="-----BEGIN CERTIFICATE-----...-----END CERTIFICATE-----"
-   # POSTGRES_CA_CERT_PATH=/path/to/postgres-ca.pem
-
-   # Migration Settings
-   AUTO_MIGRATE=false
-   SCHEMA_VERSION=1
-   SCHEMA_VERSION_LABEL=baseline-v1
-
-   # Bot Configuration
-   NODE_ENV=production
-   LOG_LEVEL=warn
    ```
 
    Production note:
    - `NODE_ENV=production`
-   - `POSTGRES_SSL=true` (required in production; startup fails closed if disabled)
    - `LOG_LEVEL=warn` for a clean production console (critical issues + startup status)
    - `LOG_LEVEL=info` if you want more detailed operational logs
    - If your chosen `PORT` is already used, TitanBot automatically tries the next port(s)
@@ -155,7 +141,7 @@ For a detailed step-by-step setup guide, watch our comprehensive video tutorial:
    - `LOG_LEVEL`: `error`, `warn`, `info`, `http`, `verbose`, `debug`, `silly`
    - Accepted aliases for `LOG_LEVEL` in this bot: `warns`, `warning`, `warnings` → `warn`
 
-   Recommended production `.env` (easy mode):
+   Recommended production `.env` (easy mode + default mode):
    ```env
    NODE_ENV=production
    LOG_LEVEL=warn
@@ -229,7 +215,6 @@ TitanBot requires the following Discord intents:
 - Guild Message Reactions
 - Guild Voice States
 - Direct Messages
-- And more...
 
 ### Required Permissions
 - **Send Messages**
@@ -271,4 +256,4 @@ Thank you for choosing TitanBot for your Discord server! We're constantly workin
 
 ---
 
-*Last updated: January 2026*
+*Last updated: March 2026*
