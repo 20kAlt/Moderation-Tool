@@ -86,13 +86,13 @@ TitanBot offers a complete suite of tools for Discord server management and comm
 </td>
 </tr>
 </table>
-
+<a name="quick-setup"></a>
 ## 🚀 Quick Setup (recommend)
 
 ### 📹 Video Tutorial
 For a detailed step-by-step setup guide, watch our comprehensive video tutorial:
 [**TitanBot Setup Tutorial**](https://www.youtube.com/@TouchDisc)
-
+<a name="manual-installation-steps"></a>
 ## ⚙️ Manual Installation Steps
 
 ### Prerequisites
@@ -176,7 +176,7 @@ For a detailed step-by-step setup guide, watch our comprehensive video tutorial:
 - `npm run migrate` applies schema setup and records the expected schema version.
 - `npm run migrate:check` fails if the database schema version does not match the code's expected version.
 - `npm run migrate:status` prints current vs expected schema version metadata.
-
+<a name="database-system"></a>
 ## 🗄️ Database System
 
 TitanBot uses **PostgreSQL** as its primary database with intelligent fallback to memory storage:
@@ -196,7 +196,7 @@ TitanBot uses **PostgreSQL** as its primary database with intelligent fallback t
 - **Graceful Degradation**: Bot continues functioning without database
 - **Backward Compatibility**: Maintains existing API structure
 - **Zero Downtime**: Seamless switching between database and memory
-
+<a name="bot-architecture"></a>
 ## 🏗️ Bot Architecture
 
 ### Technology Stack
@@ -228,7 +228,7 @@ TitanBot requires the following Discord intents:
 - **Ban Members**
 - **Kick Members**
 - **Manage Messages**
-
+<a name="contributing"></a>
 ## 🤝 Contributing
 
 We welcome contributions to TitanBot! Here's how you can help:
