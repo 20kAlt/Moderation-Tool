@@ -9,7 +9,7 @@
 ## 📚 Table of Contents
 
 - [🌟 Features Overview](#features-overview)
-- [🚀 Quick Setup](#quick-setup-recommend)
+- [🚀 Quick Setup](#quick-setup)
 - [⚙️ Manual Installation Steps](#manual-installation-steps)
 - [🗄️ Database System](#database-system)
 - [🌐 Support Server](https://discord.gg/QnWNz2dKCE)
