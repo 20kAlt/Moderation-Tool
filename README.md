@@ -16,6 +16,7 @@
 - [🏗️ Bot Architecture](#bot-architecture)
 - [🤝 Contributing](#contributing)
 
+<a name="features-overview"></a>
 ## 🌟 Features Overview
 
 TitanBot offers a complete suite of tools for Discord server management and community engagement:
