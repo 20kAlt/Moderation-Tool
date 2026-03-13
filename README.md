@@ -211,25 +211,22 @@ TitanBot uses **PostgreSQL** as its primary database with intelligent fallback t
 
 ### Bot Intents
 TitanBot requires the following Discord intents:
-- Guilds
-- Guild Messages
-- Message Content
-- Guild Members
-- Guild Message Reactions
-- Guild Voice States
-- Direct Messages
+- Bot
+- Applications.commands
 
 ### Required Permissions
+- **View Channels**
 - **Send Messages**
 - **Embed Links**
 - **Attach Files**
 - **Read Message History**
+- **Manage Messages**
 - **Manage Channels**
 - **Manage Roles**
-- **Manage Nicknames**
-- **Ban Members**
 - **Kick Members**
-- **Manage Messages**
+- **Ban Members**
+- **Moderate Members**
+- **Connect**
 <a name="contributing"></a>
 ## 🤝 Contributing
 
