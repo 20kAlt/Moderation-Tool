@@ -231,7 +231,7 @@ TitanBot requires the following Discord intents:
 - **Ban Members**
 - **Moderate Members**
 - **Connect**
->>>>>>> main
+
 <a name="contributing"></a>
 ## 🤝 Contributing
 
