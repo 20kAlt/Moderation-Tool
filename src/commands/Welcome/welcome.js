@@ -67,7 +67,7 @@ export default {
             const ping = options.getBoolean('ping') ?? false;
 
             const existingConfig = await getWelcomeConfig(client, guild.id);
-            if (hasWelcomeSetup(existingConfig)) {
+            if (existingConfig?.channelId) {
                 logger.info(`[Welcome] Setup blocked because config already exists in channel ${existingConfig.channelId} for guild ${guild.id}`);
                 return await InteractionHelper.safeEditReply(interaction, {
                     embeds: [errorEmbed(
