@@ -160,9 +160,20 @@ export default {
                     .map((id) => `<@${id}>`)
                     .join(", ");
                 
-                await channel.send({
-                    content: `🔄 **GIVEAWAY REROLL** 🔄 New winners for **${giveaway.prize}**: ${winnerMentions}!`,
-                });
+                // Edit the original winner ping if it still exists, otherwise send a new one
+                const existingPingMsg = giveaway.winnerPingMessageId
+                    ? await channel.messages.fetch(giveaway.winnerPingMessageId).catch(() => null)
+                    : null;
+                if (existingPingMsg) {
+                    await existingPingMsg.edit({
+                        content: `🔄 **GIVEAWAY REROLL** 🔄 New winners for **${giveaway.prize}**: ${winnerMentions}!`,
+                    });
+                } else {
+                    const newPingMsg = await channel.send({
+                        content: `🔄 **GIVEAWAY REROLL** 🔄 New winners for **${giveaway.prize}**: ${winnerMentions}!`,
+                    });
+                    updatedGiveaway.winnerPingMessageId = newPingMsg.id;
+                }
 
                 logger.info(`Giveaway rerolled (message not found, but announced): ${messageId}`);
 
@@ -229,9 +240,20 @@ export default {
                 .map((id) => `<@${id}>`)
                 .join(", ");
             
-            await channel.send({
-                content: `🔄 **REROLL WINNERS** 🔄 CONGRATULATIONS ${winnerMentions}! You are the new winner(s) for the **${giveaway.prize}** giveaway! Please contact the host <@${giveaway.hostId}> to claim your prize.`,
-            });
+            // Edit the original winner ping if it still exists, otherwise send a new one
+            const existingPingMsg = giveaway.winnerPingMessageId
+                ? await channel.messages.fetch(giveaway.winnerPingMessageId).catch(() => null)
+                : null;
+            if (existingPingMsg) {
+                await existingPingMsg.edit({
+                    content: `🔄 **REROLL WINNERS** 🔄 CONGRATULATIONS ${winnerMentions}! You are the new winner(s) for the **${giveaway.prize}** giveaway! Please contact the host <@${giveaway.hostId}> to claim your prize.`,
+                });
+            } else {
+                const newPingMsg = await channel.send({
+                    content: `🔄 **REROLL WINNERS** 🔄 CONGRATULATIONS ${winnerMentions}! You are the new winner(s) for the **${giveaway.prize}** giveaway! Please contact the host <@${giveaway.hostId}> to claim your prize.`,
+                });
+                updatedGiveaway.winnerPingMessageId = newPingMsg.id;
+            }
 
             logger.info(`Giveaway successfully rerolled: ${messageId} with ${newWinners.length} new winners`);
 
