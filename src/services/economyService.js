@@ -208,10 +208,27 @@ class EconomyService {
     receiverData.wallet = receiverNext;
 
     try {
-      await Promise.all([
-        setEconomyData(client, guildId, senderId, senderData),
-        setEconomyData(client, guildId, receiverId, receiverData)
-      ]);
+      // Step 1: Deduct from sender
+      await setEconomyData(client, guildId, senderId, senderData);
+      
+      try {
+        // Step 2: Add to receiver
+        await setEconomyData(client, guildId, receiverId, receiverData);
+      } catch (receiverError) {
+        // ROLLBACK: Try to restore sender's money if receiver update fails
+        logger.error(`[ECONOMY_CRITICAL] Failed to credit receiver ${receiverId}. Attempting rollback for sender ${senderId}...`, receiverError);
+        
+        senderData.wallet = walletBefore;
+        try {
+          await setEconomyData(client, guildId, senderId, senderData);
+          logger.info(`[ECONOMY_ROLLBACK] Successfully rolled back sender ${senderId} after receiver credit failure.`);
+        } catch (rollbackError) {
+          logger.error(`[ECONOMY_FATAL] ROLLBACK FAILED for sender ${senderId}! Data is now inconsistent.`, rollbackError);
+          // At this point, manual intervention is needed.
+        }
+        
+        throw receiverError;
+      }
 
       logger.info(`[ECONOMY_TRANSACTION] Money transferred`, {
         type: 'transfer',

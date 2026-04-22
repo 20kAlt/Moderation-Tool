@@ -69,6 +69,20 @@ export function getLevelFromXp(xp) {
 
 
 
+/**
+ * Calculate the total XP required for a specific level and current XP
+ * @param {number} level - The target level
+ * @param {number} currentXp - Current XP progress towards next level
+ * @returns {number} Total accumulated XP
+ */
+export function calculateTotalXp(level, currentXp = 0) {
+  let total = currentXp;
+  for (let i = 0; i < level; i++) {
+    total += getXpForLevel(i);
+  }
+  return total;
+}
+
 export async function getLeaderboard(client, guildId, limit = 10) {
   try {
     
@@ -390,7 +404,7 @@ export async function addLevels(client, guildId, userId, levels) {
     }
 
     const newXp = 0;
-    const newTotalXp = userData.totalXp + (getXpForLevel(newLevel) - getXpForLevel(userData.level));
+    const newTotalXp = calculateTotalXp(newLevel, newXp);
 
     userData.level = newLevel;
     userData.xp = newXp;
@@ -443,7 +457,7 @@ export async function removeLevels(client, guildId, userId, levels) {
     const newLevel = Math.max(MIN_LEVEL, userData.level - levels);
 
     const newXp = 0;
-    const newTotalXp = getXpForLevel(newLevel) + newXp;
+    const newTotalXp = calculateTotalXp(newLevel, newXp);
 
     userData.level = newLevel;
     userData.xp = newXp;
@@ -495,7 +509,7 @@ export async function setUserLevel(client, guildId, userId, level) {
     const userData = await getUserLevelData(client, guildId, userId);
     
     const newXp = 0;
-    const newTotalXp = getXpForLevel(level) + newXp;
+    const newTotalXp = calculateTotalXp(level, newXp);
 
     userData.level = level;
     userData.xp = newXp;

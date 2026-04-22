@@ -74,7 +74,7 @@ export async function createTicket(guild, member, categoryId, reason = 'No reaso
     const config = await getGuildConfig(guild.client, guild.id);
     const ticketConfig = config.tickets || {};
     
-    const maxTicketsPerUser = config.maxTicketsPerUser || 3;
+    const maxTicketsPerUser = config.maxTicketsPerUser ?? 3;
     const currentTicketCount = await getUserTicketCount(guild.id, member.id);
     
     if (currentTicketCount >= maxTicketsPerUser) {
