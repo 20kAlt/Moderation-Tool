@@ -44,7 +44,7 @@ const CATEGORY_ICONS = {
 
 
 
-async function createInitialHelpMenu(client) {
+export async function createInitialHelpMenu(client) {
     const commandsPath = path.join(__dirname, "../../commands");
     const categoryDirs = (
         await fs.readdir(commandsPath, { withFileTypes: true })
