@@ -142,12 +142,10 @@ export const giveawayEndHandler = {
 
             
             if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
-                throw new TitanBotError(
-                    'User lacks ManageGuild permission',
-                    ErrorTypes.PERMISSION,
-                    "You need the 'Manage Server' permission to end a giveaway.",
-                    { userId: interaction.user.id, guildId: interaction.guildId }
-                );
+                return interaction.reply({
+                    embeds: [errorEmbed('Permission Denied', "You need the 'Manage Server' permission to end a giveaway.")],
+                    flags: MessageFlags.Ephemeral
+                });
             }
 
             const guildGiveaways = await getGuildGiveaways(client, interaction.guildId);
@@ -270,12 +268,10 @@ export const giveawayRerollHandler = {
 
             
             if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
-                throw new TitanBotError(
-                    'User lacks ManageGuild permission',
-                    ErrorTypes.PERMISSION,
-                    "You need the 'Manage Server' permission to reroll a giveaway.",
-                    { userId: interaction.user.id, guildId: interaction.guildId }
-                );
+                return interaction.reply({
+                    embeds: [errorEmbed('Permission Denied', "You need the 'Manage Server' permission to reroll a giveaway.")],
+                    flags: MessageFlags.Ephemeral
+                });
             }
 
             const guildGiveaways = await getGuildGiveaways(client, interaction.guildId);
