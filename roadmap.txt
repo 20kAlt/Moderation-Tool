@@ -146,3 +146,4 @@ Database Abstraction Layer
 Notes
 - This project is modular by feature area: commands -> handlers -> services -> utils
 - bot.js is the single source of truth for embed theming/colors and core bot config
+- We might not have everything done as mentioned in the roadmap.txt or some new features which is not mentioned in roadmap.txt
