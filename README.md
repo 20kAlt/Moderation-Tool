@@ -1,4 +1,4 @@
-# 🤖 TitanBot - Ultimate Discord Bot
+# TitanBot - Ultimate Discord Bot
 
 **TitanBot** is a powerful, feature-rich Discord bot designed to enhance your server experience with comprehensive moderation tools, engaging economy systems, utility features, and much more. Built with modern Discord.js v14 and PostgreSQL for optimal performance and data persistence.
 
@@ -6,18 +6,18 @@
 [![Discord.js](https://img.shields.io/npm/v/discord.js?style=flat-square&labelColor=%23202225&color=%23202225&logo=npm&logoColor=white&logoWidth=20)](https://www.npmjs.com/package/discord.js)
 ![PostgreSQL](https://img.shields.io/badge/-PostgreSQL-%23336791?logo=postgresql&logoColor=white&style=flat-square&logoWidth=20)
 
-## 📚 Table of Contents
+## Table of Contents
 
-- [🌟 Features Overview](#features-overview)
-- [🚀 Quick Setup](#quick-setup)
-- [⚙️ Manual Installation Steps](#manual-installation-steps)
-- [🗄️ Database System](#database-system)
-- [🌐 Support Server](https://discord.gg/QnWNz2dKCE)
-- [🏗️ Bot Architecture](#bot-architecture)
-- [🤝 Contributing](#contributing)
+- [Features Overview](#features-overview)
+- [Quick Setup](#quick-setup)
+- [Manual Installation Steps](#manual-installation-steps)
+- [Database System](#database-system)
+- [Support Server](https://discord.gg/QnWNz2dKCE)
+- [Required Bot Intents](#bot-intents)
+- [Contributing](#contributing)
 
 <a name="features-overview"></a>
-## 🌟 Features Overview
+## Features Overview
 
 TitanBot offers a complete suite of tools for Discord server management and community engagement:
 
@@ -25,32 +25,32 @@ TitanBot offers a complete suite of tools for Discord server management and comm
 <tr>
 <td width="50%" valign="top">
 
-### 🛡️ Moderation & Administration
+### Moderation & Administration
 - **Mass Actions** - Bulk ban/kick capabilities
 - **User Notes** - Keep detailed moderation records
 - **Case Management** - View and track all mod actions
 
-### 💰 Economy System
+### Economy System
 - **Shop & Inventory** - Buy and manage items
 - **Gambling** - Risk it for rewards
 - **Pay System** - Transfer money between users
 
-### 🎮 Fun & Entertainment
+### Fun & Entertainment
 - **Random Facts** - Learn something new
 - **Wanted Poster** - Create fun wanted images
 - **Text Reversal** - Reverse any text
 
-### 🎫 Advanced Ticket System
+### Advanced Ticket System
 - **Claim & Priority** - Staff ticket management
 - **Ticket Limits** - Prevent spam
 - **Transcript System** - Save ticket history
 
-### � Server Stats
+### Server Stats
 - **Member Counter** - Live member count channels
 - **Voice Counters** - Track voice stats
 - **Dynamic Updates** - Real-time channel updates
 
-### 🎭 Reaction Roles
+### Reaction Roles
 - **Role Assignment** - Self-assignable roles
 - **Emoji Selection** - Reaction-based system
 - **Multi-role Support** - Multiple role options
@@ -58,27 +58,27 @@ TitanBot offers a complete suite of tools for Discord server management and comm
 </td>
 <td width="50%" valign="top">
 
-### 📊 Leveling & XP System
+### Leveling & XP System
 - **XP Tracking** - Automatic message-based XP
 - **Level Roles** - Auto-assign roles by level
 - **Custom Configuration** - Personalize leveling
 
-### 🎉 Giveaways & Events
+### Giveaways & Events
 - **Multiple Winners** - Support multi-winner giveaways
 - **Auto Picking** - Automatic winner selection
 - **Reroll System** - Pick new winners if needed
 
-### 🎂 Birthday System
+### Birthday System
 - **Birthday Tracking** - Never miss a birthday
 - **Auto Announcements** - Celebrate automatically
 - **Timezone Support** - Accurate worldwide tracking
 
-### 🔧 Utility Tools
+### Utility Tools
 - **Report System** - Report issues to staff
 - **Todo Lists** - Personal task management
 - **First Message** - Jump to channel's first message
 
-### 👋 Welcome System
+### Welcome System
 - **Welcome Messages** - Greet new members
 - **Auto Roles** - Assign roles on join
 - **Custom Embeds** - Personalized messages
@@ -88,7 +88,7 @@ TitanBot offers a complete suite of tools for Discord server management and comm
 </table>
 
 <a name="quick-setup"></a>
-## 🚀 Quick Setup (Recommend for non-coders)
+## Quick Setup (Recommend for non-coders)
 
 ### 📹 Video Tutorial
 For a detailed step-by-step setup guide, watch our comprehensive video tutorial:
@@ -97,8 +97,6 @@ For a detailed step-by-step setup guide, watch our comprehensive video tutorial:
 ## 🐳 Docker Deployment (Recommended)
 
 TitanBot is fully containerized for easy deployment.
-
-### Using Docker Compose
 
 1. **Clone the repository:**
    ```bash
@@ -125,7 +123,7 @@ docker pull ghcr.io/codebymitch/titanbot:main
 ```
 
 <a name="manual-installation-steps"></a>
-## ⚙️ Manual Installation Steps
+## Manual Installation Steps
 
 ### Prerequisites
 - Node.js 18.0.0 or higher
@@ -204,7 +202,7 @@ docker pull ghcr.io/codebymitch/titanbot:main
    npm start
    ```
 <a name="database-system"></a>
-## 🗄️ Database System
+## Database System
 
 TitanBot uses **PostgreSQL** as its primary database with intelligent fallback to memory storage:
 
@@ -224,28 +222,19 @@ TitanBot uses **PostgreSQL** as its primary database with intelligent fallback t
 - **Backward Compatibility**: Maintains existing API structure
 - **Zero Downtime**: Seamless switching between database and memory
 
-<a name="bot-architecture"></a>
-## 🏗️ Bot Architecture
+<a name="bot-intents"></a>
 
-### Technology Stack
-- **Discord.js v14** - Modern Discord API wrapper
-- **Node.js 18+** - JavaScript runtime environment
-- **PostgreSQL** - High-performance relational database
-- **Express.js** - Web server for health checks
-- **Winston** - Advanced logging system
-- **Node-cron** - Scheduled task management
-
-### Bot Intents
+## Required Bot Intents
 TitanBot requires the following Discord intents:
-- Guilds
-- Guild Messages
-- Message Content
-- Guild Members
-- Guild Message Reactions
-- Guild Voice States
-- Direct Messages
-- Bot
-- Applications.commands
+- **Guilds**
+- **Guild Messages**
+- **Message Content**
+- **Guild Members**
+- **Guild Message Reactions**
+- **Guild Voice States**
+- **Direct Messages**
+- **Bot**
+- **Applications.commands**
 
 ### Required Permissions
 - **View Channels**
@@ -263,7 +252,7 @@ TitanBot requires the following Discord intents:
 - **Connect**
 
 <a name="contributing"></a>
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions to TitanBot! Here's how you can help:
 
@@ -279,14 +268,12 @@ We welcome contributions to TitanBot! Here's how you can help:
 - Include documentation for new features
 - Test with PostgreSQL and memory storage
 
-## 📜 License
+## License
 
 TitanBot is released under the MIT License. See [LICENSE](LICENSE) for details.
 
-## 💌 Thank You
+## Thank You
 
 Thank you for choosing TitanBot for your Discord server! We're constantly working to improve and add new features based on community feedback.
 
-**Made with ❤️**
-
-*Last updated: April 2026*
+*Last updated: May 2026*
