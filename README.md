@@ -88,7 +88,7 @@ TitanBot offers a complete suite of tools for Discord server management and comm
 </table>
 
 <a name="quick-setup"></a>
-## Quick Setup (Recommend for non-coders)
+## Quick Setup (Recommended for non-coders)
 
 ### 📹 Video Tutorial
 For a detailed step-by-step setup guide, watch our comprehensive video tutorial:
