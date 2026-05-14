@@ -11,7 +11,6 @@
 - [Features Overview](#features-overview)
 - [Quick Setup](#quick-setup)
 - [Manual Installation Steps](#manual-installation-steps)
-- [Database System](#database-system)
 - [Support Server](https://discord.gg/QnWNz2dKCE)
 - [Required Bot Intents](#bot-intents)
 - [Contributing](#contributing)
@@ -201,27 +200,6 @@ docker pull ghcr.io/codebymitch/titanbot:main
    ```bash
    npm start
    ```
-<a name="database-system"></a>
-## Database System
-
-TitanBot uses **PostgreSQL** as its primary database with intelligent fallback to memory storage:
-
-### PostgreSQL Features
-- **ACID Compliance**: Reliable transactions and data integrity
-- **High Performance**: Optimized queries and connection pooling
-- **Persistence**: Data survives bot restarts and crashes
-- **Complex Queries**: Advanced data analysis capabilities
-- **Scalability**: Better performance for large datasets
-- **TTL Support**: Automatic key expiration for temporary data
-- **Connection Management**: Automatic reconnection with exponential backoff
-- **Automatic Schema Creation**: Tables and indexes created on connection
-
-### Fallback System
-- **Memory Storage**: Automatic fallback when PostgreSQL is unavailable
-- **Graceful Degradation**: Bot continues functioning without database
-- **Backward Compatibility**: Maintains existing API structure
-- **Zero Downtime**: Seamless switching between database and memory
-
 <a name="bot-intents"></a>
 
 ## Required Bot Intents
