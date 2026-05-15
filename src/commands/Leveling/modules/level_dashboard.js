@@ -7,6 +7,8 @@ import {
     TextInputBuilder,
     TextInputStyle,
     ChannelSelectMenuBuilder,
+    RoleSelectMenuBuilder,
+    LabelBuilder,
     ButtonBuilder,
     ButtonStyle,
     ChannelType,
@@ -31,6 +33,12 @@ function buildDashboardEmbed(cfg, guild) {
     const rawMsg = cfg.levelUpMessage || '{user} has leveled up to level {level}!';
     const msgPreview = `\`${rawMsg.length > 60 ? rawMsg.substring(0, 60) + '…' : rawMsg}\``;
 
+    const rewards = cfg.roleRewards ?? {};
+    const rewardEntries = Object.entries(rewards).sort(([a], [b]) => Number(a) - Number(b));
+    const rewardsValue = rewardEntries.length > 0
+        ? rewardEntries.map(([lvl, roleId]) => `Level **${lvl}** → <@&${roleId}>`).join('\n')
+        : '`None configured`';
+
     return new EmbedBuilder()
         .setTitle('📊 Leveling System Dashboard')
         .setDescription(`Manage leveling settings for **${guild.name}**.\nSelect an option below to modify a setting.`)
@@ -43,6 +51,7 @@ function buildDashboardEmbed(cfg, guild) {
             { name: '⏱️ XP Cooldown', value: `\`${cooldown}s\``, inline: true },
             { name: '\u200B', value: '\u200B', inline: true },
             { name: '💬 Level-up Message', value: msgPreview, inline: false },
+            { name: '🏆 Role Rewards', value: rewardsValue, inline: false },
         )
         .setFooter({ text: 'Dashboard closes after 10 minutes of inactivity' })
         .setTimestamp();
@@ -73,6 +82,16 @@ function buildSelectMenu(guildId) {
                 .setDescription('Seconds between XP grants for the same user')
                 .setValue('xp_cooldown')
                 .setEmoji('⏱️'),
+            new StringSelectMenuOptionBuilder()
+                .setLabel('Add Role Reward')
+                .setDescription('Award a role when a user reaches a specific level')
+                .setValue('role_reward_add')
+                .setEmoji('🏆'),
+            new StringSelectMenuOptionBuilder()
+                .setLabel('Remove Role Reward')
+                .setDescription('Remove a role reward from a specific level')
+                .setValue('role_reward_remove')
+                .setEmoji('🗑️'),
         );
 }
 
@@ -154,6 +173,12 @@ export default {
                             break;
                         case 'xp_cooldown':
                             await handleXpCooldown(selectInteraction, interaction, cfg, guildId, client);
+                            break;
+                        case 'role_reward_add':
+                            await handleRoleRewardAdd(selectInteraction, interaction, cfg, guildId, client);
+                            break;
+                        case 'role_reward_remove':
+                            await handleRoleRewardRemove(selectInteraction, interaction, cfg, guildId, client);
                             break;
                     }
                 } catch (error) {
@@ -270,7 +295,146 @@ export default {
     },
 };
 
-// ─── Change Level-up Channel ──────────────────────────────────────────────────
+// ─── Add Role Reward ─────────────────────────────────────────────────────────
+
+async function handleRoleRewardAdd(selectInteraction, rootInteraction, cfg, guildId, client) {
+    const modal = new ModalBuilder()
+        .setCustomId(`level_cfg_role_reward_add_${guildId}`)
+        .setTitle('🏆 Add Role Reward');
+
+    const roleSelect = new RoleSelectMenuBuilder()
+        .setCustomId('reward_role')
+        .setPlaceholder('Select a role to award...')
+        .setMinValues(1)
+        .setMaxValues(1)
+        .setRequired(true);
+
+    const roleLabel = new LabelBuilder()
+        .setLabel('Role to Award')
+        .setDescription('This role will be given when the user reaches the level')
+        .setRoleSelectMenuComponent(roleSelect);
+
+    const levelInput = new TextInputBuilder()
+        .setCustomId('reward_level')
+        .setLabel('Level required (1–500)')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('10')
+        .setMaxLength(3)
+        .setMinLength(1)
+        .setRequired(true);
+
+    modal.addLabelComponents(roleLabel);
+    modal.addComponents(new ActionRowBuilder().addComponents(levelInput));
+
+    await selectInteraction.showModal(modal);
+
+    const submitted = await selectInteraction
+        .awaitModalSubmit({
+            filter: i => i.customId === `level_cfg_role_reward_add_${guildId}` && i.user.id === selectInteraction.user.id,
+            time: 120_000,
+        })
+        .catch(() => null);
+
+    if (!submitted) return;
+
+    const rawLevel = submitted.fields.getTextInputValue('reward_level').trim();
+    const level = parseInt(rawLevel, 10);
+
+    if (isNaN(level) || level < 1 || level > 500) {
+        await submitted.reply({
+            embeds: [errorEmbed('Invalid Level', 'Level must be a whole number between **1** and **500**.')],
+            flags: MessageFlags.Ephemeral,
+        });
+        return;
+    }
+
+    const roleId = submitted.fields.getField('reward_role').values[0];
+
+    cfg.roleRewards = cfg.roleRewards ?? {};
+    cfg.roleRewards[level] = roleId;
+    await saveLevelingConfig(client, guildId, cfg);
+
+    await submitted.reply({
+        embeds: [successEmbed('✅ Role Reward Added', `<@&${roleId}> will now be awarded at level **${level}**.`)],
+        flags: MessageFlags.Ephemeral,
+    });
+
+    await refreshDashboard(rootInteraction, cfg, guildId);
+}
+
+// ─── Remove Role Reward ───────────────────────────────────────────────────────
+
+async function handleRoleRewardRemove(selectInteraction, rootInteraction, cfg, guildId, client) {
+    const rewards = cfg.roleRewards ?? {};
+    const entries = Object.entries(rewards).sort(([a], [b]) => Number(a) - Number(b));
+
+    if (entries.length === 0) {
+        await selectInteraction.followUp({
+            embeds: [errorEmbed('No Rewards', 'There are no role rewards configured to remove.')],
+            flags: MessageFlags.Ephemeral,
+        });
+        return;
+    }
+
+    const modal = new ModalBuilder()
+        .setCustomId(`level_cfg_role_reward_remove_${guildId}`)
+        .setTitle('🗑️ Remove Role Reward');
+
+    const infoInput = new TextInputBuilder()
+        .setCustomId('current_rewards')
+        .setLabel('Current rewards (read-only)')
+        .setStyle(TextInputStyle.Paragraph)
+        .setValue(entries.map(([lvl, roleId]) => `Level ${lvl}: <@&${roleId}>`).join('\n'))
+        .setRequired(false);
+
+    const levelInput = new TextInputBuilder()
+        .setCustomId('remove_level')
+        .setLabel('Level to remove reward from')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder(entries[0][0])
+        .setMaxLength(3)
+        .setMinLength(1)
+        .setRequired(true);
+
+    modal.addComponents(
+        new ActionRowBuilder().addComponents(infoInput),
+        new ActionRowBuilder().addComponents(levelInput),
+    );
+
+    await selectInteraction.showModal(modal);
+
+    const submitted = await selectInteraction
+        .awaitModalSubmit({
+            filter: i => i.customId === `level_cfg_role_reward_remove_${guildId}` && i.user.id === selectInteraction.user.id,
+            time: 120_000,
+        })
+        .catch(() => null);
+
+    if (!submitted) return;
+
+    const rawLevel = submitted.fields.getTextInputValue('remove_level').trim();
+    const level = parseInt(rawLevel, 10);
+
+    if (isNaN(level) || !cfg.roleRewards?.[level]) {
+        await submitted.reply({
+            embeds: [errorEmbed('Not Found', `No role reward is configured for level **${rawLevel}**.`)],
+            flags: MessageFlags.Ephemeral,
+        });
+        return;
+    }
+
+    delete cfg.roleRewards[level];
+    await saveLevelingConfig(client, guildId, cfg);
+
+    await submitted.reply({
+        embeds: [successEmbed('✅ Role Reward Removed', `The role reward for level **${level}** has been removed.`)],
+        flags: MessageFlags.Ephemeral,
+    });
+
+    await refreshDashboard(rootInteraction, cfg, guildId);
+}
+
+// ─── Change Level-up Channel ─────────────────────────────────────────────────────────
 
 async function handleChannel(selectInteraction, rootInteraction, cfg, guildId, client) {
     await selectInteraction.deferUpdate();

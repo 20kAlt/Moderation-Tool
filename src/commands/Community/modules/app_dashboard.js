@@ -705,159 +705,128 @@ function buildApplicationSelectMenu(guildId, roleId) {
 // ─── Log Channel ──────────────────────────────────────────────────────────────
 
 async function handleLogChannel(selectInteraction, rootInteraction, settings, roles, guildId, client, selectedRoleId) {
-    const deferred = await safeDeferInteraction(selectInteraction);
-    if (!deferred) return;
-
-    const channelSelect = new ChannelSelectMenuBuilder()
-        .setCustomId('app_cfg_log_channel')
-        .setPlaceholder('Select a text channel...')
-        .addChannelTypes(ChannelType.GuildText)
-        .setMaxValues(1);
-
     let currentChannel = settings.logChannelId;
     if (selectedRoleId) {
         const roleSettings = await getApplicationRoleSettings(client, guildId, selectedRoleId);
         currentChannel = roleSettings.logChannelId || settings.logChannelId;
     }
 
-    await selectInteraction.followUp({
-        embeds: [
-            new EmbedBuilder()
-                .setTitle('📢 Log Channel')
-                .setDescription(
-                    `**Current:** ${currentChannel ? `<#${currentChannel}>` : '`Not set`'}\n\nSelect the channel where new application submissions will be logged.`,
-                )
-                .setColor(getColor('info')),
-        ],
-        components: [new ActionRowBuilder().addComponents(channelSelect)],
-        flags: MessageFlags.Ephemeral,
-    });
+    const modal = new ModalBuilder()
+        .setCustomId(`app_cfg_log_channel_modal_${guildId}_${selectedRoleId || 'global'}`)
+        .setTitle('📢 Configure Log Channel');
 
-    const chanCollector = rootInteraction.channel.createMessageComponentCollector({
-        componentType: ComponentType.ChannelSelect,
-        filter: i =>
-            i.user.id === selectInteraction.user.id && i.customId === 'app_cfg_log_channel',
-        time: 60_000,
-        max: 1,
-    });
+    const channelSelect = new ChannelSelectMenuBuilder()
+        .setCustomId('log_channel')
+        .setPlaceholder('Select a text channel...')
+        .setMinValues(1)
+        .setMaxValues(1)
+        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
+        .setRequired(true);
 
-    chanCollector.on('collect', async chanInteraction => {
-        const deferred = await safeDeferInteraction(chanInteraction);
-        if (!deferred) return;
-        
-        const channel = chanInteraction.channels.first();
+    const channelLabel = new LabelBuilder()
+        .setLabel('Log Channel')
+        .setDescription('Channel where new applications will be logged')
+        .setChannelSelectMenuComponent(channelSelect);
 
-        if (!channel.isTextBased()) {
-            await chanInteraction.followUp({
-                embeds: [errorEmbed('Invalid Channel', 'Please select a text channel.')],
-                flags: MessageFlags.Ephemeral,
-            });
-            return;
-        }
+    modal.addLabelComponents(channelLabel);
+
+    await selectInteraction.showModal(modal);
+
+    try {
+        const modalSubmission = await selectInteraction.awaitModalSubmit({
+            time: 5 * 60 * 1000,
+            filter: i => i.user.id === selectInteraction.user.id && i.customId === `app_cfg_log_channel_modal_${guildId}_${selectedRoleId || 'global'}`,
+        });
+
+        const channelId = modalSubmission.fields.getField('log_channel').values[0];
+        const channel = selectInteraction.guild.channels.cache.get(channelId);
 
         if (selectedRoleId) {
-            // Save per-application log channel
             const roleSettings = await getApplicationRoleSettings(client, guildId, selectedRoleId);
-            roleSettings.logChannelId = channel.id;
+            roleSettings.logChannelId = channelId;
             await saveApplicationRoleSettings(client, guildId, selectedRoleId, roleSettings);
         } else {
-            // Save global log channel
-            settings.logChannelId = channel.id;
+            settings.logChannelId = channelId;
             await saveApplicationSettings(client, guildId, settings);
         }
 
-        await chanInteraction.followUp({
-            embeds: [successEmbed('✅ Log Channel Updated', `Application submissions will now be logged in ${channel}.`)],
+        await modalSubmission.reply({
+            embeds: [successEmbed('✅ Log Channel Updated', `Application logs will now be sent to ${channel ?? `<#${channelId}>`}.`)],
             flags: MessageFlags.Ephemeral,
         });
 
         await refreshDashboard(rootInteraction, settings, roles, guildId);
-    });
-
-    chanCollector.on('end', (collected, reason) => {
-        if (reason === 'time' && collected.size === 0) {
-            selectInteraction.followUp({
-                embeds: [errorEmbed('Timed Out', 'No channel was selected. The setting was not changed.')],
-                flags: MessageFlags.Ephemeral,
-            }).catch(() => {});
-        }
-    });
+    } catch (error) {
+        if (error.code === 'INTERACTION_TIMEOUT') return;
+        logger.error('Error in log channel modal:', error);
+        await selectInteraction.followUp({
+            embeds: [errorEmbed('An error occurred while updating the log channel.')],
+            flags: MessageFlags.Ephemeral,
+        });
+    }
 }
 
 // ─── Manager Role ─────────────────────────────────────────────────────────────
 
 async function handleManagerRole(selectInteraction, rootInteraction, settings, roles, guildId, client) {
-    const deferred = await safeDeferInteraction(selectInteraction);
-    if (!deferred) return;
-
-    const currentRoles = settings.managerRoles ?? [];
-    const currentList =
-        currentRoles.length > 0 ? currentRoles.map(id => `<@&${id}>`).join(', ') : '`None`';
+    const modal = new ModalBuilder()
+        .setCustomId(`app_cfg_manager_role_modal_${guildId}`)
+        .setTitle('🛡️ Configure Manager Roles');
 
     const roleSelect = new RoleSelectMenuBuilder()
-        .setCustomId('app_cfg_manager_role')
-        .setPlaceholder('Select a role to add or remove...')
-        .setMaxValues(1);
+        .setCustomId('manager_roles')
+        .setPlaceholder('Select roles to grant manager access...')
+        .setMinValues(1)
+        .setMaxValues(5)
+        .setRequired(true);
 
-    await selectInteraction.followUp({
-        embeds: [
-            new EmbedBuilder()
-                .setTitle('🛡️ Manager Roles')
-                .setDescription(
-                    `**Current:** ${currentList}\n\nSelect a role to **toggle** it — selecting an existing manager role will remove it, selecting a new one will add it.`,
-                )
-                .setColor(getColor('info')),
-        ],
-        components: [new ActionRowBuilder().addComponents(roleSelect)],
-        flags: MessageFlags.Ephemeral,
-    });
+    const roleLabel = new LabelBuilder()
+        .setLabel('Manager Roles')
+        .setDescription('Selected roles will be toggled on/off as manager roles')
+        .setRoleSelectMenuComponent(roleSelect);
 
-    const roleCollector = rootInteraction.channel.createMessageComponentCollector({
-        componentType: ComponentType.RoleSelect,
-        filter: i =>
-            i.user.id === selectInteraction.user.id && i.customId === 'app_cfg_manager_role',
-        time: 60_000,
-        max: 1,
-    });
+    modal.addLabelComponents(roleLabel);
 
-    roleCollector.on('collect', async roleInteraction => {
-        const deferred = await safeDeferInteraction(roleInteraction);
-        if (!deferred) return;
-        
-        const role = roleInteraction.roles.first();
+    await selectInteraction.showModal(modal);
+
+    try {
+        const modalSubmission = await selectInteraction.awaitModalSubmit({
+            time: 5 * 60 * 1000,
+            filter: i => i.user.id === selectInteraction.user.id && i.customId === `app_cfg_manager_role_modal_${guildId}`,
+        });
+
+        const selectedRoleIds = modalSubmission.fields.getField('manager_roles').values;
         const roleSet = new Set(settings.managerRoles ?? []);
-        const wasPresent = roleSet.has(role.id);
 
-        if (wasPresent) {
-            roleSet.delete(role.id);
-        } else {
-            roleSet.add(role.id);
+        for (const roleId of selectedRoleIds) {
+            if (roleSet.has(roleId)) {
+                roleSet.delete(roleId);
+            } else {
+                roleSet.add(roleId);
+            }
         }
 
         settings.managerRoles = Array.from(roleSet);
         await saveApplicationSettings(client, guildId, settings);
 
-        await roleInteraction.followUp({
-            embeds: [
-                successEmbed(
-                    '✅ Manager Role Updated',
-                    `${role} has been **${wasPresent ? 'removed from' : 'added to'}** the manager roles list.`,
-                ),
-            ],
+        const finalList = settings.managerRoles.length > 0
+            ? settings.managerRoles.map(id => `<@&${id}>`).join(', ')
+            : '`None`';
+
+        await modalSubmission.reply({
+            embeds: [successEmbed('✅ Manager Roles Updated', `Current manager roles: ${finalList}`)],
             flags: MessageFlags.Ephemeral,
         });
 
         await refreshDashboard(rootInteraction, settings, roles, guildId);
-    });
-
-    roleCollector.on('end', (collected, reason) => {
-        if (reason === 'time' && collected.size === 0) {
-            selectInteraction.followUp({
-                embeds: [errorEmbed('Timed Out', 'No role was selected. The setting was not changed.')],
-                flags: MessageFlags.Ephemeral,
-            }).catch(() => {});
-        }
-    });
+    } catch (error) {
+        if (error.code === 'INTERACTION_TIMEOUT') return;
+        logger.error('Error in manager role modal:', error);
+        await selectInteraction.followUp({
+            embeds: [errorEmbed('An error occurred while updating manager roles.')],
+            flags: MessageFlags.Ephemeral,
+        });
+    }
 }
 
 // ─── Edit Questions ───────────────────────────────────────────────────────────
@@ -973,112 +942,74 @@ async function handleQuestions(selectInteraction, rootInteraction, settings, rol
 // ─── Add Application Role ─────────────────────────────────────────────────────
 
 async function handleRoleAdd(selectInteraction, rootInteraction, settings, roles, guildId, client) {
-    const deferred = await safeDeferInteraction(selectInteraction);
-    if (!deferred) return;
+    const modal = new ModalBuilder()
+        .setCustomId(`app_cfg_role_add_modal_${guildId}`)
+        .setTitle('➕ Add Application Role');
 
     const roleSelect = new RoleSelectMenuBuilder()
-        .setCustomId('app_cfg_role_add_pick')
-        .setPlaceholder('Select the Discord role to add...')
-        .setMaxValues(1);
+        .setCustomId('application_role')
+        .setPlaceholder('Select the role members can apply for...')
+        .setMinValues(1)
+        .setMaxValues(1)
+        .setRequired(true);
 
-    await selectInteraction.followUp({
-        embeds: [
-            new EmbedBuilder()
-                .setTitle('➕ Add Application Role')
-                .setDescription(
-                    'Select a role that members can apply for. You can optionally set a custom display name after selecting.',
-                )
-                .setColor(getColor('info')),
-        ],
-        components: [new ActionRowBuilder().addComponents(roleSelect)],
-        flags: MessageFlags.Ephemeral,
-    });
+    const roleLabel = new LabelBuilder()
+        .setLabel('Application Role')
+        .setDescription('Select the Discord role members will be applying for')
+        .setRoleSelectMenuComponent(roleSelect);
 
-    const roleCollector = rootInteraction.channel.createMessageComponentCollector({
-        componentType: ComponentType.RoleSelect,
-        filter: i =>
-            i.user.id === selectInteraction.user.id && i.customId === 'app_cfg_role_add_pick',
-        time: 60_000,
-        max: 1,
-    });
+    const nameInput = new TextInputBuilder()
+        .setCustomId('role_name')
+        .setLabel('Display name (leave blank to use role name)')
+        .setStyle(TextInputStyle.Short)
+        .setMaxLength(50)
+        .setRequired(false);
 
-    roleCollector.on('collect', async roleInteraction => {
-        const role = roleInteraction.roles.first();
+    modal.addLabelComponents(roleLabel);
+    modal.addComponents(new ActionRowBuilder().addComponents(nameInput));
 
-        // Check for duplicate
-        if (roles.some(r => r.roleId === role.id)) {
-            const deferred = await safeDeferInteraction(roleInteraction);
-            if (!deferred) return;
-            
-            await roleInteraction.followUp({
-                embeds: [errorEmbed('Already Added', `${role} is already an application role.`)],
+    await selectInteraction.showModal(modal);
+
+    try {
+        const modalSubmission = await selectInteraction.awaitModalSubmit({
+            time: 5 * 60 * 1000,
+            filter: i => i.user.id === selectInteraction.user.id && i.customId === `app_cfg_role_add_modal_${guildId}`,
+        });
+
+        const roleId = modalSubmission.fields.getField('application_role').values[0];
+        const role = selectInteraction.guild.roles.cache.get(roleId);
+        const customName = modalSubmission.fields.getTextInputValue('role_name').trim() || role?.name || roleId;
+
+        if (roles.some(r => r.roleId === roleId)) {
+            await modalSubmission.reply({
+                embeds: [errorEmbed('Already Added', `${role ?? roleId} is already an application role.`)],
                 flags: MessageFlags.Ephemeral,
             });
             return;
         }
 
-        // Show modal for optional custom name
-        const nameModal = new ModalBuilder()
-            .setCustomId('app_cfg_role_add_name')
-            .setTitle('Application Role Name')
-            .addComponents(
-                new ActionRowBuilder().addComponents(
-                    new TextInputBuilder()
-                        .setCustomId('role_name')
-                        .setLabel('Display name (leave blank to use role name)')
-                        .setStyle(TextInputStyle.Short)
-                        .setValue(role.name)
-                        .setMaxLength(50)
-                        .setRequired(false),
-                ),
-            );
-
-        await roleInteraction.showModal(nameModal);
-
-        const nameSubmit = await roleInteraction
-            .awaitModalSubmit({
-                filter: i =>
-                    i.customId === 'app_cfg_role_add_name' && i.user.id === roleInteraction.user.id,
-                time: 60_000,
-            })
-            .catch(() => null);
-
-        if (!nameSubmit) return;
-
-        const customName = nameSubmit.fields.getTextInputValue('role_name').trim() || role.name;
-
-        roles.push({ roleId: role.id, name: customName });
+        roles.push({ roleId, name: customName });
         await saveApplicationRoles(client, guildId, roles);
 
-        await nameSubmit.reply({
-            embeds: [
-                successEmbed(
-                    '✅ Role Added',
-                    `${role} has been added as an application role with name **${customName}**.`,
-                ),
-            ],
+        await modalSubmission.reply({
+            embeds: [successEmbed('✅ Role Added', `${role ?? roleId} added as **${customName}**.`)],
             flags: MessageFlags.Ephemeral,
         });
 
         await refreshDashboard(rootInteraction, settings, roles, guildId);
-    });
-
-    roleCollector.on('end', (collected, reason) => {
-        if (reason === 'time' && collected.size === 0) {
-            selectInteraction.followUp({
-                embeds: [errorEmbed('Timed Out', 'No role was selected. Nothing was added.')],
-                flags: MessageFlags.Ephemeral,
-            }).catch(() => {});
-        }
-    });
+    } catch (error) {
+        if (error.code === 'INTERACTION_TIMEOUT') return;
+        logger.error('Error in role add modal:', error);
+        await selectInteraction.followUp({
+            embeds: [errorEmbed('An error occurred while adding the application role.')],
+            flags: MessageFlags.Ephemeral,
+        });
+    }
 }
 
 // ─── Remove Application Role ──────────────────────────────────────────────────
 
 async function handleRoleRemove(selectInteraction, rootInteraction, settings, roles, guildId, client) {
-    const deferred = await safeDeferInteraction(selectInteraction);
-    if (!deferred) return;
-
     if (roles.length === 0) {
         await selectInteraction.followUp({
             embeds: [errorEmbed('No Roles', 'There are no application roles configured to remove.')],
@@ -1087,42 +1018,38 @@ async function handleRoleRemove(selectInteraction, rootInteraction, settings, ro
         return;
     }
 
+    const modal = new ModalBuilder()
+        .setCustomId(`app_cfg_role_remove_modal_${guildId}`)
+        .setTitle('➖ Remove Application Role');
+
     const roleSelect = new RoleSelectMenuBuilder()
-        .setCustomId('app_cfg_role_remove_pick')
+        .setCustomId('remove_role')
         .setPlaceholder('Select the role to remove...')
-        .setMaxValues(1);
+        .setMinValues(1)
+        .setMaxValues(1)
+        .setRequired(true);
 
-    await selectInteraction.followUp({
-        embeds: [
-            new EmbedBuilder()
-                .setTitle('➖ Remove Application Role')
-                .setDescription(
-                    `**Current roles:** ${roles.map(r => `<@&${r.roleId}> (${r.name})`).join(', ')}\n\nSelect the role to remove from the applications list.`,
-                )
-                .setColor(getColor('info')),
-        ],
-        components: [new ActionRowBuilder().addComponents(roleSelect)],
-        flags: MessageFlags.Ephemeral,
-    });
+    const roleLabel = new LabelBuilder()
+        .setLabel('Remove Application Role')
+        .setDescription('Select the role to remove from the applications list')
+        .setRoleSelectMenuComponent(roleSelect);
 
-    const roleCollector = rootInteraction.channel.createMessageComponentCollector({
-        componentType: ComponentType.RoleSelect,
-        filter: i =>
-            i.user.id === selectInteraction.user.id && i.customId === 'app_cfg_role_remove_pick',
-        time: 60_000,
-        max: 1,
-    });
+    modal.addLabelComponents(roleLabel);
 
-    roleCollector.on('collect', async roleInteraction => {
-        const deferred = await safeDeferInteraction(roleInteraction);
-        if (!deferred) return;
-        
-        const role = roleInteraction.roles.first();
-        const index = roles.findIndex(r => r.roleId === role.id);
+    await selectInteraction.showModal(modal);
+
+    try {
+        const modalSubmission = await selectInteraction.awaitModalSubmit({
+            time: 5 * 60 * 1000,
+            filter: i => i.user.id === selectInteraction.user.id && i.customId === `app_cfg_role_remove_modal_${guildId}`,
+        });
+
+        const roleId = modalSubmission.fields.getField('remove_role').values[0];
+        const index = roles.findIndex(r => r.roleId === roleId);
 
         if (index === -1) {
-            await roleInteraction.followUp({
-                embeds: [errorEmbed('Not Found', `${role} is not in the application roles list.`)],
+            await modalSubmission.reply({
+                embeds: [errorEmbed('Not Found', `<@&${roleId}> is not in the application roles list.`)],
                 flags: MessageFlags.Ephemeral,
             });
             return;
@@ -1131,22 +1058,20 @@ async function handleRoleRemove(selectInteraction, rootInteraction, settings, ro
         roles.splice(index, 1);
         await saveApplicationRoles(client, guildId, roles);
 
-        await roleInteraction.followUp({
-            embeds: [successEmbed('✅ Role Removed', `${role} has been removed from the application roles.`)],
+        await modalSubmission.reply({
+            embeds: [successEmbed('✅ Role Removed', `<@&${roleId}> has been removed from the application roles.`)],
             flags: MessageFlags.Ephemeral,
         });
 
         await refreshDashboard(rootInteraction, settings, roles, guildId);
-    });
-
-    roleCollector.on('end', (collected, reason) => {
-        if (reason === 'time' && collected.size === 0) {
-            selectInteraction.followUp({
-                embeds: [errorEmbed('Timed Out', 'No role was selected. Nothing was removed.')],
-                flags: MessageFlags.Ephemeral,
-            }).catch(() => {});
-        }
-    });
+    } catch (error) {
+        if (error.code === 'INTERACTION_TIMEOUT') return;
+        logger.error('Error in role remove modal:', error);
+        await selectInteraction.followUp({
+            embeds: [errorEmbed('An error occurred while removing the application role.')],
+            flags: MessageFlags.Ephemeral,
+        });
+    }
 }
 
 // ─── Retention Period ─────────────────────────────────────────────────────────
