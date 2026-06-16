@@ -1,9 +1,7 @@
+// messageTemplates.js
+
 import { EmbedBuilder } from 'discord.js';
 import { getColor } from '../config/bot.js';
-
-
-
-
 
 export const MessageTemplates = {
     SUCCESS: {
@@ -70,6 +68,3 @@ export const ContextualMessages = {
 };
 
 export default MessageTemplates;
-
-
-

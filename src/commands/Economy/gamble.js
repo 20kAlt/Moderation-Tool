@@ -64,7 +64,6 @@ export default {
             let usedClover = false;
             let usedCharm = false;
 
-            
             if (cloverCount > 0) {
                 winChance += CLOVER_WIN_BONUS;
                 userData.inventory["lucky_clover"] -= 1;
@@ -108,7 +107,7 @@ userData.lastGamble = now;
             const newCash = userData.wallet;
 
             resultEmbed.addFields({
-                name: "💵 New Cash Balance",
+                name: "New Cash Balance",
                 value: `$${newCash.toLocaleString()}`,
                 inline: true,
             });
@@ -130,7 +129,3 @@ userData.lastGamble = now;
             await InteractionHelper.safeEditReply(interaction, { embeds: [resultEmbed] });
     }, { command: 'gamble' })
 };
-
-
-
-

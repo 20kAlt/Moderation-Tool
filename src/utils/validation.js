@@ -1,16 +1,6 @@
-
-
-
-
+// validation.js
 
 import { logger } from './logger.js';
-
-
-
-
-
-
-
 
 export function validateString(value, fieldName = 'string', maxLength = 2000) {
   if (typeof value !== 'string') {
@@ -31,12 +21,6 @@ export function validateString(value, fieldName = 'string', maxLength = 2000) {
   return value;
 }
 
-
-
-
-
-
-
 export function validateNumber(value, fieldName = 'number') {
   if (typeof value !== 'number' || isNaN(value)) {
     logger.warn(`[VALIDATION] ${fieldName} must be a valid number, got ${value}`);
@@ -51,19 +35,12 @@ export function validateNumber(value, fieldName = 'number') {
   return value;
 }
 
-
-
-
-
-
-
 export function validateDiscordId(value, fieldName = 'ID') {
   if (typeof value !== 'string') {
     logger.warn(`[VALIDATION] ${fieldName} must be a string`);
     return null;
   }
-  
-  
+
   if (!/^\d{18,20}$/.test(value)) {
     logger.warn(`[VALIDATION] Invalid ${fieldName} format`);
     return null;
@@ -71,12 +48,6 @@ export function validateDiscordId(value, fieldName = 'ID') {
   
   return value;
 }
-
-
-
-
-
-
 
 export function validateCustomId(value, fieldName = 'customId') {
   if (typeof value !== 'string' || value.length === 0) {
@@ -97,13 +68,6 @@ export function validateCustomId(value, fieldName = 'customId') {
   return value;
 }
 
-
-
-
-
-
-
-
 export function validateRequiredProps(obj, requiredProps, objName = 'object') {
   if (!obj || typeof obj !== 'object') {
     logger.warn(`[VALIDATION] ${objName} must be an object`);
@@ -120,12 +84,6 @@ export function validateRequiredProps(obj, requiredProps, objName = 'object') {
   return true;
 }
 
-
-
-
-
-
-
 export function validateUrl(value, fieldName = 'URL') {
   if (typeof value !== 'string' || value.length === 0) {
     logger.warn(`[VALIDATION] ${fieldName} must be a non-empty string`);
@@ -141,14 +99,6 @@ export function validateUrl(value, fieldName = 'URL') {
   }
 }
 
-
-
-
-
-
-
-
-
 export function validateRange(value, min, max, fieldName = 'value') {
   if (typeof value !== 'number' || isNaN(value)) {
     logger.warn(`[VALIDATION] ${fieldName} must be a number`);
@@ -162,13 +112,6 @@ export function validateRange(value, min, max, fieldName = 'value') {
   
   return value;
 }
-
-
-
-
-
-
-
 
 export function validateEnum(value, allowedValues, fieldName = 'value') {
   if (!allowedValues.includes(value)) {

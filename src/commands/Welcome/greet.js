@@ -6,6 +6,7 @@ import { handleInteractionError, TitanBotError } from '../../utils/errorHandler.
 import greetDashboard from './modules/greet_dashboard.js';
 
 export default {
+    slashOnly: true,
     data: new SlashCommandBuilder()
         .setName('greet')
         .setDescription('Manage welcome & goodbye settings')

@@ -36,7 +36,7 @@ export default {
                 };
                 await setGuildConfig(client, guildId, currentConfig);
                 return InteractionHelper.safeEditReply(interaction, {
-                    embeds: [successEmbed('Logging Disabled 🚫', 'Audit logging has been disabled for this server.')],
+                    embeds: [successEmbed('Logging Disabled', 'Audit logging has been disabled for this server.')],
                 });
             }
 
@@ -58,7 +58,7 @@ export default {
                 await setGuildConfig(client, guildId, currentConfig);
 
                 await InteractionHelper.safeEditReply(interaction, {
-                    embeds: [successEmbed('Log Channel Set 📝', `Audit logs will be sent to ${logChannel}.`)],
+                    embeds: [successEmbed('Log Channel Set', `Audit logs will be sent to ${logChannel}.`)],
                 });
 
                 await logEvent({

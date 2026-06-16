@@ -86,7 +86,6 @@ const warningClearAllHandler = {
   }
 };
 
-
 export {
   warningDeleteSpecificHandler,
   warningClearAllHandler

@@ -1,3 +1,5 @@
+// logger.js
+
 import winston from 'winston';
 import 'winston-daily-rotate-file';
 import path from 'path';
@@ -220,5 +222,3 @@ function shutdownLog(message) {
 export { logger, startupLog, shutdownLog };
 
 export default logger;
-
-

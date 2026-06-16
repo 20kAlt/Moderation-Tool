@@ -1,8 +1,4 @@
-
-
-
-
-
+// joinToCreateService.js
 
 import {
     getJoinToCreateConfig,
@@ -30,12 +26,6 @@ const ALLOWED_TEMPLATE_PLACEHOLDERS = new Set([
     '{channel_name}'
 ]);
 
-
-
-
-
-
-
 export function validateChannelNameTemplate(template) {
     if (!template || typeof template !== 'string') {
         throw new TitanBotError(
@@ -45,7 +35,6 @@ export function validateChannelNameTemplate(template) {
         );
     }
 
-    // Remove only control characters, keep emojis and punctuation for templates
     const normalizedTemplate = template.normalize('NFKC').replace(CONTROL_AND_INVISIBLE_CHARS_REGEX, '').trim();
 
     if (normalizedTemplate.length > CHANNEL_NAME_MAX_LENGTH) {
@@ -56,7 +45,6 @@ export function validateChannelNameTemplate(template) {
         );
     }
 
-    // Check for Discord-forbidden channel name characters (only @#: and backticks are problematic)
     if (/[@#:`]/.test(normalizedTemplate)) {
         throw new TitanBotError(
             'Channel template contains forbidden characters',
@@ -78,12 +66,6 @@ export function validateChannelNameTemplate(template) {
 
     return true;
 }
-
-
-
-
-
-
 
 export function validateBitrate(bitrate) {
     const bitrateNum = parseInt(bitrate);
@@ -107,12 +89,6 @@ export function validateBitrate(bitrate) {
     return true;
 }
 
-
-
-
-
-
-
 export function validateUserLimit(limit) {
     const limitNum = parseInt(limit);
 
@@ -135,13 +111,6 @@ export function validateUserLimit(limit) {
     return true;
 }
 
-
-
-
-
-
-
-
 export function formatChannelName(template, variables) {
     try {
         const safeTemplate = template.normalize('NFKC').replace(CONTROL_AND_INVISIBLE_CHARS_REGEX, '').trim();
@@ -154,17 +123,16 @@ export function formatChannelName(template, variables) {
             );
         }
 
-        // Sanitize each variable to prevent injection and ensure Discord compatibility
         const sanitized = {};
         for (const [key, value] of Object.entries(variables)) {
             if (value === null || value === undefined) {
                 sanitized[key] = 'Unknown';
             } else {
-                // Remove dangerous and Discord-incompatible characters
+                
                 sanitized[key] = String(value)
                     .normalize('NFKC')
                     .replace(CONTROL_AND_INVISIBLE_CHARS_REGEX, '')
-                    .replace(/[@#:`\n\r\t]/g, '') // Remove Discord-forbidden chars
+                    .replace(/[@#:`\n\r\t]/g, '') 
                     .trim()
                     .substring(0, CHANNEL_VARIABLE_MAX_LENGTH);
             }
@@ -186,16 +154,13 @@ export function formatChannelName(template, variables) {
             formatted = formatted.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), value);
         }
 
-        // Final sanitization: preserve emojis but remove Discord-forbidden characters
-        // Discord allows emojis but not @#:` and control characters
         formatted = formatted
             .normalize('NFKC')
             .replace(CONTROL_AND_INVISIBLE_CHARS_REGEX, '')
-            .replace(/[@#:`\n\r\t]/g, '') // Remove only Discord-forbidden chars, keep emojis
+            .replace(/[@#:`\n\r\t]/g, '') 
             .replace(/\s+/g, ' ')
             .trim();
 
-        
         if (formatted.length === 0) {
             formatted = 'Voice Channel';
         } else if (formatted.length > CHANNEL_NAME_MAX_LENGTH) {
@@ -210,14 +175,6 @@ export function formatChannelName(template, variables) {
         throw error;
     }
 }
-
-
-
-
-
-
-
-
 
 export async function initializeJoinToCreate(client, guildId, channelId, options = {}) {
     try {
@@ -237,7 +194,6 @@ export async function initializeJoinToCreate(client, guildId, channelId, options
             );
         }
 
-        
         if (options.nameTemplate) {
             validateChannelNameTemplate(options.nameTemplate);
         }
@@ -288,7 +244,14 @@ export async function initializeJoinToCreate(client, guildId, channelId, options
             };
         }
 
-        await saveJoinToCreateConfig(client, guildId, config);
+        const saveResult = await saveJoinToCreateConfig(client, guildId, config);
+        if (!saveResult) {
+            throw new TitanBotError(
+                'Failed to save Join to Create configuration',
+                ErrorTypes.DATABASE,
+                'Failed to set up Join to Create system. Please try again.'
+            );
+        }
 
         logger.info(`Initialized Join to Create for guild ${guildId} with trigger channel ${channelId}`);
 
@@ -305,14 +268,6 @@ export async function initializeJoinToCreate(client, guildId, channelId, options
         );
     }
 }
-
-
-
-
-
-
-
-
 
 export async function updateChannelConfig(client, guildId, channelId, updates) {
     try {
@@ -334,7 +289,6 @@ export async function updateChannelConfig(client, guildId, channelId, updates) {
             );
         }
 
-        
         if (updates.nameTemplate) {
             validateChannelNameTemplate(updates.nameTemplate);
         }
@@ -375,13 +329,6 @@ export async function updateChannelConfig(client, guildId, channelId, updates) {
     }
 }
 
-
-
-
-
-
-
-
 export async function removeTriggerChannel(client, guildId, channelId) {
     try {
         if (!client || !client.db) {
@@ -410,7 +357,6 @@ export async function removeTriggerChannel(client, guildId, channelId) {
             delete config.channelOptions[channelId];
         }
 
-        
         if (config.temporaryChannels) {
             for (const [tempChannelId, tempInfo] of Object.entries(config.temporaryChannels)) {
                 if (tempInfo.triggerChannelId === channelId) {
@@ -437,13 +383,6 @@ export async function removeTriggerChannel(client, guildId, channelId) {
     }
 }
 
-
-
-
-
-
-
-
 export async function getConfiguration(client, guildId) {
     try {
         if (!client || !client.db) {
@@ -468,13 +407,6 @@ export async function getConfiguration(client, guildId) {
     }
 }
 
-
-
-
-
-
-
-
 export async function isTriggerChannel(client, guildId, channelId) {
     try {
         const config = await getConfiguration(client, guildId);
@@ -484,14 +416,6 @@ export async function isTriggerChannel(client, guildId, channelId) {
         return false;
     }
 }
-
-
-
-
-
-
-
-
 
 export async function getChannelConfiguration(client, guildId, channelId) {
     try {
@@ -522,11 +446,6 @@ export async function getChannelConfiguration(client, guildId, channelId) {
     }
 }
 
-
-
-
-
-
 export function hasManageGuildPermission(member) {
     try {
         if (!member || !member.permissions) {
@@ -538,14 +457,6 @@ export function hasManageGuildPermission(member) {
         return false;
     }
 }
-
-
-
-
-
-
-
-
 
 export async function logConfigurationChange(client, guildId, userId, action, details) {
     try {
@@ -566,14 +477,6 @@ export async function logConfigurationChange(client, guildId, userId, action, de
     }
 }
 
-
-
-
-
-
-
-
-
 export async function createTemporaryChannel(guild, member, options = {}) {
     try {
         if (!guild || !member) {
@@ -590,7 +493,6 @@ export async function createTemporaryChannel(guild, member, options = {}) {
             parentId
         } = options;
 
-        
         if (nameTemplate) {
             validateChannelNameTemplate(nameTemplate);
         }
@@ -601,7 +503,6 @@ export async function createTemporaryChannel(guild, member, options = {}) {
             validateBitrate(bitrate / 1000);
         }
 
-        
         const channelName = formatChannelName(nameTemplate || '{username}\'s Room', {
             username: member.user.username,
             displayName: member.displayName,
@@ -609,7 +510,6 @@ export async function createTemporaryChannel(guild, member, options = {}) {
             guildName: guild.name
         });
 
-        
         const tempChannel = await guild.channels.create({
             name: channelName,
             type: ChannelType.GuildVoice,

@@ -4,17 +4,11 @@ import { createEmbed, errorEmbed } from '../../../utils/embeds.js';
 import { getServerCounters, saveServerCounters, getCounterEmoji, getCounterTypeLabel } from '../../../services/serverstatsService.js';
 import { logger } from '../../../utils/logger.js';
 
-
-
-
-
-
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
 export async function handleDelete(interaction, client) {
     const guild = interaction.guild;
     const counterId = interaction.options.getString("counter-id");
-    
-    // Defer reply immediately to ensure interaction is acknowledged
+
     try {
         await InteractionHelper.safeDefer(interaction);
     } catch (error) {
@@ -22,10 +16,9 @@ export async function handleDelete(interaction, client) {
         return;
     }
 
-    // Check permissions after deferring
     if (!interaction.member.permissions.has(PermissionFlagsBits.ManageChannels)) {
         await InteractionHelper.safeEditReply(interaction, { 
-            embeds: [errorEmbed("You need **Manage Channels** permission to delete counters.")]
+            embeds: [errorEmbed('You need **Manage Channels** permission to delete counters.')]
         }).catch(logger.error);
         return;
     }
@@ -35,7 +28,7 @@ export async function handleDelete(interaction, client) {
 
         if (counters.length === 0) {
             await InteractionHelper.safeEditReply(interaction, {
-                embeds: [errorEmbed("No counters found to delete.")]
+                embeds: [errorEmbed('No counters found to delete.')]
             }).catch(logger.error);
             return;
         }
@@ -51,8 +44,8 @@ export async function handleDelete(interaction, client) {
         const channel = guild.channels.cache.get(counterToDelete.channelId);
 
         const embed = createEmbed({
-            title: "⚠️ Delete Counter & Channel",
-            description: `Are you sure you want to delete this counter and its channel?\n\n**ID:** \`${counterToDelete.id}\`\n**Type:** ${getCounterTypeDisplay(counterToDelete.type)}\n**Channel:** ${channel || 'Deleted Channel'}\n\n⚠️ **The channel will be permanently deleted!**`,
+            title: "Delete Counter & Channel",
+            description: `Are you sure you want to delete this counter and its channel?\n\n**ID:** \`${counterToDelete.id}\`\n**Type:** ${getCounterTypeDisplay(counterToDelete.type)}\n**Channel:** ${channel || 'Deleted Channel'}\n\n **The channel will be permanently deleted!**`,
             color: getColor('error')
         });
 
@@ -72,16 +65,10 @@ export async function handleDelete(interaction, client) {
     } catch (error) {
         logger.error("Error in handleDelete:", error);
         await InteractionHelper.safeEditReply(interaction, {
-            embeds: [errorEmbed("An error occurred while fetching counters. Please try again.")]
+            embeds: [errorEmbed('An error occurred while fetching counters. Please try again.')]
         }).catch(logger.error);
     }
 }
-
-
-
-
-
-
 
 export async function performDeletionByCounterId(client, guild, counterId) {
     try {
@@ -141,14 +128,6 @@ export async function performDeletionByCounterId(client, guild, counterId) {
     }
 }
 
-
-
-
-
-
 function getCounterTypeDisplay(type) {
     return `${getCounterEmoji(type)} ${getCounterTypeLabel(type)}`;
 }
-
-
-

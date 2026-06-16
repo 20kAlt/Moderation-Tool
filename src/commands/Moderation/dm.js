@@ -60,7 +60,6 @@ export default {
                 });
             }
 
-            
             if (targetUser.bot) {
                 return await InteractionHelper.safeEditReply(interaction, {
                     embeds: [
@@ -73,7 +72,6 @@ export default {
                 });
             }
 
-            
             const sanitized = sanitizeMarkdown(message);
 
             const dmChannel = await targetUser.createDM();
@@ -120,18 +118,16 @@ export default {
 if (error.code === 50007) {
                 return await InteractionHelper.safeEditReply(interaction, {
                     embeds: [
-                        errorEmbed("Error", `Could not send a DM to ${targetUser.tag}. They may have DMs disabled.`),
+                        errorEmbed('Error', `Could not send a DM to ${targetUser.tag}. They may have DMs disabled.`),
                     ],
                 });
             }
             
             return await InteractionHelper.safeEditReply(interaction, {
                 embeds: [
-                    errorEmbed("Error", `Failed to send DM: ${error.message}`),
+                    errorEmbed('Error', `Failed to send DM: ${error.message}`),
                 ],
             });
         }
     }
 };
-
-

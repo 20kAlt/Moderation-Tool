@@ -35,7 +35,7 @@ export default {
 
         try {
             const reportEmbed = createEmbed({
-                title: `🚨 NEW USER REPORT: ${targetUser.tag}`,
+                title: `NEW USER REPORT: ${targetUser.tag}`,
                 description: `**Reported By:** ${interaction.user.tag} (\`${interaction.user.id}\`)\n**Reported User:** ${targetUser.tag} (\`${targetUser.id}\`)`,
             })
                 .setColor(getColor('error'))
@@ -52,7 +52,7 @@ export default {
             });
 
             await InteractionHelper.safeEditReply(interaction, {
-                embeds: [createEmbed({ title: '✅ Report Submitted', description: `Your report against **${targetUser.tag}** has been successfully filed and sent to the moderation team. Thank you!` })],
+                embeds: [createEmbed({ title: 'Report Submitted', description: `Your report against **${targetUser.tag}** has been successfully filed and sent to the moderation team. Thank you!` })],
             });
 
             logger.info('Report submitted', {

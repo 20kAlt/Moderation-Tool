@@ -17,9 +17,6 @@ import {
 } from '../services/giveawayService.js';
 import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 
-
-
-
 export const giveawayJoinHandler = {
     customId: 'giveaway_join',
     async execute(interaction, client) {
@@ -53,7 +50,6 @@ export const giveawayJoinHandler = {
                     );
                 }
 
-                // Double check end status inside lock
                 const endedByTime = isGiveawayEnded(giveaway);
                 const endedByFlag = giveaway.ended || giveaway.isEnded;
 
@@ -72,7 +68,6 @@ export const giveawayJoinHandler = {
                 const participants = giveaway.participants || [];
                 const userId = interaction.user.id;
 
-                // Check if user already joined
                 if (participants.includes(userId)) {
                     return interaction.reply({
                         embeds: [
@@ -85,7 +80,6 @@ export const giveawayJoinHandler = {
                     });
                 }
 
-                // Atomically update participants
                 participants.push(userId);
                 giveaway.participants = participants;
 
@@ -93,7 +87,6 @@ export const giveawayJoinHandler = {
 
                 logger.debug(`User ${interaction.user.tag} joined giveaway ${interaction.message.id}`);
 
-                // Send response
                 const updatedEmbed = createGiveawayEmbed(giveaway, 'active');
                 const updatedRow = createGiveawayButtons(false);
 
@@ -123,9 +116,6 @@ export const giveawayJoinHandler = {
     }
 };
 
-
-
-
 export const giveawayEndHandler = {
     customId: 'giveaway_end',
     async execute(interaction, client) {
@@ -140,7 +130,6 @@ export const giveawayEndHandler = {
                 );
             }
 
-            
             if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
                 return interaction.reply({
                     embeds: [errorEmbed('Permission Denied', "You need the 'Manage Server' permission to end a giveaway.")],
@@ -172,7 +161,6 @@ export const giveawayEndHandler = {
             const participants = giveaway.participants || [];
             const winners = selectWinners(participants, giveaway.winnerCount);
 
-            
             giveaway.ended = true;
             giveaway.isEnded = true;
             giveaway.winnerIds = winners;
@@ -183,7 +171,6 @@ export const giveawayEndHandler = {
 
             logger.info(`Giveaway ended via button by ${interaction.user.tag}: ${interaction.message.id}`);
 
-            
             const updatedEmbed = createGiveawayEmbed(giveaway, 'ended', winners);
             const updatedRow = createGiveawayButtons(true);
 
@@ -193,7 +180,6 @@ export const giveawayEndHandler = {
                 components: [updatedRow]
             });
 
-            
             try {
                 await logEvent({
                     client,
@@ -249,9 +235,6 @@ export const giveawayEndHandler = {
     }
 };
 
-
-
-
 export const giveawayRerollHandler = {
     customId: 'giveaway_reroll',
     async execute(interaction, client) {
@@ -266,7 +249,6 @@ export const giveawayRerollHandler = {
                 );
             }
 
-            
             if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
                 return interaction.reply({
                     embeds: [errorEmbed('Permission Denied', "You need the 'Manage Server' permission to reroll a giveaway.")],
@@ -308,7 +290,6 @@ export const giveawayRerollHandler = {
 
             const newWinners = selectWinners(participants, giveaway.winnerCount);
 
-            
             giveaway.winnerIds = newWinners;
             giveaway.rerolledAt = new Date().toISOString();
             giveaway.rerolledBy = interaction.user.id;
@@ -317,7 +298,6 @@ export const giveawayRerollHandler = {
 
             logger.info(`Giveaway rerolled via button by ${interaction.user.tag}: ${interaction.message.id}`);
 
-            
             const updatedEmbed = createGiveawayEmbed(giveaway, 'reroll', newWinners);
             const updatedRow = createGiveawayButtons(true);
 
@@ -327,7 +307,6 @@ export const giveawayRerollHandler = {
                 components: [updatedRow]
             });
 
-            
             try {
                 await logEvent({
                     client,
@@ -442,6 +421,3 @@ export const giveawayViewHandler = {
         }
     }
 };
-
-
-

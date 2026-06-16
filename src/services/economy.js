@@ -1,3 +1,5 @@
+// economy.js
+
 import { BotConfig } from "../config/bot.js";
 import { getEconomyKey } from '../utils/database.js';
 import { getFromDb, setInDb } from '../utils/database.js';
@@ -20,24 +22,12 @@ const DEFAULT_ECONOMY_DATA = {
     cooldowns: {}
 };
 
-
-
-
-
-
 export function getMaxBankCapacity(userData) {
     if (!userData) return BASE_BANK_CAPACITY;
     
     const bankLevel = userData.bankLevel || 0;
     return BASE_BANK_CAPACITY + (bankLevel * BANK_CAPACITY_PER_LEVEL);
 }
-
-
-
-
-
-
-
 
 export async function getEconomyData(client, guildId, userId) {
     try {
@@ -60,14 +50,6 @@ export async function getEconomyData(client, guildId, userId) {
         return normalizeEconomyData({}, DEFAULT_ECONOMY_DATA);
     }
 }
-
-
-
-
-
-
-
-
 
 export async function setEconomyData(client, guildId, userId, newData) {
     let mergedData = null;
@@ -98,15 +80,6 @@ export async function setEconomyData(client, guildId, userId, newData) {
         return false;
     }
 }
-
-
-
-
-
-
-
-
-
 
 export async function addMoney(client, guildId, userId, amount, type = 'wallet') {
     try {
@@ -143,15 +116,6 @@ export async function addMoney(client, guildId, userId, amount, type = 'wallet')
         return { success: false, error: 'An error occurred while processing your request' };
     }
 }
-
-
-
-
-
-
-
-
-
 
 export async function removeMoney(client, guildId, userId, amount, type = 'wallet') {
     try {
@@ -194,15 +158,6 @@ export async function removeMoney(client, guildId, userId, amount, type = 'walle
         return { success: false, error: 'An error occurred while processing your request' };
     }
 }
-
-
-
-
-
-
-
-
-
 
 export async function transferMoney(client, guildId, userId, amount, direction) {
     try {
@@ -270,15 +225,6 @@ export async function transferMoney(client, guildId, userId, amount, direction) 
     }
 }
 
-
-
-
-
-
-
-
-
-
 export async function checkCooldown(client, guildId, userId, action, cooldownTime) {
     try {
         const userData = await getEconomyData(client, guildId, userId);
@@ -302,5 +248,3 @@ export async function checkCooldown(client, guildId, userId, action, cooldownTim
         return { onCooldown: true, timeLeft: cooldownTime };
     }
 }
-
-

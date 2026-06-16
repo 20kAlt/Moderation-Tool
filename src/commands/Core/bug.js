@@ -19,10 +19,10 @@ export default {
             title: '?? Bug Report',
             description: 'Found a bug? Please report it on our GitHub Issues page!\n\n' +
             '**When reporting a bug, please include:**\n' +
-            '• ?? Detailed description of the issue\n' +
-            '• ?? Steps to reproduce the problem\n' +
-            '• ?? Screenshots if applicable\n' +
-            '• ?? Your bot version and environment\n\n' +
+            'ï¿½ ?? Detailed description of the issue\n' +
+            'ï¿½ ?? Steps to reproduce the problem\n' +
+            'ï¿½ ?? Screenshots if applicable\n' +
+            'ï¿½ ?? Your bot version and environment\n\n' +
             'This helps us fix issues faster and more effectively!',
             color: 'error'
         })
@@ -34,7 +34,3 @@ export default {
         });
     },
 };
-
-
-
-

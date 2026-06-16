@@ -87,20 +87,20 @@ export default {
 
             const condition = getWeatherDescription(weatherCode);
 
-            const embed = createEmbed({ title: `🌎 Weather in ${cityDisplay}, ${country}`, description: condition.description })
+            const embed = createEmbed({ title: `Weather in ${cityDisplay}, ${country}`, description: condition.description })
                 .addFields(
                     {
-                        name: "🌡️ Temperature",
+                        name: "Temperature",
                         value: `${temperature}°C`,
                         inline: true,
                     },
                     {
-                        name: "💧 Humidity",
+                        name: "Humidity",
                         value: `${humidity}%`,
                         inline: true,
                     },
                     {
-                        name: "💨 Wind Speed",
+                        name: "Wind Speed",
                         value: `${windSpeed} km/h`,
                         inline: true,
                     },
@@ -133,26 +133,19 @@ export default {
     },
 };
 
-
-
-
-
 function getWeatherDescription(code) {
     if (code >= 0 && code <= 3) {
-        return { description: "Clear sky / Partly cloudy ☀️", emoji: "☀️" };
+        return { description: "Clear sky / Partly cloudy", emoji: "" };
     } else if (code >= 45 && code <= 48) {
-        return { description: "Fog and Rime fog 🌫️", emoji: "🌫️" };
+        return { description: "Fog and Rime fog", emoji: "" };
     } else if (code >= 51 && code <= 67) {
-        return { description: "Drizzle or Rain 🌧️", emoji: "🌧️" };
+        return { description: "Drizzle or Rain", emoji: "" };
     } else if (code >= 71 && code <= 75) {
-        return { description: "Snow fall ❄️", emoji: "❄️" };
+        return { description: "Snow fall", emoji: "" };
     } else if (code >= 80 && code <= 86) {
-        return { description: "Showers (Rain/Snow) 🌨️", emoji: "🌨️" };
+        return { description: "Showers (Rain/Snow)", emoji: "" };
     } else if (code >= 95 && code <= 99) {
-        return { description: "Thunderstorm ⛈️", emoji: "⛈️" };
+        return { description: "Thunderstorm", emoji: "" };
     }
     return { description: "Unknown conditions.", emoji: "" };
 }
-
-
-

@@ -8,7 +8,6 @@ import { InteractionHelper } from '../utils/interactionHelper.js';
 import { checkRateLimit } from '../utils/rateLimiter.js';
 import { getTicketPermissionContext } from '../utils/ticketPermissions.js';
 
-// Helper function to escape HTML special characters
 function escapeHtml(text) {
   if (!text) return '';
   return String(text)
@@ -143,8 +142,7 @@ const createTicketHandler = {
 
       const actionRow = new ActionRowBuilder().addComponents(reasonInput);
       modal.addComponents(actionRow);
-      
-      // showModal must be called directly without defer
+
       await interaction.showModal(modal);
     } catch (error) {
       logger.error('Error creating ticket modal:', error);
@@ -207,13 +205,12 @@ const closeTicketHandler = {
     try {
       if (!(await ensureGuildContext(interaction))) return;
 
-      // Use timeout-aware permission check to prevent interaction expiration
       const permissionCheck = await checkTicketPermissionWithTimeout(
         interaction,
         client,
         'close this ticket',
         { allowTicketCreator: true },
-        2000 // 2 second timeout for permission checks
+        2000 
       );
 
       if (!permissionCheck.success) {
@@ -241,7 +238,6 @@ const closeTicketHandler = {
       const actionRow = new ActionRowBuilder().addComponents(reasonInput);
       modal.addComponents(actionRow);
 
-      // showModal must be called directly without defer
       await interaction.showModal(modal);
     } catch (error) {
       logger.error('Error closing ticket:', error);
@@ -262,7 +258,6 @@ const closeTicketModalHandler = {
     try {
       if (!(await ensureGuildContext(interaction))) return;
 
-      // Use timeout-aware permission check 
       const permissionCheck = await checkTicketPermissionWithTimeout(
         interaction,
         client,
@@ -478,15 +473,14 @@ const pinTicketHandler = {
         return;
       }
 
-      // Check if channel name already has ping emoji
       const hasPingEmoji = channel.name.startsWith('📌');
       
       if (hasPingEmoji) {
-        // Unpin: remove emoji and update position
+        
         const newName = channel.name.replace(/^📌\s*/, '');
-        await channel.edit({ 
+        await channel.edit({
           name: newName,
-          position: 999 // Move to end
+          position: 999 
         });
 
         await interaction.editReply({
@@ -505,11 +499,11 @@ const pinTicketHandler = {
           userId: interaction.user.id
         });
       } else {
-        // Pin: add emoji and update position
-        const newName = `📌 ${channel.name}`;
-        await channel.edit({ 
-          name: newName,
-          position: 0 // Move to top
+        
+        const pinnedName = `📌 ${channel.name}`;
+        await channel.edit({
+          name: pinnedName,
+          position: 0 
         });
 
         await interaction.editReply({
@@ -524,7 +518,7 @@ const pinTicketHandler = {
         logger.info('Ticket pinned', {
           guildId: interaction.guildId,
           channelId: channel.id,
-          channelName: newName,
+          channelName: pinnedName,
           userId: interaction.user.id
         });
       }
@@ -689,7 +683,6 @@ const deleteTicketHandler = {
     try {
       if (!(await ensureGuildContext(interaction))) return;
 
-      // Use timeout-aware permission check
       const permissionCheck = await checkTicketPermissionWithTimeout(
         interaction,
         client,
@@ -754,7 +747,3 @@ export {
   reopenTicketHandler,
   deleteTicketHandler 
 };
-
-
-
-

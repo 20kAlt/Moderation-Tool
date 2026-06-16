@@ -1,38 +1,10 @@
-/**
- * Centralized Error Handling System
- * 
- * This module provides structured error handling for the TitanBot application.
- * 
- * PHILOSOPHY:
- * - All errors are categorized by type for consistent handling
- * - User-facing errors display friendly messages
- * - System errors are logged with full context
- * - Errors contain context information for debugging
- * 
- * USAGE:
- * - Throw TitanBotError for application-specific errors
- * - Use handleInteractionError for interaction errors
- * - Errors are automatically formatted and sent to user
- * 
- * ERROR TYPES:
- * - VALIDATION: Invalid user input
- * - PERMISSION: Missing access permissions
- * - CONFIGURATION: Missing/invalid configuration
- * - DATABASE: Database operation failure
- * - NETWORK: Network/external service failure
- * - DISCORD_API: Discord API error
- * - USER_INPUT: User input processing error
- * - RATE_LIMIT: Rate limit exceeded
- * - UNKNOWN: Unclassified error
- */
+// errorHandler.js
 
 import { logger } from './logger.js';
 import { createEmbed } from './embeds.js';
 import { MessageFlags } from 'discord.js';
 import { getErrorMetadata, getDefaultErrorCodeByType, resolveErrorCode, ErrorCodes } from './errorRegistry.js';
-
-
-
+import { InteractionHelper } from './interactionHelper.js';
 
 export const ErrorTypes = {
     VALIDATION: 'validation',
@@ -46,9 +18,6 @@ export const ErrorTypes = {
     UNKNOWN: 'unknown'
 };
 
-
-
-
 export class TitanBotError extends Error {
     constructor(message, type = ErrorTypes.UNKNOWN, userMessage = null, context = {}) {
         super(message);
@@ -60,9 +29,6 @@ export class TitanBotError extends Error {
         this.timestamp = new Date().toISOString();
     }
 }
-
-
-
 
 export function categorizeError(error) {
     if (error instanceof TitanBotError) {
@@ -102,9 +68,6 @@ export function categorizeError(error) {
 
     return ErrorTypes.UNKNOWN;
 }
-
-
-
 
 const UserMessages = {
     [ErrorTypes.VALIDATION]: {
@@ -153,9 +116,6 @@ const UserMessages = {
     }
 };
 
-
-
-
 export function getUserMessage(error, context = {}) {
     const type = categorizeError(error);
     const messages = UserMessages[type] || UserMessages[ErrorTypes.UNKNOWN];
@@ -171,19 +131,13 @@ export function getUserMessage(error, context = {}) {
     return messages.default;
 }
 
-
-
-
 export async function handleInteractionError(interaction, error, context = {}) {
     const errorType = categorizeError(error);
     const userMessage = getUserMessage(error, context);
     const resolvedErrorCode = resolveErrorCode({ error, errorType, context });
     const errorMetadata = getErrorMetadata(resolvedErrorCode);
     const traceId = context.traceId || interaction?.traceContext?.traceId || interaction?.traceId || error?.context?.traceId;
-    
-    
-    
-    
+
     const isUserError = [
         ErrorTypes.VALIDATION,
         ErrorTypes.RATE_LIMIT,
@@ -220,7 +174,7 @@ export async function handleInteractionError(interaction, error, context = {}) {
             logger.debug(`User Error [${errorType.toUpperCase()}]: ${error.message}`, logData);
         }
     } else {
-        // System errors (database, network, etc.) - unexpected failures
+        
         logger.error(`System Error [${errorType.toUpperCase()}]`, {
             ...logData,
             stack: error.stack
@@ -252,7 +206,7 @@ export async function handleInteractionError(interaction, error, context = {}) {
     }
 
     try {
-        
+
         if (!interaction || !interaction.id) {
             logger.warn('Interaction was null or invalid when handling error', {
                 event: 'interaction.error.invalid_interaction',
@@ -263,7 +217,11 @@ export async function handleInteractionError(interaction, error, context = {}) {
             return;
         }
 
-        
+        const coordinator = InteractionHelper.getCoordinator(interaction);
+        if (coordinator?.isUsageFinalized()) {
+            return;
+        }
+
         if (interaction.createdTimestamp && (Date.now() - interaction.createdTimestamp) > 14 * 60 * 1000) {
             logger.warn('Interaction expired before error handler could send response', {
                 event: 'interaction.error.expired',
@@ -277,14 +235,23 @@ export async function handleInteractionError(interaction, error, context = {}) {
             return;
         }
 
-        const errorMessage = { 
+        const errorMessage = {
             embeds: [embed]
         };
-        
+
+        if (interaction._isPrefixCommand) {
+            if (coordinator?.hasResponded()) {
+                await coordinator.edit(errorMessage);
+            } else {
+                await coordinator?.respond(errorMessage);
+            }
+            return;
+        }
+
         if (!interaction.deferred && !interaction.replied) {
             errorMessage.flags = MessageFlags.Ephemeral;
         }
-        
+
         if (interaction.deferred || interaction.replied) {
             await interaction.editReply(errorMessage);
         } else {
@@ -292,8 +259,8 @@ export async function handleInteractionError(interaction, error, context = {}) {
         }
     } catch (replyError) {
         
-        if (replyError.code === 40060 || replyError.code === 10062) {
-            logger.warn('Interaction already acknowledged or expired, cannot send error response:', {
+        if (replyError.code === 40060 || replyError.code === 10062 || replyError.code === 50027) {
+            logger.warn('Interaction already acknowledged, expired, or token invalid; cannot send error response:', {
                 event: 'interaction.error.response_unavailable',
                 errorCode: String(replyError.code),
                 traceId,
@@ -317,9 +284,6 @@ export async function handleInteractionError(interaction, error, context = {}) {
     }
 }
 
-
-
-
 function getErrorTitle(errorType) {
     const titles = {
         [ErrorTypes.VALIDATION]: "❌ Invalid Input",
@@ -336,17 +300,14 @@ function getErrorTitle(errorType) {
     return titles[errorType] || titles[ErrorTypes.UNKNOWN];
 }
 
-
-
-
 export function withErrorHandling(fn, context = {}) {
     return async (...args) => {
         try {
             return await fn(...args);
         } catch (error) {
-            const interaction = args.find(arg => 
-                arg && typeof arg === 'object' && 
-                (arg.isCommand || arg.isButton || arg.isModalSubmit || arg.isStringSelectMenu || arg.isChatInputCommand)
+            const interaction = args.find((arg) =>
+                arg && typeof arg === 'object' &&
+                (arg.isCommand || arg.isButton || arg.isModalSubmit || arg.isStringSelectMenu || arg.isChatInputCommand || arg._isPrefixCommand)
             );
             
             if (interaction) {
@@ -359,9 +320,6 @@ export function withErrorHandling(fn, context = {}) {
         }
     };
 }
-
-
-
 
 export function createError(message, type = ErrorTypes.UNKNOWN, userMessage = null, context = {}) {
     const normalizedContext = {
@@ -381,7 +339,3 @@ export default {
     withErrorHandling,
     createError
 };
-
-
-
-

@@ -9,6 +9,10 @@ import { InteractionHelper } from '../utils/interactionHelper.js';
 import { createInteractionTraceContext, runWithTraceContext } from '../utils/traceContext.js';
 import { validateChatInputPayloadOrThrow } from '../utils/commandInputValidation.js';
 import { enforceAbuseProtection, formatCooldownDuration } from '../utils/abuseProtection.js';
+import { isCommandEnabled } from '../services/commandAccessService.js';
+import { resolveSlashAccessKey } from '../utils/messageAdapter.js';
+import { isCollectorManagedComponent } from '../utils/collectorComponents.js';
+import { ResponseCoordinator } from '../utils/responseCoordinator.js';
 
 function withTraceContext(context = {}, traceContext = {}) {
   return {
@@ -30,6 +34,7 @@ export default {
     return runWithTraceContext(interactionTraceContext, async () => {
       try {
         InteractionHelper.patchInteractionResponses(interaction);
+        ResponseCoordinator.attach(interaction);
 
         if (interaction.isChatInputCommand()) {
           try {
@@ -78,12 +83,13 @@ export default {
             let guildConfig = null;
             if (interaction.guild) {
               guildConfig = await getGuildConfig(client, interaction.guild.id, interactionTraceContext);
-              if (guildConfig?.disabledCommands?.[interaction.commandName]) {
+              const accessKey = resolveSlashAccessKey(interaction);
+              if (!(await isCommandEnabled(client, interaction.guild.id, accessKey, command.category))) {
                 throw createError(
-                  `Command ${interaction.commandName} is disabled in this guild`,
+                  `Command ${accessKey} is disabled in this guild`,
                   ErrorTypes.CONFIGURATION,
                   'This command has been disabled for this server.',
-                  withTraceContext({ commandName: interaction.commandName, guildId: interaction.guild.id }, interactionTraceContext)
+                  withTraceContext({ commandName: accessKey, guildId: interaction.guild.id }, interactionTraceContext)
                 );
               }
             }
@@ -96,7 +102,21 @@ export default {
             }, interactionTraceContext));
           }
         } else if (interaction.isAutocomplete()) {
-          // Handle autocomplete interactions
+          const autocompleteCommand = client.commands.get(interaction.commandName);
+          if (autocompleteCommand?.autocomplete) {
+            try {
+              await autocompleteCommand.autocomplete(interaction, client);
+            } catch (error) {
+              logger.error('Error handling command autocomplete:', {
+                error: error.message,
+                guildId: interaction.guildId,
+                commandName: interaction.commandName,
+              });
+              await interaction.respond([]).catch(() => {});
+            }
+            return;
+          }
+
           const focusedOption = interaction.options.getFocused(true);
           
           if (interaction.commandName === 'apply' && focusedOption.name === 'application') {
@@ -104,8 +124,7 @@ export default {
               const { getApplicationRoles } = await import('../utils/database.js');
               const roles = await getApplicationRoles(client, interaction.guildId);
               const roleName = interaction.options.getString('application', false);
-              
-              // Filter: only show enabled applications
+
               const filtered = roles.filter(role =>
                 role.enabled !== false && 
                 role.name.toLowerCase().startsWith(roleName?.toLowerCase() || '')
@@ -130,8 +149,7 @@ export default {
               const { getApplicationRoles } = await import('../utils/database.js');
               const roles = await getApplicationRoles(client, interaction.guildId);
               const appName = interaction.options.getString('application', false);
-              
-              // Show all applications (enabled and disabled), but mark disabled ones
+
               const filtered = roles.filter(role =>
                 role.name.toLowerCase().startsWith(appName?.toLowerCase() || '')
               );
@@ -162,8 +180,7 @@ export default {
                 await interaction.respond([]);
                 return;
               }
-              
-              // Filter out panels whose messages no longer exist
+
               const validPanels = [];
               for (const panel of panels) {
                 if (!panel.messageId || !panel.channelId) {
@@ -254,7 +271,7 @@ export default {
           const button = client.buttons.get(customId);
 
           if (!button) {
-            if (!interaction.customId.includes(':')) {
+            if (!interaction.customId.includes(':') || isCollectorManagedComponent(customId)) {
               return;
             }
 
@@ -280,10 +297,7 @@ export default {
           const selectMenu = client.selectMenus.get(customId);
 
           if (!selectMenu) {
-            if (!interaction.customId.includes(':')) {
-              // No registered handler and no ':' delimiter — this is an inline-collected
-              // select menu (e.g. ticket_config_<guildId>, jointocreate_config_<id>).
-              // Return silently so the existing MessageComponentCollector handles it.
+            if (!interaction.customId.includes(':') || isCollectorManagedComponent(customId)) {
               return;
             }
 
@@ -330,7 +344,7 @@ export default {
             return;
           }
 
-          if (interaction.customId.startsWith('jtc_')) {
+          if (interaction.customId.startsWith('jtc_') || interaction.customId.startsWith('config_wizard_modal:')) {
             logger.debug(`Skipping modal handler lookup for inline-awaited modal: ${interaction.customId}`, {
               event: 'interaction.modal.inline_skipped',
               traceId: interactionTraceContext.traceId
@@ -343,8 +357,7 @@ export default {
 
           if (!modal) {
             if (!interaction.customId.includes(':')) {
-              // No registered handler and no ':' delimiter — this is an inline-awaited
-              // modal (e.g. via awaitModalSubmit). Return silently so the caller handles it.
+
               return;
             }
 

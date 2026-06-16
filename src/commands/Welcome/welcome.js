@@ -86,7 +86,6 @@ export default {
                 });
             }
 
-            
             if (image) {
                 try {
                     new URL(image);
@@ -117,12 +116,12 @@ export default {
 
                 const embed = new EmbedBuilder()
                     .setColor(getColor('success'))
-                    .setTitle('✅ Welcome System Configured')
+                    .setTitle('Welcome System Configured')
                     .setDescription(`Welcome messages will now be sent to ${channel}`)
                     .addFields(
                         { name: 'Message Preview', value: previewMessage },
-                        { name: 'Ping User', value: ping ? '✅ Yes' : '❌ No' },
-                        { name: 'Status', value: '✅ Enabled' }
+                        { name: 'Ping User', value: ping ? 'Yes' : 'No' },
+                        { name: 'Status', value: 'Enabled' }
                     )
                     .setFooter({ text: 'Tip: Use /welcome config to customize welcome settings' });
 
@@ -145,6 +144,3 @@ export default {
         }
     },
 };
-
-
-

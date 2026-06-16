@@ -4,20 +4,10 @@ import { logger } from '../../utils/logger.js';
 import { getFromDb, setInDb, deleteFromDb } from '../../utils/database.js';
 import { sanitizeInput } from '../../utils/sanitization.js';
 
-
-
-
-
-
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 function getUserNotesKey(guildId, userId) {
     return `moderation_user_notes_${guildId}_${userId}`;
 }
-
-
-
-
-
 
 function getGuildNotesListKey(guildId) {
     return `moderation_user_notes_list_${guildId}`;
@@ -193,7 +183,6 @@ async function handleAddNote(interaction, targetUser, notes, guildId) {
         });
     }
 
-    
     note = sanitizeInput(note);
 
     const noteData = {
@@ -336,8 +325,3 @@ function getNoteTypeInfo(type) {
     
     return types[type] || types.neutral;
 }
-
-
-
-
-

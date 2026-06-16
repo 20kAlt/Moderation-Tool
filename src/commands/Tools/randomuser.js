@@ -40,7 +40,7 @@ export default {
 try {
             if (!interaction.guild) {
                 return interaction.editReply({
-                    embeds: [errorEmbed('❌ Server Only', 'This command can only be used in a server/guild.')],
+                    embeds: [errorEmbed('Server Only', 'This command can only be used in a server/guild.')],
                 });
             }
             
@@ -72,7 +72,7 @@ try {
                 if (role && onlineOnly) errorMessage = `No **${role.name}** members are online.`;
                 
                 return interaction.editReply({
-                    embeds: [errorEmbed('❌ No Users Found', errorMessage + '\n\nTry adjusting your filters.')],
+                    embeds: [errorEmbed('No Users Found', errorMessage + '\n\nTry adjusting your filters.')],
                     flags: ["Ephemeral"]
                 });
             }
@@ -94,9 +94,9 @@ try {
             )
             .setThumbnail(user.displayAvatarURL({ dynamic: true, size: 256 }))
             .addFields(
-                { name: '👤 Username', value: user.username, inline: true },
-                { name: '🤖 Bot', value: user.bot ? 'Yes' : 'No', inline: true },
-                { name: `🎭 Roles (${roles.length})`, value: roles.length > 0 ? roles.slice(0, 5).join(' ') + (roles.length > 5 ? ` +${roles.length - 5} more` : '') : 'No roles', inline: false }
+                { name: 'Username', value: user.username, inline: true },
+                { name: 'Bot', value: user.bot ? 'Yes' : 'No', inline: true },
+                { name: `Roles (${roles.length})`, value: roles.length > 0 ? roles.slice(0, 5).join('') + (roles.length > 5 ? `+${roles.length - 5} more` : '') : 'No roles', inline: false }
             )
             .setColor('primary');
             
@@ -160,9 +160,9 @@ const collector = response.createMessageComponentCollector({ filter, time: 30000
                     )
                     .setThumbnail(newUser.displayAvatarURL({ dynamic: true, size: 256 }))
                     .addFields(
-                        { name: '👤 Username', value: newUser.username, inline: true },
-                        { name: '🤖 Bot', value: newUser.bot ? 'Yes' : 'No', inline: true },
-                        { name: `🎭 Roles (${newRoles.length})`, value: newRoles.length > 0 ? newRoles.slice(0, 5).join(' ') + (newRoles.length > 5 ? ` +${newRoles.length - 5} more` : '') : 'No roles', inline: false }
+                        { name: 'Username', value: newUser.username, inline: true },
+                        { name: 'Bot', value: newUser.bot ? 'Yes' : 'No', inline: true },
+                        { name: `Roles (${newRoles.length})`, value: newRoles.length > 0 ? newRoles.slice(0, 5).join('') + (newRoles.length > 5 ? `+${newRoles.length - 5} more` : '') : 'No roles', inline: false }
                     )
                     .setColor(newSelectedMember.displayHexColor || '#3498db');
                     
@@ -198,6 +198,3 @@ const collector = response.createMessageComponentCollector({ filter, time: 30000
         }
     },
 };
-
-
-

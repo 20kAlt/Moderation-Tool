@@ -96,7 +96,7 @@ export default {
                 await setEconomyData(client, guildId, userId, userData);
                 
                 const embed = successEmbed(
-                    "Crime Successful!",
+                    "🕵️ Crime Successful!",
                     `You successfully committed ${crime.name} and earned **${amountEarned}** coins!`
                 );
                 
@@ -109,8 +109,8 @@ export default {
                 await setEconomyData(client, guildId, userId, userData);
                 
                 const embed = errorEmbed(
-                    "Crime Failed!",
-                    `You were caught while attempting ${crime.name} and have been sent to jail! ` +
+                    "🚔 Crime Failed!",
+                    `You were caught while attempting ${crime.name} and have been sent to jail!` +
                     `You were fined ${fine} coins and will be in jail for 2 hours.`
                 );
                 
@@ -118,5 +118,3 @@ export default {
             }
     }, { command: 'crime' })
 };
-
-

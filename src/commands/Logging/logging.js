@@ -86,7 +86,7 @@ export default {
 
     async execute(interaction, config, client) {
         try {
-            // setchannel and filter both need a reply deferred before their logic runs
+            
             const subcommandGroup = interaction.options.getSubcommandGroup(false);
             const subcommand = interaction.options.getSubcommand();
 

@@ -183,7 +183,7 @@ async function handleSetup(interaction, guild, client) {
     await InteractionHelper.safeDefer(interaction);
 
     const verifyEmbed = createEmbed({
-        title: "✅ Server Verification",
+        title: "Server Verification",
         description: message,
         color: getColor('success')
     });
@@ -236,7 +236,7 @@ async function handleRemove(interaction, guild, client) {
         if (!result.success) {
             if (result.notVerified) {
                 return await InteractionHelper.safeReply(interaction, {
-                    embeds: [infoEmbed("Not Verified", `${targetUser.tag} does not currently have the verified role.`)],
+                    embeds: [infoEmbed('Not Verified', `${targetUser.tag} does not currently have the verified role.`)],
                     flags: MessageFlags.Ephemeral
                 });
             }
@@ -249,7 +249,7 @@ async function handleRemove(interaction, guild, client) {
         });
 
         return await InteractionHelper.safeReply(interaction, {
-            embeds: [successEmbed("Verification Removed", `Verification removed from ${targetUser.tag}.`)]
+            embeds: [successEmbed('Verification Removed', `Verification removed from ${targetUser.tag}.`)]
         });
 
     } catch (error) {
@@ -260,7 +260,3 @@ async function handleRemove(interaction, guild, client) {
         );
     }
 }
-
-
-
-

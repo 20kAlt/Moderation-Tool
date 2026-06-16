@@ -14,8 +14,8 @@ const FISH_TYPES = [
     { name: 'Bass', emoji: '🐟', rarity: 'common' },
     { name: 'Salmon', emoji: '🐟', rarity: 'common' },
     { name: 'Trout', emoji: '🐟', rarity: 'common' },
-    { name: 'Tuna', emoji: '🐟', rarity: 'uncommon' },
-    { name: 'Swordfish', emoji: '🐟', rarity: 'uncommon' },
+    { name: 'Tuna', emoji: '🐠', rarity: 'uncommon' },
+    { name: 'Swordfish', emoji: '🐠', rarity: 'uncommon' },
     { name: 'Octopus', emoji: '🐙', rarity: 'rare' },
     { name: 'Lobster', emoji: '🦞', rarity: 'rare' },
     { name: 'Shark', emoji: '🦈', rarity: 'epic' },
@@ -62,7 +62,6 @@ export default {
                 );
             }
 
-            
             const rand = Math.random();
             let fishCaught;
             
@@ -90,7 +89,6 @@ export default {
             let finalEarned = baseEarned;
             let multiplierMessage = "";
 
-            
             if (hasFishingRod > 0) {
                 finalEarned = Math.floor(baseEarned * FISHING_ROD_MULTIPLIER);
                 multiplierMessage = `\n🎣 **Fishing Rod Bonus: +50%**`;
@@ -112,18 +110,18 @@ export default {
             };
 
             const embed = createEmbed({
-                title: '🎣 Fishing Success!',
+                title: 'Fishing Success!',
                 description: `${catchMessage}\n\nYou caught a **${fishCaught.emoji} ${fishCaught.name}**! You sold it for **$${finalEarned.toLocaleString()}**!${multiplierMessage}`,
                 color: rarityColors[fishCaught.rarity]
             })
                 .addFields(
                     {
-                        name: "💵 New Cash Balance",
+                        name: "New Cash Balance",
                         value: `$${userData.wallet.toLocaleString()}`,
                         inline: true,
                     },
                     {
-                        name: "🐟 Rarity",
+                        name: "Rarity",
                         value: fishCaught.rarity.charAt(0).toUpperCase() + fishCaught.rarity.slice(1),
                         inline: true,
                     }

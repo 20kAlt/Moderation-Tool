@@ -72,7 +72,7 @@ export default {
                 const pageCases = cases.slice(startIndex, endIndex);
 
                 const embed = createEmbed({
-                    title: '📋 Moderation Cases',
+                    title: 'Moderation Cases',
                     description: `Showing moderation cases for **${interaction.guild.name}**\n\n**Page ${page} of ${totalPages}**`
                 });
 
@@ -88,7 +88,7 @@ export default {
                 });
 
                 embed.setFooter({
-                    text: `Total cases: ${cases.length} | Filter: ${filterType}${targetUser ? ` | User: ${targetUser.tag}` : ''}`
+                    text: `Total cases: ${cases.length} | Filter: ${filterType}${targetUser ?` | User: ${targetUser.tag}`: ''}`
                 });
 
                 return embed;
@@ -180,7 +180,3 @@ time: 120000
         }
     }
 };
-
-
-
-

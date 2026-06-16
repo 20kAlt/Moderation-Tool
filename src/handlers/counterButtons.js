@@ -7,7 +7,7 @@ export const counterDeleteActionHandler = {
   name: 'counter-delete',
   async execute(interaction, client, args = []) {
     try {
-      // Defer update immediately to ensure interaction is acknowledged
+      
       try {
         await interaction.deferUpdate();
       } catch (error) {

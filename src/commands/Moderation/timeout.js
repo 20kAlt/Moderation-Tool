@@ -4,7 +4,6 @@ import { logModerationAction } from '../../utils/moderation.js';
 import { logger } from '../../utils/logger.js';
 import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
 
-
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 const durationChoices = [
     { name: "5 minutes", value: 5 },
@@ -139,6 +138,3 @@ export default {
         }
     }
 };
-
-
-

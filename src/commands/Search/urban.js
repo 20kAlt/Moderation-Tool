@@ -4,7 +4,6 @@ import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '
 import { logger } from '../../utils/logger.js';
 import { handleInteractionError } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
-import { getGuildConfig } from '../../services/guildConfig.js';
 import { getColor } from '../../config/bot.js';
 
 export default {
@@ -28,19 +27,6 @@ export default {
                 });
                 return await InteractionHelper.safeReply(interaction, {
                     embeds: [errorEmbed('Error', 'Please enter a term with at least 2 characters.')],
-                    flags: MessageFlags.Ephemeral
-                });
-            }
-            
-            const guildConfig = await getGuildConfig(interaction.client, interaction.guild?.id);
-            if (guildConfig?.disabledCommands?.includes('urban')) {
-                logger.warn('Urban command disabled in guild', {
-                    userId: interaction.user.id,
-                    guildId: interaction.guildId,
-                    commandName: 'urban'
-                });
-                return await InteractionHelper.safeReply(interaction, {
-                    embeds: [errorEmbed('Command Disabled', 'The Urban Dictionary command is disabled in this server.')],
                     flags: MessageFlags.Ephemeral
                 });
             }
@@ -101,7 +87,7 @@ export default {
                 },
                 { 
                     name: 'Stats', 
-                    value: `👍 ${definition.thumbs_up.toLocaleString()} • 👎 ${definition.thumbs_down.toLocaleString()}`,
+                    value: `${definition.thumbs_up.toLocaleString()} • ${definition.thumbs_down.toLocaleString()}`,
                     inline: true 
                 },
                 { 
@@ -134,8 +120,7 @@ export default {
                 apiStatus: error.response?.status,
                 commandName: 'urban'
             });
-            
-            
+
             if (error.response?.status === 404 || !error.response) {
                 await InteractionHelper.safeEditReply(interaction, {
                     embeds: [errorEmbed('Not Found', `No definitions found for "${interaction.options.getString('term')}" on Urban Dictionary.`)]
@@ -153,7 +138,3 @@ export default {
         }
     },
 };
-
-
-
-

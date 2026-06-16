@@ -22,7 +22,7 @@ export default {
             if (!result.success) {
                 if (result.alreadyVerified) {
                     return await InteractionHelper.safeReply(interaction, {
-                        embeds: [infoEmbed("Already Verified", "You are already verified.")],
+                        embeds: [infoEmbed('Already Verified', "You are already verified.")],
                         flags: MessageFlags.Ephemeral
                     });
                 }

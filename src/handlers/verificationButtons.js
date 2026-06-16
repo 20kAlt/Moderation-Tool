@@ -5,13 +5,6 @@ import { handleInteractionError } from '../utils/errorHandler.js';
 import { logger } from '../utils/logger.js';
 import { InteractionHelper } from '../utils/interactionHelper.js';
 
-
-
-
-
-
-
-
 export async function handleVerificationButton(interaction, client) {
     try {
         await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
@@ -31,7 +24,6 @@ export async function handleVerificationButton(interaction, client) {
             userTag: interaction.user.tag
         });
 
-        
         const result = await verifyUser(client, guild.id, userId, {
             source: 'button_click',
             moderatorId: null
@@ -55,7 +47,6 @@ export async function handleVerificationButton(interaction, client) {
             });
         }
 
-        
         logger.info('User verified via button', {
             guildId: guild.id,
             userId,
@@ -76,7 +67,6 @@ export async function handleVerificationButton(interaction, client) {
             userId: interaction.user.id
         });
 
-        
         await handleInteractionError(
             interaction,
             error,

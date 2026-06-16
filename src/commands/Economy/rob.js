@@ -122,8 +122,8 @@ export default {
                     robberData.wallet = (robberData.wallet || 0) - fineAmount;
                 }
 
-                resultEmbed = MessageTemplates.ERRORS.INSUFFICIENT_PERMISSIONS(
-                    "robbery failed",
+                resultEmbed = errorEmbed(
+                    "🚨 Robbery Failed",
                     `You failed the robbery and were caught! You were fined **$${fineAmount.toLocaleString()}** of your own cash.`
                 );
             }
@@ -151,6 +151,3 @@ export default {
             await InteractionHelper.safeEditReply(interaction, { embeds: [resultEmbed] });
     }, { command: 'rob' })
 };
-
-
-

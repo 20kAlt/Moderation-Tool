@@ -91,8 +91,6 @@ export default {
                 );
             }
 
-            
-            
             const result = await EconomyService.transferMoney(
                 client, 
                 guildId, 
@@ -101,7 +99,6 @@ export default {
                 amount
             );
 
-            
             const updatedSenderData = await getEconomyData(client, guildId, senderId);
             const updatedReceiverData = await getEconomyData(client, guildId, receiver.id);
 
@@ -111,12 +108,12 @@ export default {
             )
                 .addFields(
                     {
-                        name: "💳 Payment Amount",
+                        name: "Payment Amount",
                         value: `$${amount.toLocaleString()}`,
                         inline: true,
                     },
                     {
-                        name: "💵 Your New Balance",
+                        name: "Your New Balance",
                         value: `$${updatedSenderData.wallet.toLocaleString()}`,
                         inline: true,
                     },
@@ -138,7 +135,7 @@ export default {
 
             try {
                 const receiverEmbed = createEmbed({ 
-                    title: "💰 Incoming Payment!", 
+                    title: "Incoming Payment!", 
                     description: `${interaction.user.username} paid you **$${amount.toLocaleString()}**.` 
                 }).addFields({
                     name: "Your New Cash",
@@ -151,8 +148,3 @@ export default {
             }
     }, { command: 'pay' })
 };
-
-
-
-
-

@@ -1,31 +1,21 @@
+// moderationService.js
+
 import { PermissionFlagsBits } from 'discord.js';
 import { logger } from '../utils/logger.js';
 import { TitanBotError, ErrorTypes } from '../utils/errorHandler.js';
 import { logModerationAction } from '../utils/moderation.js';
 
-
-
-
-
 export class ModerationService {
-  
-
-
-
-
-
 
   static validateHierarchy(moderator, target, action) {
     if (!moderator || !target) {
       return { valid: false, error: 'Invalid moderator or target' };
     }
 
-    
     if (moderator.guild.ownerId === moderator.id) {
       return { valid: true };
     }
 
-    
     if (moderator.roles.highest.position <= target.roles.highest.position) {
       return {
         valid: false,
@@ -35,13 +25,6 @@ export class ModerationService {
 
     return { valid: true };
   }
-
-  
-
-
-
-
-
 
   static validateBotHierarchy(client, target, action) {
     if (!client || !target) {
@@ -53,7 +36,6 @@ export class ModerationService {
       return { valid: false, error: 'Bot is not in the guild' };
     }
 
-    
     if (botMember.roles.highest.position <= target.roles.highest.position) {
       return {
         valid: false,
@@ -63,11 +45,6 @@ export class ModerationService {
 
     return { valid: true };
   }
-
-  
-
-
-
 
   static async banUser({
     guild,
@@ -85,7 +62,6 @@ export class ModerationService {
         );
       }
 
-      
       let targetMember = null;
       try {
         targetMember = await guild.members.fetch(user.id).catch(() => null);
@@ -93,7 +69,6 @@ export class ModerationService {
         logger.debug('Target not in guild, proceeding with ban');
       }
 
-      // Hierarchy check
       if (targetMember) {
         const botCheck = this.validateBotHierarchy(guild.client, targetMember, 'ban');
         if (!botCheck.valid) {
@@ -105,8 +80,7 @@ export class ModerationService {
           throw new TitanBotError(modCheck.error, ErrorTypes.PERMISSION, modCheck.error);
         }
       } else {
-        // If target is not in guild, we can't check their roles easily.
-        // As a safety measure, only allow users with ManageGuild or Administrator to ban non-members.
+
         const isOwner = guild.ownerId === moderator.id;
         const hasHighPerms = moderator.permissions.has([
             PermissionFlagsBits.ManageGuild,
@@ -122,11 +96,8 @@ export class ModerationService {
         }
       }
 
-
-      
       await guild.members.ban(user.id, { reason });
 
-      
       const caseId = await logModerationAction({
         client: guild.client,
         guild,
@@ -158,11 +129,6 @@ export class ModerationService {
     }
   }
 
-  
-
-
-
-
   static async kickUser({
     guild,
     member,
@@ -178,7 +144,6 @@ export class ModerationService {
         );
       }
 
-      
       const botCheck = this.validateBotHierarchy(guild.client, member, 'kick');
       if (!botCheck.valid) {
         throw new TitanBotError(botCheck.error, ErrorTypes.PERMISSION, botCheck.error);
@@ -189,7 +154,6 @@ export class ModerationService {
         throw new TitanBotError(modCheck.error, ErrorTypes.PERMISSION, modCheck.error);
       }
 
-      
       if (!member.kickable) {
         throw new TitanBotError(
           'Cannot kick member',
@@ -198,10 +162,8 @@ export class ModerationService {
         );
       }
 
-      
       await member.kick(reason);
 
-      
       const caseId = await logModerationAction({
         client: guild.client,
         guild,
@@ -231,11 +193,6 @@ export class ModerationService {
     }
   }
 
-  
-
-
-
-
   static async timeoutUser({
     guild,
     member,
@@ -252,7 +209,6 @@ export class ModerationService {
         );
       }
 
-      
       const botCheck = this.validateBotHierarchy(guild.client, member, 'timeout');
       if (!botCheck.valid) {
         throw new TitanBotError(botCheck.error, ErrorTypes.PERMISSION, botCheck.error);
@@ -263,7 +219,6 @@ export class ModerationService {
         throw new TitanBotError(modCheck.error, ErrorTypes.PERMISSION, modCheck.error);
       }
 
-      
       if (!member.moderatable) {
         throw new TitanBotError(
           'Cannot timeout member',
@@ -272,10 +227,8 @@ export class ModerationService {
         );
       }
 
-      
       await member.timeout(durationMs, reason);
 
-      
       const durationMinutes = Math.floor(durationMs / 60000);
       const caseId = await logModerationAction({
         client: guild.client,
@@ -309,11 +262,6 @@ export class ModerationService {
     }
   }
 
-  
-
-
-
-
   static async removeTimeoutUser({
     guild,
     member,
@@ -329,7 +277,6 @@ export class ModerationService {
         );
       }
 
-      
       if (!member.moderatable) {
         throw new TitanBotError(
           'Cannot modify member',
@@ -338,7 +285,6 @@ export class ModerationService {
         );
       }
 
-      
       if (!member.isCommunicationDisabled()) {
         throw new TitanBotError(
           'User not timed out',
@@ -347,10 +293,8 @@ export class ModerationService {
         );
       }
 
-      
       await member.timeout(null, reason);
 
-      
       await logModerationAction({
         client: guild.client,
         guild,
@@ -378,11 +322,6 @@ export class ModerationService {
     }
   }
 
-  
-
-
-
-
   static async unbanUser({
     guild,
     user,
@@ -398,7 +337,6 @@ export class ModerationService {
         );
       }
 
-      
       const bans = await guild.bans.fetch();
       const banInfo = bans.get(user.id);
 
@@ -410,10 +348,8 @@ export class ModerationService {
         );
       }
 
-      
       await guild.members.unban(user.id, reason);
 
-      
       const caseId = await logModerationAction({
         client: guild.client,
         guild,

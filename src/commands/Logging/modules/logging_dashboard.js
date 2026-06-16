@@ -62,12 +62,12 @@ export async function buildLoggingDashboardView(interaction, client) {
     }).join('\n');
 
     const embed = new EmbedBuilder()
-        .setTitle('📋 Logging Dashboard')
+        .setTitle('📝 Logging Dashboard')
         .setDescription(`Manage audit logging for **${interaction.guild.name}**. Category buttons toggle logging instantly.`)
         .setColor(auditEnabled ? getColor('success') : getColor('warning'))
         .addFields(
             {
-                name: '🧾 Audit Logging',
+                name: 'Audit Logging',
                 value: auditEnabled ? '✅ Enabled' : '❌ Disabled',
                 inline: true,
             },
@@ -82,7 +82,7 @@ export async function buildLoggingDashboardView(interaction, client) {
                 inline: true,
             },
             {
-                name: '📡 Log Channels',
+                name: 'Log Channels',
                 value: [
                     `**Audit:** ${auditChannel}`,
                     `**Ticket Logs:** ${lifecycleChannel}`,
@@ -91,22 +91,22 @@ export async function buildLoggingDashboardView(interaction, client) {
                 inline: false,
             },
             {
-                name: '📋 Event Categories',
+                name: 'Event Categories',
                 value: categoryLines,
                 inline: false,
             },
             {
-                name: '🧹 Ignore Filters',
+                name: 'Ignore Filters',
                 value: `Users: **${ignoredUsers.length}**\nChannels: **${ignoredChannels.length}**`,
                 inline: true,
             },
             {
-                name: '🕒 Last Refresh',
+                name: 'Last Refresh',
                 value: `<t:${Math.floor(Date.now() / 1000)}:R>`,
                 inline: true,
             },
         )
-        .setFooter({ text: 'Use /logging setchannel to configure the audit channel  •  /ticket setup or /ticket dashboard to configure ticket channels' })
+        .setFooter({ text: 'Use /logging setchannel to configure the audit channel • /ticket setup or /ticket dashboard to configure ticket channels' })
         .setTimestamp();
 
     const components = createLoggingDashboardComponents(loggingStatus.enabledEvents, auditEnabled);
@@ -114,6 +114,7 @@ export async function buildLoggingDashboardView(interaction, client) {
 }
 
 export default {
+    prefixOnly: false,
     async execute(interaction, config, client) {
         try {
             if (!interaction.member.permissions.has(PermissionsBitField.Flags.ManageGuild)) {

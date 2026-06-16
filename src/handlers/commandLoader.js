@@ -7,11 +7,6 @@ import { logger } from '../utils/logger.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-
-
-
-
-
 function getSubcommandInfo(commandData) {
     const subcommands = [];
     
@@ -34,12 +29,6 @@ if (subOption.type === 1) {
     return subcommands;
 }
 
-
-
-
-
-
-
 async function getAllFiles(directory, fileList = []) {
     const files = await fs.readdir(directory, { withFileTypes: true });
     
@@ -58,11 +47,6 @@ async function getAllFiles(directory, fileList = []) {
     
     return fileList;
 }
-
-
-
-
-
 
 export async function loadCommands(client) {
     client.commands = new Collection();
@@ -132,12 +116,6 @@ export async function loadCommands(client) {
     logger.info(`Loaded ${uniqueCommands.size} commands`);
     return client.commands;
 }
-
-
-
-
-
-
 
 export async function registerCommands(client, guildId) {
     try {
@@ -296,12 +274,6 @@ const registeredNames = new Set();
     }
 }
 
-
-
-
-
-
-
 export async function reloadCommand(client, commandName) {
     const command = client.commands.get(commandName);
     
@@ -325,5 +297,3 @@ export async function reloadCommand(client, commandName) {
         return { success: false, message: `Error reloading command: ${error.message}` };
     }
 }
-
-

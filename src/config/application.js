@@ -7,11 +7,6 @@ import { pgConfig } from "./postgres.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-
-
-
-
-
 const appConfig = {
   paths: {
     root: path.join(__dirname, "../.."),
@@ -77,11 +72,6 @@ const appConfig = {
 
   shop,
 
-  
-
-
-
-
   features: {
     
     economy: true,                  
@@ -90,18 +80,15 @@ const appConfig = {
     logging: true,                  
     welcome: true,                  
 
-    
     tickets: true,                  
     giveaways: true,                
     birthday: true,                 
     counter: true,                  
 
-    
     verification: true,             
     reactionRoles: true,            
     joinToCreate: true,             
 
-    
     voice: true,                    
     search: true,                   
     tools: true,                    
@@ -109,7 +96,6 @@ const appConfig = {
     community: true,                
     fun: true,                      
 
-    
     music: false,                   
   },
 

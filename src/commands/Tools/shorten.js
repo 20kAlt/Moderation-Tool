@@ -44,7 +44,7 @@ export default {
             try {
                 new URL(url);
             } catch (e) {
-                const embed = errorEmbed("Invalid URL", "Invalid URL format. Include http:// or https://");
+                const embed = errorEmbed('Invalid URL', "Invalid URL format. Include http:// or https://");
                 embed.setColor(getColor('error'));
                 return InteractionHelper.safeEditReply(interaction, {
                     embeds: [embed],
@@ -52,7 +52,7 @@ export default {
             }
 
             if (custom && !/^[a-zA-Z0-9_-]+$/.test(custom)) {
-                const embed = errorEmbed("Invalid Custom URL", "Custom URL can only contain letters, numbers, underscores, and hyphens.");
+                const embed = errorEmbed('Invalid Custom URL', "Custom URL can only contain letters, numbers, underscores, and hyphens.");
                 embed.setColor(getColor('error'));
                 return InteractionHelper.safeEditReply(interaction, {
                     embeds: [embed],
@@ -102,26 +102,26 @@ export default {
                 new URL(shortUrl);
             } catch (e) {
                 if (shortUrl.includes("already exists")) {
-                    const embed = errorEmbed("URL Already Taken", "That custom URL is already taken. Try a different one.");
+                    const embed = errorEmbed('URL Already Taken', "That custom URL is already taken. Try a different one.");
                     embed.setColor(getColor('error'));
                     return InteractionHelper.safeEditReply(interaction, {
                         embeds: [embed],
                     });
                 } else if (shortUrl.includes("invalid")) {
-                    const embed = errorEmbed("Invalid URL", "Invalid URL. Include http:// or https://");
+                    const embed = errorEmbed('Invalid URL', "Invalid URL. Include http:// or https://");
                     embed.setColor(getColor('error'));
                     return InteractionHelper.safeEditReply(interaction, {
                         embeds: [embed],
                     });
                 }
-                const embed = errorEmbed("URL Shortening Failed", `URL shortening failed: ${shortUrl}`);
+                const embed = errorEmbed('URL Shortening Failed', `URL shortening failed: ${shortUrl}`);
                 embed.setColor(getColor('error'));
                 return InteractionHelper.safeEditReply(interaction, {
                     embeds: [embed],
                 });
             }
 
-            const embed = successEmbed("URL Shortened", `Here's your shortened URL: ${shortUrl}`);
+            const embed = successEmbed('URL Shortened', `Here's your shortened URL: ${shortUrl}`);
             embed.setColor(getColor('success'));
             await InteractionHelper.safeEditReply(interaction, {
                 embeds: [embed],
@@ -134,5 +134,3 @@ export default {
         }
     },
 };
-
-

@@ -49,7 +49,7 @@ export default {
                 
                 if (length < 8 || length > 50) {
                     await InteractionHelper.safeEditReply(interaction, {
-                        embeds: [errorEmbed('❌ Invalid Length', 'Password must be 8-50 characters. You provided: ' + length)],
+                        embeds: [errorEmbed('Invalid Length', 'Password must be 8-50 characters. You provided:' + length)],
                     });
                     return;
                 }
@@ -152,7 +152,3 @@ strengthColor = getColor('warning');
         }
     },
 };
-
-
-
-

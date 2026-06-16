@@ -457,6 +457,3 @@ const sharedTodoRemoveModalHandler = {
 
 export default sharedTodoAddHandler;
 export { sharedTodoCompleteHandler, sharedTodoRemoveHandler, sharedTodoAddModalHandler, sharedTodoCompleteModalHandler, sharedTodoRemoveModalHandler };
-
-
-

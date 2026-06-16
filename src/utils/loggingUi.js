@@ -1,3 +1,5 @@
+// loggingUi.js
+
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { EVENT_TYPES } from '../services/loggingService.js';
 
@@ -65,10 +67,6 @@ export function createLoggingDashboardComponents(enabledEvents, loggingEnabled =
   return [...categoryRows, actionRow];
 }
 
-
-
-
-
 export function createLoggingButtons() {
   const buttons = [
     
@@ -90,8 +88,7 @@ export function createLoggingButtons() {
         .setLabel('🏷️ Roles')
         .setStyle(ButtonStyle.Secondary)
     ),
-    
-    
+
     new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`logging_toggle:${EVENT_TYPES.MEMBER_JOIN}`)
@@ -111,7 +108,6 @@ export function createLoggingButtons() {
         .setStyle(ButtonStyle.Secondary)
     ),
 
-    
     new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId('logging_toggle:counter.*')
@@ -131,19 +127,9 @@ export function createLoggingButtons() {
   return buttons;
 }
 
-
-
-
-
-
 export function getButtonStatusStyle(isEnabled) {
   return isEnabled ? ButtonStyle.Success : ButtonStyle.Danger;
 }
-
-
-
-
-
 
 export function createStatusIndicatorButtons(enabledEvents = {}, loggingEnabled = false) {
   const eventCategories = ['moderation', 'ticket', 'message', 'role', 'member', 'leveling', 'reactionrole', 'giveaway', 'counter'];
@@ -181,7 +167,6 @@ export function createStatusIndicatorButtons(enabledEvents = {}, loggingEnabled 
     return [];
   }
 
-  
   const rows = [];
   for (let i = 0; i < buttons.length; i += 5) {
     const rowButtons = buttons.slice(i, i + 5);
@@ -211,11 +196,6 @@ export function createLoggingStatusComponents(enabledEvents, loggingEnabled = fa
 
   return [...categoryRows, actionRow];
 }
-
-
-
-
-
 
 export function parseEventTypeFromButton(customId) {
   if (!customId.startsWith('logging_toggle:')) {

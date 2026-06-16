@@ -33,7 +33,6 @@ export default {
                 const targetUser = interaction.options.getUser("target");
                 const member = interaction.options.getMember("target");
 
-                
                 const result = await ModerationService.removeTimeoutUser({
                     guild: interaction.guild,
                     member,
@@ -53,6 +52,3 @@ export default {
         }
     }
 };
-
-
-

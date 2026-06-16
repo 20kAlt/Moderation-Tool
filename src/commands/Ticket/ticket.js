@@ -153,7 +153,7 @@ const panelMessage = interaction.options.getString("panel_message") || "Click th
 const dmOnClose = interaction.options.getBoolean("dm_on_close") !== false;
 
             const setupEmbed = createEmbed({ 
-                title: "🎫 Support Tickets", 
+                title: "Support Tickets", 
 description: panelMessage,
                 color: getColor('info')
             });
@@ -196,20 +196,20 @@ description: panelMessage,
                 });
             }
 
-                let successMessage = `The ticket creation panel has been sent to ${panelChannel}. `;
+                let successMessage = `The ticket creation panel has been sent to ${panelChannel}.`;
                 
                 if (categoryChannel) {
-                    successMessage += `New tickets will be created in the **${categoryChannel.name}** category. `;
+                    successMessage += `New tickets will be created in the **${categoryChannel.name}** category.`;
                 } else {
-                    successMessage += 'New tickets will be created in a new "Tickets" category. ';
+                    successMessage += 'New tickets will be created in a new "Tickets" category.';
                 }
                 
                 if (closedCategoryChannel) {
-                    successMessage += `Closed tickets will be moved to **${closedCategoryChannel.name}**. `;
+                    successMessage += `Closed tickets will be moved to **${closedCategoryChannel.name}**.`;
                 }
                 
                 if (staffRole) {
-                    successMessage += `**${staffRole.name}** role will have access to tickets. `;
+                    successMessage += `**${staffRole.name}** role will have access to tickets.`;
                 }
                 
                 successMessage += `\n\n**Max Tickets Per User:** ${maxTicketsPerUser}\n**DM on Close:** ${dmOnClose ? 'Enabled' : 'Disabled'}`;
@@ -237,7 +237,7 @@ description: panelMessage,
                 });
 
                 const logEmbed = createEmbed({
-                    title: "🔧 Ticket System Setup (Configuration Log)",
+                    title: "Ticket System Setup (Configuration Log)",
                     description: `The ticket panel was set up in ${panelChannel} by ${interaction.user}.`,
                     color: getColor('warning')
                 })
@@ -285,7 +285,6 @@ description: panelMessage,
                         },
                     );
 
-
             } catch (error) {
                 logger.error('Ticket setup error', {
                     error: error.message,
@@ -331,6 +330,3 @@ description: panelMessage,
         }
     }
 };
-
-
-

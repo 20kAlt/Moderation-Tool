@@ -1,3 +1,5 @@
+// ticket.js
+
 import {
   ChannelType,
   ActionRowBuilder,
@@ -14,11 +16,6 @@ import { createEmbed, errorEmbed } from '../utils/embeds.js';
 import { logTicketEvent } from '../utils/ticketLogging.js';
 import { BotConfig } from '../config/bot.js';
 import { ensureTypedServiceError } from '../utils/serviceErrorBoundary.js';
-
-
-
-
-
 
 function getPriorityMap() {
   const priorities = BotConfig.tickets?.priorities || {
@@ -45,8 +42,26 @@ const PRIORITY_MAP = getPriorityMap();
 const TICKET_DELETE_DELAY_MS = 3000;
 const TICKET_DELETE_DELAY_SECONDS = Math.floor(TICKET_DELETE_DELAY_MS / 1000);
 
-
-
+function buildTicketControlRow({ claimedBy = null } = {}) {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('ticket_claim')
+      .setLabel(claimedBy ? 'Claimed' : 'Claim')
+      .setStyle(claimedBy ? ButtonStyle.Secondary : ButtonStyle.Primary)
+      .setEmoji('🙋')
+      .setDisabled(!!claimedBy),
+    new ButtonBuilder()
+      .setCustomId('ticket_pin')
+      .setLabel('Pin')
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji('📌'),
+    new ButtonBuilder()
+      .setCustomId('ticket_close')
+      .setLabel('Close')
+      .setStyle(ButtonStyle.Danger)
+      .setEmoji('🔒'),
+  );
+}
 
 export async function getUserTicketCount(guildId, userId) {
   try {
@@ -171,23 +186,7 @@ export async function createTicket(guild, member, categoryId, reason = 'No reaso
       ],
     });
     
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId('ticket_close')
-        .setLabel('Close Ticket')
-        .setStyle(ButtonStyle.Danger)
-        .setEmoji('🔒'),
-      new ButtonBuilder()
-        .setCustomId('ticket_claim')
-        .setLabel('Claim')
-        .setStyle(ButtonStyle.Primary)
-        .setEmoji('🙋'),
-      new ButtonBuilder()
-        .setCustomId('ticket_pin')
-        .setLabel('Pin')
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji('📌')
-    );
+    const row = buildTicketControlRow();
     
     if (ticketConfig.enablePriority) {
       row.addComponents(
@@ -305,7 +304,6 @@ export async function closeTicket(channel, closer, reason = 'No reason provided'
 
           await ticketCreator.send({ embeds: [dmEmbed] });
 
-          // Post-close feedback survey — separate DM message so it can be updated on submit
           try {
             const feedbackEmbed = createEmbed({
               title: '⭐ How was your support experience?',
@@ -317,12 +315,16 @@ export async function closeTicket(channel, closer, reason = 'No reason provided'
             const base = `ticket_feedback:${channel.guild.id}:${channel.id}`;
             const starsRow = new ActionRowBuilder().addComponents(
               new ButtonBuilder().setCustomId(`${base}:1`).setLabel('⭐ 1').setStyle(ButtonStyle.Secondary),
-              new ButtonBuilder().setCustomId(`${base}:2`).setLabel('⭐⭐ 2').setStyle(ButtonStyle.Secondary),
-              new ButtonBuilder().setCustomId(`${base}:3`).setLabel('⭐⭐⭐ 3').setStyle(ButtonStyle.Secondary),
-              new ButtonBuilder().setCustomId(`${base}:4`).setLabel('⭐⭐⭐⭐ 4').setStyle(ButtonStyle.Secondary),
-              new ButtonBuilder().setCustomId(`${base}:5`).setLabel('⭐⭐⭐⭐⭐ 5').setStyle(ButtonStyle.Secondary),
+              new ButtonBuilder().setCustomId(`${base}:2`).setLabel('⭐ 2').setStyle(ButtonStyle.Secondary),
+              new ButtonBuilder().setCustomId(`${base}:3`).setLabel('⭐ 3').setStyle(ButtonStyle.Secondary),
+              new ButtonBuilder().setCustomId(`${base}:4`).setLabel('⭐ 4').setStyle(ButtonStyle.Secondary),
+              new ButtonBuilder().setCustomId(`${base}:5`).setLabel('⭐ 5').setStyle(ButtonStyle.Primary),
             );
             const declineRow = new ActionRowBuilder().addComponents(
+              new ButtonBuilder()
+                .setCustomId(`ticket_feedback_comment:${channel.guild.id}:${channel.id}`)
+                .setLabel('✍️ Add Comment')
+                .setStyle(ButtonStyle.Secondary),
               new ButtonBuilder()
                 .setCustomId(`ticket_feedback_decline:${channel.guild.id}:${channel.id}`)
                 .setLabel('❌ No thanks')
@@ -490,24 +492,7 @@ export async function claimTicket(channel, claimer) {
         claimedField.value = claimer.toString();
       }
       
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId('ticket_close')
-          .setLabel('Close Ticket')
-          .setStyle(ButtonStyle.Danger)
-          .setEmoji('🔒'),
-        new ButtonBuilder()
-          .setCustomId('ticket_claim')
-          .setLabel('Claimed')
-          .setStyle(ButtonStyle.Secondary)
-          .setEmoji('🙋')
-          .setDisabled(true),
-        new ButtonBuilder()
-          .setCustomId('ticket_pin')
-          .setLabel('Pin')
-          .setStyle(ButtonStyle.Secondary)
-          .setEmoji('📌')
-      );
+      const row = buildTicketControlRow({ claimedBy: claimer.id });
       
       await ticketMessage.edit({ 
         embeds: [embed],
@@ -652,24 +637,7 @@ export async function reopenTicket(channel, reopener) {
         statusField.value = '🟢 Open';
       }
       
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId('ticket_close')
-          .setLabel('Close Ticket')
-          .setStyle(ButtonStyle.Danger)
-          .setEmoji('🔒'),
-        new ButtonBuilder()
-          .setCustomId('ticket_claim')
-          .setLabel(ticketData.claimedBy ? 'Claimed' : 'Claim')
-          .setStyle(ticketData.claimedBy ? ButtonStyle.Secondary : ButtonStyle.Primary)
-          .setEmoji('🙋')
-          .setDisabled(!!ticketData.claimedBy),
-        new ButtonBuilder()
-          .setCustomId('ticket_pin')
-          .setLabel('Pin')
-          .setStyle(ButtonStyle.Secondary)
-          .setEmoji('📌')
-      );
+      const row = buildTicketControlRow({ claimedBy: ticketData.claimedBy });
       
       await ticketMessage.edit({ 
         embeds: [embed],
@@ -726,7 +694,6 @@ export async function reopenTicket(channel, reopener) {
   }
 }
 
-// Helper function to escape HTML special characters
 function escapeHtml(text) {
   if (!text) return '';
   return String(text)
@@ -744,7 +711,6 @@ async function generateTranscript(channel) {
       channelName: channel.name
     });
 
-    // Fetch all messages by paginating
     const messages = [];
     let before = undefined;
     let batch;
@@ -854,7 +820,6 @@ export async function deleteTicket(channel, deleter) {
       }
     });
 
-    // Generate and send transcript if transcript channel is configured
     setTimeout(async () => {
       try {
         logger.debug('Starting ticket deletion process', {
@@ -862,7 +827,6 @@ export async function deleteTicket(channel, deleter) {
           ticketId: ticketData.id
         });
 
-        // Generate transcript
         let attachment = null;
         try {
           attachment = await generateTranscript(channel);
@@ -885,7 +849,6 @@ export async function deleteTicket(channel, deleter) {
           });
         }
 
-        // Send transcript to configured channel if it was generated
         if (attachment) {
           try {
             const guildConfig = await getGuildConfig(channel.client, channel.guild.id);
@@ -908,7 +871,7 @@ export async function deleteTicket(channel, deleter) {
                   transcriptChannelId: transcriptChannel.id
                 });
               } else {
-                // Send transcript with embed
+                
                 const transcriptEmbed = new EmbedBuilder()
                   .setTitle('📜 Ticket Transcript')
                   .setDescription(`Transcript for ticket #${ticketData.id}`)
@@ -947,7 +910,6 @@ export async function deleteTicket(channel, deleter) {
           }
         }
 
-        // Delete the channel (regardless of transcript success)
         try {
           await channel.delete('Ticket deleted permanently');
           logger.info('✅ Channel deleted', {
@@ -1043,23 +1005,7 @@ export async function unclaimTicket(channel, unclaimer) {
         claimedField.value = 'Not claimed';
       }
       
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId('ticket_close')
-          .setLabel('Close Ticket')
-          .setStyle(ButtonStyle.Danger)
-          .setEmoji('🔒'),
-        new ButtonBuilder()
-          .setCustomId('ticket_claim')
-          .setLabel('Claim')
-          .setStyle(ButtonStyle.Primary)
-          .setEmoji('🙋'),
-        new ButtonBuilder()
-          .setCustomId('ticket_pin')
-          .setLabel('Pin')
-          .setStyle(ButtonStyle.Secondary)
-          .setEmoji('📌')
-      );
+      const row = buildTicketControlRow();
       
       await ticketMessage.edit({ 
         embeds: [embed],
@@ -1240,6 +1186,3 @@ export async function updateTicketPriority(channel, priority, updater) {
     };
   }
 }
-
-
-

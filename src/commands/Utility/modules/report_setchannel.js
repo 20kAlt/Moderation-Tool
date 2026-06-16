@@ -22,7 +22,7 @@ export default {
             await setGuildConfig(client, guildId, guildConfig);
 
             return InteractionHelper.safeReply(interaction, {
-                embeds: [successEmbed('✅ Report Channel Set', `All new reports will now be sent to ${channel}.`)],
+                embeds: [successEmbed('Report Channel Set', `All new reports will now be sent to ${channel}.`)],
                 ephemeral: true,
             });
         } catch (error) {

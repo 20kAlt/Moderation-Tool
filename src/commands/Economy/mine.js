@@ -83,7 +83,7 @@ userData.lastMine = now;
                 `You explored a **${location}** and managed to find minerals worth **$${finalEarned.toLocaleString()}**!${multiplierMessage}`,
             )
                 .addFields({
-                    name: "💵 New Cash Balance",
+                    name: "New Cash Balance",
                     value: `$${userData.wallet.toLocaleString()}`,
                     inline: true,
                 })
@@ -92,7 +92,3 @@ userData.lastMine = now;
             await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
     }, { command: 'mine' })
 };
-
-
-
-

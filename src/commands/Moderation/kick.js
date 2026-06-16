@@ -36,7 +36,15 @@ export default {
       const member = interaction.options.getMember("target");
       const reason = interaction.options.getString("reason") || "No reason provided";
 
-      
+      if (!targetUser) {
+        throw new TitanBotError(
+          'Missing target user',
+          ErrorTypes.USER_INPUT,
+          'You must specify a user to kick.',
+          { subtype: 'invalid_user' },
+        );
+      }
+
       if (targetUser.id === interaction.user.id) {
         throw new TitanBotError(
           "Cannot kick self",
@@ -45,7 +53,6 @@ export default {
         );
       }
 
-      
       if (targetUser.id === client.user.id) {
         throw new TitanBotError(
           "Cannot kick bot",
@@ -54,7 +61,6 @@ export default {
         );
       }
 
-      
       if (!member) {
         throw new TitanBotError(
           "Target not found",
@@ -64,7 +70,6 @@ export default {
         );
       }
 
-      
       if (interaction.member.roles.highest.position <= member.roles.highest.position) {
         throw new TitanBotError(
           "Cannot kick user",
@@ -73,7 +78,6 @@ export default {
         );
       }
 
-      
       if (!member.kickable) {
         throw new TitanBotError(
           "Bot cannot kick",
@@ -82,10 +86,8 @@ export default {
         );
       }
 
-      
       await member.kick(reason);
 
-      
       const caseId = await logModerationAction({
         client,
         guild: interaction.guild,
@@ -101,7 +103,6 @@ export default {
         }
       });
 
-      
       await InteractionHelper.universalReply(interaction, {
         embeds: [
           successEmbed(
@@ -120,6 +121,3 @@ export default {
     }
   }
 };
-
-
-

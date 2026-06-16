@@ -27,7 +27,7 @@ export default {
                     hexColor = hexColor.replace('#', '');
                     if (!/^[0-9A-Fa-f]{3,6}$/.test(hexColor)) {
                         return InteractionHelper.safeEditReply(interaction, {
-                            embeds: [errorEmbed('❌ Invalid Hex Color', 'Please provide a valid hex code.\n\n**Valid formats:**\n• `#FF5733` (with hash)\n• `FF5733` (without hash)\n• `F57` (3-digit shorthand)\n\n**Invalid:** `#GG5733` (G is not a hex digit)')],
+                            embeds: [errorEmbed('Invalid Hex Color', 'Please provide a valid hex code.\n\n**Valid formats:**\n• `#FF5733` (with hash)\n• `FF5733` (without hash)\n• `F57` (3-digit shorthand)\n\n**Invalid:** `#GG5733` (G is not a hex digit)')],
                         });
                     }
 
@@ -60,7 +60,7 @@ export default {
                     .setImage(colorPreviewUrl);
 
                 if (isRandom) {
-                    embed.setFooter({ text: '✨ Randomly generated color' });
+                    embed.setFooter({ text: 'Randomly generated color' });
                 }
 
                 await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
@@ -139,6 +139,3 @@ function getColorName(hex) {
     
     return minDistance < 1000000 ? `Close to ${closestColor}` : null;
 }
-
-
-

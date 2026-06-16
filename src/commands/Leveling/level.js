@@ -155,7 +155,7 @@ export default {
                 return await InteractionHelper.safeEditReply(interaction, {
                     embeds: [
                         createEmbed({
-                            title: '✅ Leveling System Set Up',
+                            title: 'Leveling System Set Up',
                             description:
                                 `The leveling system is now **enabled** and ready to go.\n\n` +
                                 `**Level-up Channel:** ${channel}\n` +

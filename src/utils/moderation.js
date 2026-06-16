@@ -1,24 +1,10 @@
+// moderation.js
+
 import { EmbedBuilder } from 'discord.js';
 import { getGuildConfig } from '../services/guildConfig.js';
 import { logger } from './logger.js';
 import { getFromDb, setInDb } from './database.js';
 import { getColor } from '../config/bot.js';
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 export async function logEvent({ client, guild, guildId, event }) {
   try {
@@ -48,7 +34,6 @@ export async function logEvent({ client, guild, guildId, event }) {
       return;
     }
 
-    
     const actionStyles = {
       'Member Banned': { color: getColor('error'), icon: '🔨' },
       'Member Kicked': { color: getColor('warning'), icon: '👢' },
@@ -67,53 +52,60 @@ export async function logEvent({ client, guild, guildId, event }) {
 
     const style = actionStyles[event.action] || { color: getColor('primary'), icon: '🔨' };
 
-    const embed = new EmbedBuilder()
-      .setColor(event.color || style.color)
-      .setTitle(`${style.icon} ${event.action}`)
-      .addFields(
-        { name: "Target", value: event.target, inline: true },
-        { name: "Moderator", value: event.executor, inline: true }
-      )
-      .setTimestamp()
-      .setFooter({ 
-        text: `Guild ID: ${guild.id} | Moderator ID: ${event.executor.match(/\((\d+)\)/)?.[1] || 'Unknown'}`,
-        iconURL: guild.iconURL()
-      });
+    const targetIdMatch = event.target?.match(/\((\d+)\)/);
+    const targetId = targetIdMatch?.[1];
+    const executorIdMatch = event.executor?.match(/\((\d+)\)/);
+    const executorId = executorIdMatch?.[1];
 
+    const lines = [];
+    if (event.target) {
+      lines.push(`**User:** ${event.target}`);
+    }
+    if (targetId) {
+      lines.push(`**ID:** \`${targetId}\``);
+    }
     if (event.reason) {
-      embed.addFields({
-        name: "Reason",
-        value: event.reason.length > 1024 ? event.reason.substring(0, 1021) + '...' : event.reason,
-        inline: false
-      });
+      const reason = event.reason.length > 900
+        ? `${event.reason.substring(0, 897)}...`
+        : event.reason;
+      lines.push(`**Reason:** ${reason}`);
     }
-
     if (event.duration) {
-      embed.addFields({
-        name: "Duration",
-        value: event.duration,
-        inline: true
-      });
+      lines.push(`**Duration:** ${event.duration}`);
+    }
+    if (event.caseId) {
+      lines.push(`**Case:** \`${event.caseId}\``);
     }
 
+    const meta = [];
     if (event.metadata) {
       Object.entries(event.metadata).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          embed.addFields({
-            name: key.charAt(0).toUpperCase() + key.slice(1),
-            value: String(value).length > 1024 ? String(value).substring(0, 1021) + '...' : String(value),
-            inline: true
-          });
+          meta.push([key.charAt(0).toUpperCase() + key.slice(1), String(value)]);
         }
       });
     }
 
-    if (event.caseId) {
-      embed.addFields({
-        name: "Case ID",
-        value: `#${event.caseId}`,
-        inline: true
+    const description = [
+      lines.join('\n'),
+      meta.length ? meta.map(([k, v]) => `**${k}:** ${v}`).join(' • ') : '',
+    ].filter(Boolean).join('\n\n');
+
+    const embed = new EmbedBuilder()
+      .setColor(event.color || style.color)
+      .setTitle(`${style.icon} ${event.action}${event.caseId ? ` \`${event.caseId}\`` : ''}`)
+      .setDescription(description.slice(0, 4096))
+      .setTimestamp();
+
+    if (executorId) {
+      embed.setFooter({
+        text: event.executor?.split(' (')[0] || 'Moderator',
+        iconURL: guild.iconURL({ dynamic: true }) || undefined,
       });
+    }
+
+    if (targetId) {
+      embed.setThumbnail(`https://cdn.discordapp.com/embed/avatars/${Number(targetId) % 5}.png`);
     }
 
     await logChannel.send({ embeds: [embed] });
@@ -124,12 +116,6 @@ export async function logEvent({ client, guild, guildId, event }) {
     logger.error("Error logging moderation event:", error);
   }
 }
-
-
-
-
-
-
 
 export async function generateCaseId(client, guildId) {
   try {
@@ -144,14 +130,6 @@ return Date.now();
   }
 }
 
-/**
- * Store moderation case in database for audit trail
- * @param {Object} options - The case options
- * @param {string} options.guildId - The guild ID
- * @param {number} options.caseId - The case ID
- * @param {Object} options.caseData - The case data
- * @returns {Promise<boolean>} Success status
- */
 export async function storeModerationCase({ guildId, caseId, caseData }) {
   try {
     const caseKey = `moderation_case_${guildId}_${caseId}`;
@@ -178,12 +156,6 @@ export async function storeModerationCase({ guildId, caseId, caseData }) {
     return false;
   }
 }
-
-
-
-
-
-
 
 export async function getModerationCases(guildId, filters = {}) {
   try {
@@ -217,11 +189,6 @@ export async function getModerationCases(guildId, filters = {}) {
   }
 }
 
-/**
- * Enhanced logging function that stores case in database
- * @param {Object} options - The log options
- * @returns {Promise<number>} The generated case ID
- */
 export async function logModerationAction({ client, guild, event }) {
   const caseId = await generateCaseId(client, guild.id);
   
@@ -251,6 +218,3 @@ export async function logModerationAction({ client, guild, event }) {
   
   return caseId;
 }
-
-
-

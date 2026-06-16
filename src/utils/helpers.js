@@ -1,10 +1,7 @@
+// helpers.js
+
 import { BotConfig } from "../config/bot.js";
 import { logger } from "./logger.js";
-
-
-
-
-
 
 export function getPriorityMap() {
     const priorities = BotConfig.tickets?.priorities || {};
@@ -22,12 +19,6 @@ export function getPriorityMap() {
     return map;
 }
 
-
-
-
-
-
-
 export function getColor(path, fallback = "#000000") {
     const parts = path.split(".");
     let current = BotConfig.embeds.colors;
@@ -43,12 +34,6 @@ export function getColor(path, fallback = "#000000") {
     return typeof current === "string" ? current : fallback;
 }
 
-
-
-
-
-
-
 export function getMessage(key, replacements = {}) {
     let message = BotConfig.messages[key] || key;
 
@@ -58,11 +43,6 @@ export function getMessage(key, replacements = {}) {
 
     return message;
 }
-
-
-
-
-
 
 export function formatDuration(ms) {
     if (ms < 0) return "0s";
@@ -78,9 +58,7 @@ export function formatDuration(ms) {
     if (minutes > 0) parts.push(`${minutes}m`);
     if (seconds > 0 || parts.length === 0) parts.push(`${seconds}s`);
 
-    return parts.join(" ");
+    return parts.join("");
 }
 
 export const PRIORITY_MAP = getPriorityMap();
-
-

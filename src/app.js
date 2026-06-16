@@ -20,15 +20,14 @@ class TitanBot extends Client {
         
         GatewayIntentBits.Guilds,                        
         GatewayIntentBits.GuildMembers,                 
-        
-        
+
         GatewayIntentBits.GuildMessages,                
         GatewayIntentBits.GuildMessageReactions,        
         GatewayIntentBits.MessageContent,               
-        
+        GatewayIntentBits.DirectMessages,
+
         GatewayIntentBits.GuildVoiceStates,             
-        
-        
+
         GatewayIntentBits.GuildBans,                    
       ],
     });
@@ -52,7 +51,7 @@ class TitanBot extends Client {
       startupLog('Initializing database...');
       const dbInstance = await initializeDatabase();
       this.db = dbInstance.db;
-      
+
       // Check database status and report
       const dbStatus = this.db.getStatus();
       if (dbStatus.isDegraded) {
@@ -196,8 +195,8 @@ class TitanBot extends Client {
         hasStartedListening = true;
         this.webServer = server;
         startupLog(`✅ Web Server running on ${host}:${port}`);
-        startupLog(`Health endpoint: http://localhost:${port}/health`);
-        startupLog(`Ready endpoint: http://localhost:${port}/ready`);
+        startupLog(`Health endpoint: http://${host}:${port}/health`);
+        startupLog(`Ready endpoint: http://${host}:${port}/ready`);
       });
 
       server.on('error', (error) => {
@@ -259,6 +258,7 @@ class TitanBot extends Client {
         }
         
         // Save cleaned counters if any were orphaned
+        // Save cleaned counters if any were orphaned
         if (orphanedCounters.length > 0) {
           await saveServerCounters(this, guildId, validCounters);
           logger.info(`Cleaned up ${orphanedCounters.length} orphaned counter(s) from guild ${guildId} during scheduled update`);
@@ -270,6 +270,7 @@ class TitanBot extends Client {
   }
 
   async loadHandlers() {
+    startupLog('Loading handlers...');
     const handlers = [
       { path: 'events', type: 'default', required: true },
       { path: 'interactions', type: 'default', required: true }
@@ -277,14 +278,15 @@ class TitanBot extends Client {
 
     for (const handler of handlers) {
       try {
+        startupLog(`Loading handler: ${handler.path}`);
         const module = await import(`./handlers/${handler.path}.js`);
-        const loaderFn = handler.type.startsWith('named:') 
-          ? module[handler.type.split(':')[1]] 
+        const loaderFn = handler.type.startsWith('named:')
+          ? module[handler.type.split(':')[1]]
           : module.default;
-        
+
         if (typeof loaderFn === 'function') {
           await loaderFn(this);
-          logger.info(`✅ Loaded ${handler.path}`);
+          startupLog(`✅ Loaded ${handler.path}`);
         } else {
           throw new Error(`Invalid loader export from ${handler.path}`);
         }
@@ -320,6 +322,7 @@ class TitanBot extends Client {
       logger.info('✅ Cron jobs stopped');
 
       // Close database connection
+      // Close database connection
       if (this.db && this.db.db) {
         logger.info('Closing database connection...');
         try {
@@ -332,15 +335,13 @@ class TitanBot extends Client {
         }
       }
 
-      
       logger.info('Destroying Discord client...');
       if (this.isReady()) {
         try {
           this.destroy();
           logger.info('✅ Discord client destroyed');
         } catch (error) {
-          
-          
+
           logger.warn('Discord client destroy warning (non-critical):', error.message);
         }
       }
@@ -368,19 +369,25 @@ try {
     });
     
     process.on('unhandledRejection', (reason, promise) => {
+      const code = reason?.code;
+      if (code === 10062 || code === 40060 || code === 50027) {
+        logger.warn('Recoverable Discord interaction rejection:', reason?.message || reason);
+        return;
+      }
+
       logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
       bot.shutdown('UNHANDLED_REJECTION');
     });
   };
   
   setupShutdown();
-  bot.start();
+  bot.start().catch((error) => {
+    logger.error('Fatal error during bot startup:', error);
+    bot.shutdown('STARTUP_ERROR');
+  });
 } catch (error) {
   logger.error('Fatal error during bot startup:', error);
   process.exit(1);
 }
 
 export default TitanBot;
-
-
-

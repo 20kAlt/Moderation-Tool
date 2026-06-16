@@ -101,7 +101,7 @@ export default {
             try {
                 panels = await getAllReactionRoleMessages(client, guildId);
             } catch (dbError) {
-                // If database query fails, just respond with empty
+                
                 await interaction.respond([]).catch(() => {});
                 return;
             }
@@ -112,11 +112,10 @@ export default {
             }
 
             const guild = interaction.guild;
-            
-            // Filter out panels whose messages no longer exist and clean up stale data
+
             const validPanels = [];
             for (const panel of panels) {
-                // Validate panel structure
+                
                 if (!panel.messageId || !panel.channelId) {
                     continue;
                 }
@@ -170,8 +169,6 @@ export default {
     }
 };
 
-// ─── Setup Subcommand ─────────────────────────────────────────────────────────
-
 async function handleSetup(interaction) {
     const deferSuccess = await InteractionHelper.safeDefer(interaction);
     if (!deferSuccess) return;
@@ -181,8 +178,7 @@ async function handleSetup(interaction) {
     const channel = interaction.options.getChannel('channel');
     const title = interaction.options.getString('title');
     const description = interaction.options.getString('description');
-    
-    // Validate channel type
+
     if (channel.type !== ChannelType.GuildText && channel.type !== ChannelType.GuildAnnouncement) {
         throw createError(
             `Invalid channel type: ${channel.type}`,
@@ -191,8 +187,7 @@ async function handleSetup(interaction) {
             { channelType: channel.type }
         );
     }
-    
-    // Check bot permissions
+
     if (!interaction.guild.members.me.permissions.has(PermissionFlagsBits.ManageRoles)) {
         throw createError(
             'Bot missing ManageRoles permission',
@@ -211,7 +206,6 @@ async function handleSetup(interaction) {
         );
     }
 
-    // Check if guild has reached max of 5 panels
     const existingPanels = await getAllReactionRoleMessages(interaction.client, interaction.guildId);
     if (existingPanels && existingPanels.length >= 5) {
         throw createError(
@@ -221,8 +215,7 @@ async function handleSetup(interaction) {
             { maxPanels: 5, currentPanels: existingPanels.length }
         );
     }
-    
-    // Collect and validate roles
+
     const roles = [];
     const roleValidationErrors = [];
     
@@ -280,7 +273,6 @@ async function handleSetup(interaction) {
         );
     }
 
-    // Create the reaction role message
     const row = new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
             .setCustomId('reaction_roles')
@@ -334,27 +326,27 @@ async function handleSetup(interaction) {
                 channelId: channel.id,
                 fields: [
                     {
-                        name: '📝 Title',
+                        name: 'Title',
                         value: title,
                         inline: false
                     },
                     {
-                        name: '📍 Channel',
+                        name: 'Channel',
                         value: channel.toString(),
                         inline: true
                     },
                     {
-                        name: '📊 Roles',
+                        name: 'Roles',
                         value: `${roles.length} roles`,
                         inline: true
                     },
                     {
-                        name: '🏷️ Role List',
-                        value: roles.map(r => r.toString()).join(', '),
+                        name: 'Role List',
+                        value: roles.map(r => r.toString()).join(','),
                         inline: false
                     },
                     {
-                        name: '🔗 Message Link',
+                        name: 'Message Link',
                         value: message.url,
                         inline: false
                     }
@@ -369,8 +361,6 @@ async function handleSetup(interaction) {
         embeds: [successEmbed('Success', `✅ Reaction role panel created in ${channel}!\n\n${message.url}`)]
     });
 }
-
-// ─── Dashboard Subcommand ─────────────────────────────────────────────────────
 
 async function handleDashboard(interaction, selectedPanelId) {
     const deferSuccess = await InteractionHelper.safeDefer(interaction, { flags: ['Ephemeral'] });
@@ -393,7 +383,6 @@ async function handleDashboard(interaction, selectedPanelId) {
         });
     }
 
-    // Filter out panels whose messages no longer exist
     const validPanels = [];
     for (const panel of panels) {
         const channel = guild.channels.cache.get(panel.channelId);
@@ -421,7 +410,6 @@ async function handleDashboard(interaction, selectedPanelId) {
         });
     }
 
-    // If a panel was selected, use it. Otherwise, pick a random one.
     let activePanelData = null;
     if (selectedPanelId) {
         activePanelData = validPanels.find(p => p.messageId === selectedPanelId);
@@ -436,7 +424,7 @@ async function handleDashboard(interaction, selectedPanelId) {
             });
         }
     } else {
-        // Pick a random panel from valid panels
+        
         activePanelData = validPanels[Math.floor(Math.random() * validPanels.length)];
     }
 
@@ -510,7 +498,7 @@ async function handleDashboard(interaction, selectedPanelId) {
         buttonCollector.stop();
         if (reason === 'time') {
             const timeoutEmbed = new EmbedBuilder()
-                .setTitle('⏱️ Dashboard Timeout')
+                .setTitle('Dashboard Timeout')
                 .setDescription('This dashboard session has timed out due to inactivity (10 minutes).\n\nTo continue managing your reaction roles, please run `/reactroles dashboard` again.')
                 .setColor(getColor('warning'));
             
@@ -521,8 +509,6 @@ async function handleDashboard(interaction, selectedPanelId) {
         }
     });
 }
-
-// ─── Discord Message Helpers ──────────────────────────────────────────────────
 
 async function fetchPanelDiscordMessage(guild, panelData) {
     try {
@@ -581,27 +567,25 @@ async function rebuildLivePanelMessage(guild, panelData) {
     }
 }
 
-// ─── View Builders ────────────────────────────────────────────────────────────
-
 async function showPanelDashboard(interaction, panelData, discordMsg, guildId, guild) {
     const channel = guild.channels.cache.get(panelData.channelId);
     const title = discordMsg?.embeds?.[0]?.title ?? 'Untitled Panel';
     const roleList =
         panelData.roles.length > 0
-            ? panelData.roles.map(id => `<@&${id}>`).join(', ')
+            ? panelData.roles.map(id => `<@&${id}>`).join(',')
             : '`None`';
 
     const embed = new EmbedBuilder()
-        .setTitle('🎭 Reaction Roles Dashboard')
+        .setTitle('Reaction Roles Dashboard')
         .setDescription(
-            `**Title:** ${title}\n\nSelect an option below to modify a setting.${discordMsg ? `\n[Click Here to View Panel](${discordMsg.url})` : ''}`,
+            `**Title:** ${title}\n\nSelect an option below to modify a setting.${discordMsg ?`\n[Click Here to View Panel](${discordMsg.url})`: ''}`,
         )
         .setColor(getColor('info'))
         .addFields(
-            { name: '📍 Channel', value: channel ? `<#${channel.id}>` : '`Not found`', inline: true },
-            { name: '🎭 Roles', value: `\`${panelData.roles.length} / 25\``, inline: true },
+            { name: 'Channel', value: channel ? `<#${channel.id}>` : '`Not found`', inline: true },
+            { name: 'Roles', value: `\`${panelData.roles.length} / 25\``, inline: true },
             { name: '\u200B', value: '\u200B', inline: true },
-            { name: '🏷️ Role List', value: roleList, inline: false },
+            { name: 'Role List', value: roleList, inline: false },
         )
         .setFooter({ text: 'Dashboard closes after 10 minutes of inactivity' })
         .setTimestamp();
@@ -644,8 +628,6 @@ async function showPanelDashboard(interaction, panelData, discordMsg, guildId, g
         ],
     });
 }
-
-// ─── Edit Panel Text ──────────────────────────────────────────────────────────
 
 async function handleEditText(buttonInteraction, rootInteraction, panelData, guildId, guild, client) {
     const channel = guild.channels.cache.get(panelData.channelId);
@@ -714,7 +696,7 @@ async function handleEditText(buttonInteraction, rootInteraction, panelData, gui
     }
 
     await submitted.reply({
-        embeds: [successEmbed('✅ Panel Updated', 'The title and description have been updated.')],
+        embeds: [successEmbed('Panel Updated', 'The title and description have been updated.')],
         flags: MessageFlags.Ephemeral,
     });
 
@@ -723,8 +705,6 @@ async function handleEditText(buttonInteraction, rootInteraction, panelData, gui
         : null;
     await showPanelDashboard(rootInteraction, panelData, refreshedMsg, guildId, guild);
 }
-
-// ─── Add Role ─────────────────────────────────────────────────────────────────
 
 async function handleAddRole(selectInteraction, rootInteraction, panelData, guildId, guild, client) {
     await selectInteraction.deferUpdate();
@@ -745,7 +725,7 @@ async function handleAddRole(selectInteraction, rootInteraction, panelData, guil
     await selectInteraction.followUp({
         embeds: [
             new EmbedBuilder()
-                .setTitle('➕ Add Role')
+                .setTitle('Add Role')
                 .setDescription(
                     `**Current roles:** ${panelData.roles.length}/25\n\nSelect a role to add to this panel.`,
                 )
@@ -820,7 +800,7 @@ async function handleAddRole(selectInteraction, rootInteraction, panelData, guil
         await rebuildLivePanelMessage(guild, panelData);
 
         await roleInteraction.followUp({
-            embeds: [successEmbed('✅ Role Added', `${role} has been added to the panel.`)],
+            embeds: [successEmbed('Role Added', `${role} has been added to the panel.`)],
             flags: MessageFlags.Ephemeral,
         });
 
@@ -842,8 +822,6 @@ async function handleAddRole(selectInteraction, rootInteraction, panelData, guil
         }
     });
 }
-
-// ─── Remove Role ──────────────────────────────────────────────────────────────
 
 async function handleRemoveRole(selectInteraction, rootInteraction, panelData, panels, guildId, guild, client) {
     await selectInteraction.deferUpdate();
@@ -876,7 +854,7 @@ async function handleRemoveRole(selectInteraction, rootInteraction, panelData, p
     await selectInteraction.followUp({
         embeds: [
             new EmbedBuilder()
-                .setTitle('➖ Remove Role')
+                .setTitle('Remove Role')
                 .setDescription('Select the role you want to remove from this panel.')
                 .setColor(getColor('info')),
         ],
@@ -917,7 +895,6 @@ async function handleRemoveRole(selectInteraction, rootInteraction, panelData, p
                 flags: MessageFlags.Ephemeral,
             });
 
-            // Remove the deleted panel from the array
             const panelIndex = panels.findIndex(p => p.messageId === panelData.messageId);
             if (panelIndex > -1) {
                 panels.splice(panelIndex, 1);
@@ -927,18 +904,18 @@ async function handleRemoveRole(selectInteraction, rootInteraction, panelData, p
                 await InteractionHelper.safeEditReply(rootInteraction, {
                     embeds: [
                         new EmbedBuilder()
-                            .setTitle('📋 Reaction Roles Dashboard')
+                            .setTitle('Reaction Roles Dashboard')
                             .setDescription('No panels remain. Use `/reactroles setup` to create one.')
                             .setColor(getColor('info')),
                     ],
                     components: [],
                 });
             } else {
-                // Dashboard closed after last role removed
+                
                 await InteractionHelper.safeEditReply(rootInteraction, {
                     embeds: [
                         new EmbedBuilder()
-                            .setTitle('📋 Reaction Roles Dashboard')
+                            .setTitle('Reaction Roles Dashboard')
                             .setDescription('Panel deleted. Run `/reactroles dashboard` to manage another panel.')
                             .setColor(getColor('success')),
                     ],
@@ -954,7 +931,7 @@ async function handleRemoveRole(selectInteraction, rootInteraction, panelData, p
                 embeds: [
                     successEmbed(
                         '✅ Role Removed',
-                        `${role ? role.toString() : `<@&${roleId}>`} has been removed from the panel.`,
+                        `${role ? role.toString() :`<@&${roleId}>`} has been removed from the panel.`,
                     ),
                 ],
                 flags: MessageFlags.Ephemeral,
@@ -979,8 +956,6 @@ async function handleRemoveRole(selectInteraction, rootInteraction, panelData, p
         }
     });
 }
-
-// ─── Delete Panel ─────────────────────────────────────────────────────────────
 
 async function handleDeletePanel(btnInteraction, rootInteraction, panelData, panels, guildId, guild, client, collector, buttonCollector) {
     const channel = guild.channels.cache.get(panelData.channelId);
@@ -1050,8 +1025,8 @@ async function handleDeletePanel(btnInteraction, rootInteraction, panelData, pan
                 userId: submitted.user.id,
                 channelId: panelData.channelId,
                 fields: [
-                    { name: '📋 Panel', value: title, inline: true },
-                    { name: '📍 Channel', value: channel ? channel.toString() : 'Unknown', inline: true },
+                    { name: 'Panel', value: title, inline: true },
+                    { name: 'Channel', value: channel ? channel.toString() : 'Unknown', inline: true },
                 ],
             },
         });
@@ -1060,11 +1035,10 @@ async function handleDeletePanel(btnInteraction, rootInteraction, panelData, pan
     }
 
     await submitted.followUp({
-        embeds: [successEmbed('✅ Panel Deleted', `**${title}** has been deleted.`)],
+        embeds: [successEmbed('Panel Deleted', `**${title}** has been deleted.`)],
         flags: MessageFlags.Ephemeral,
     });
 
-    // Remove the deleted panel from the array
     const panelIndex = panels.findIndex(p => p.messageId === panelData.messageId);
     if (panelIndex > -1) {
         panels.splice(panelIndex, 1);
@@ -1076,20 +1050,20 @@ async function handleDeletePanel(btnInteraction, rootInteraction, panelData, pan
         await InteractionHelper.safeEditReply(rootInteraction, {
             embeds: [
                 new EmbedBuilder()
-                    .setTitle('📋 Reaction Roles Dashboard')
+                    .setTitle('Reaction Roles Dashboard')
                     .setDescription('No panels remain. Use `/reactroles setup` to create one.')
                     .setColor(getColor('info')),
             ],
             components: [],
         });
     } else {
-        // Close the dashboard after deletion
+        
         collector.stop();
         buttonCollector.stop();
         await InteractionHelper.safeEditReply(rootInteraction, {
             embeds: [
                 new EmbedBuilder()
-                    .setTitle('📋 Reaction Roles Dashboard')
+                    .setTitle('Reaction Roles Dashboard')
                     .setDescription('Panel deleted. Run `/reactroles dashboard` to manage another panel.')
                     .setColor(getColor('success')),
             ],

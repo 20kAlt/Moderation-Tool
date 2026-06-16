@@ -107,7 +107,7 @@ export default {
 
       await InteractionHelper.safeEditReply(interaction, {
         embeds: [
-          successEmbed(`🗑️ Deleted ${deletedCount} messages in ${channel}.`),
+          successEmbed('Deleted ${deletedCount} messages in ${channel}.'),
         ],
 flags: MessageFlags.Ephemeral,
       });
@@ -130,6 +130,3 @@ flags: MessageFlags.Ephemeral,
     }
   }
 };
-
-
-

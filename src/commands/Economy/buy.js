@@ -156,8 +156,3 @@ export default {
             await InteractionHelper.safeEditReply(interaction, { embeds: [embed], flags: [MessageFlags.Ephemeral] });
     }, { command: 'buy' })
 };
-
-
-
-
-

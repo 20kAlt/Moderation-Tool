@@ -70,12 +70,12 @@ export default {
             )
                 .addFields(
                     {
-                        name: "💵 New Cash Balance",
+                        name: "New Cash Balance",
                         value: `$${userData.wallet.toLocaleString()}`,
                         inline: true,
                     },
                     {
-                        name: "🏦 New Bank Balance",
+                        name: "New Bank Balance",
                         value: `$${userData.bank.toLocaleString()}`,
                         inline: true,
                     },

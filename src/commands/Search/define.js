@@ -60,7 +60,7 @@ export default {
                     .map((def, idx) => {
                         let text = `${idx + 1}. ${def.definition}`;
                         if (def.example) {
-                            text += `\n   *Example: ${def.example}*`;
+                            text += `\n *Example: ${def.example}*`;
                         }
                         return text;
                     })
@@ -95,8 +95,7 @@ export default {
                 guildId: interaction.guildId,
                 commandName: 'define'
             });
-            
-            
+
             if (error.response?.status === 404) {
                 await InteractionHelper.safeEditReply(interaction, {
                     embeds: [errorEmbed('Not Found', `No definitions found for "${interaction.options.getString('word')}".`)]
@@ -110,5 +109,3 @@ export default {
         }
     },
 };
-
-

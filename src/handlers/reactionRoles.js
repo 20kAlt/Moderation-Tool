@@ -4,13 +4,6 @@ import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 import { errorEmbed } from '../utils/embeds.js';
 import { logger } from '../utils/logger.js';
 
-
-
-
-
-
-
-
 async function handleReactionAdd(client, reaction, user) {
     try {
         if (user.bot || !reaction.message.guild) return;
@@ -40,7 +33,6 @@ async function handleReactionAdd(client, reaction, user) {
 
         await member.roles.add(role);
 
-        
         try {
             await logEvent({
                 client,
@@ -78,13 +70,6 @@ async function handleReactionAdd(client, reaction, user) {
     }
 }
 
-
-
-
-
-
-
-
 async function handleReactionRemove(client, reaction, user) {
     try {
         if (user.bot || !reaction.message.guild) return;
@@ -114,7 +99,6 @@ async function handleReactionRemove(client, reaction, user) {
 
         await member.roles.remove(role);
 
-        
         try {
             await logEvent({
                 client,
@@ -151,11 +135,6 @@ async function handleReactionRemove(client, reaction, user) {
         logger.error('Error in handleReactionRemove:', error);
     }
 }
-
-
-
-
-
 
 export async function handleReactionRoles(interaction) {
     try {
@@ -264,10 +243,6 @@ export async function handleReactionRoles(interaction) {
     }
 }
 
-
-
-
-
 export function setupReactionRoleListeners(client) {
     client.on(Events.MessageReactionAdd, async (reaction, user) => {
         await handleReactionAdd(client, reaction, user);
@@ -277,7 +252,3 @@ export function setupReactionRoleListeners(client) {
         await handleReactionRemove(client, reaction, user);
     });
 }
-
-
-
-

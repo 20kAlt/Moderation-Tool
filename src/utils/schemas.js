@@ -1,3 +1,5 @@
+// schemas.js
+
 import { z } from 'zod';
 import { createError, ErrorTypes } from './errorHandler.js';
 
@@ -58,14 +60,14 @@ export const GuildConfigSchema = z
     birthdayChannelId: z.string().nullable().optional(),
     premiumRoleId: z.string().nullable().optional(),
     logIgnore: LogIgnoreSchema.optional(),
-    enabledCommands: z.record(z.boolean()).optional(),
+    disabledCommands: z.record(z.boolean()).optional(),
+    disabledCategories: z.record(z.boolean()).optional(),
     logging: LoggingConfigSchema.optional(),
     ticketLogging: TicketLoggingSchema.optional(),
     enableLogging: z.boolean().optional(),
     verification: VerificationConfigSchema
   })
   .passthrough();
-
 
 export const EconomyDataSchema = z
   .object({
@@ -123,5 +125,3 @@ export function validateGuildConfigOrThrow(rawConfig, context = {}) {
     }
   );
 }
-
-

@@ -3,7 +3,7 @@ import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '
 import { logModerationAction } from '../../utils/moderation.js';
 import { logger } from '../../utils/logger.js';
 import { WarningService } from '../../services/warningService.js';
-import { handleInteractionError } from '../../utils/errorHandler.js';
+import { handleInteractionError, TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 export default {
     data: new SlashCommandBuilder()
@@ -46,11 +46,28 @@ export default {
                 const moderator = interaction.user;
                 const guildId = interaction.guildId;
 
+                if (!target) {
+                    throw new TitanBotError(
+                        'Missing target user',
+                        ErrorTypes.USER_INPUT,
+                        'You must specify a user to warn.',
+                        { subtype: 'invalid_user' },
+                    );
+                }
+
+                if (!reason) {
+                    throw new TitanBotError(
+                        'Missing warning reason',
+                        ErrorTypes.VALIDATION,
+                        'You must provide a reason for the warning.',
+                        { subtype: 'missing_required' },
+                    );
+                }
+
                 if (!member) {
                     throw new Error("The target user is not currently in this server.");
                 }
 
-                
                 const result = await WarningService.addWarning({
                     guildId,
                     userId: target.id,
@@ -97,6 +114,3 @@ export default {
         }
     }
 };
-
-
-

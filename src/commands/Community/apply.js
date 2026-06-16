@@ -32,6 +32,7 @@ function getApplicationStatusPresentation(statusValue) {
 }
 
 export default {
+    slashOnly: true,
     data: new SlashCommandBuilder()
         .setName("apply")
         .setDescription("Manage role applications")
@@ -69,7 +70,7 @@ export default {
     execute: withErrorHandling(async (interaction) => {
         if (!interaction.inGuild()) {
             return InteractionHelper.safeReply(interaction, {
-                embeds: [errorEmbed("This command can only be used in a server.")],
+                embeds: [errorEmbed('This command can only be used in a server.')],
                 flags: ["Ephemeral"],
             });
         }
@@ -141,8 +142,7 @@ export async function handleApplicationModal(interaction) {
     
     const answers = [];
     const settings = await getApplicationSettings(interaction.client, interaction.guild.id);
-    
-    // Get questions - use per-application questions if they exist, otherwise use global
+
     let questions = settings.questions || ["Why do you want this role?", "What is your experience?"];
     const roleSettings = await getApplicationRoleSettings(interaction.client, interaction.guild.id, roleId);
     if (roleSettings.questions && roleSettings.questions.length > 0) {
@@ -179,15 +179,14 @@ export async function handleApplicationModal(interaction) {
         
         const settings = await getApplicationSettings(interaction.client, interaction.guild.id);
         const roleSettings = await getApplicationRoleSettings(interaction.client, interaction.guild.id, roleId);
-        
-        // Use per-application log channel if exists, otherwise use global
+
         const logChannelId = roleSettings.logChannelId || settings.logChannelId;
         
         if (logChannelId) {
             const logChannel = interaction.guild.channels.cache.get(logChannelId);
             if (logChannel) {
                 const logEmbed = createEmbed({
-                    title: '📝 New Application',
+                    title: 'New Application',
                     description: `**User:** <@${interaction.user.id}> (${interaction.user.tag})\n` +
                         `**Application:** ${applicationRole.name}\n` +
                         `**Role:** ${role.name}\n` +
@@ -226,7 +225,7 @@ async function handleList(interaction) {
         
         if (applicationRoles.length === 0) {
             return InteractionHelper.safeEditReply(interaction, {
-                embeds: [errorEmbed("No applications are currently available.")],
+                embeds: [errorEmbed('No applications are currently available.')],
             });
         }
 
@@ -239,7 +238,7 @@ async function handleList(interaction) {
             const role = interaction.guild.roles.cache.get(appRole.roleId);
             embed.addFields({
                 name: `${index + 1}. ${appRole.name}`,
-                value: `**Role:** ${role ? `<@&${appRole.roleId}>` : 'Role not found'}\n` +
+                value: `**Role:** ${role ?`<@&${appRole.roleId}>`: 'Role not found'}\n` +
                        `**Apply with:** \`/apply submit application:"${appRole.name}"\``,
                 inline: false
             });
@@ -318,7 +317,6 @@ async function handleSubmit(interaction, settings) {
         .setCustomId(`app_modal_${applicationRole.roleId}`)
         .setTitle(`Application for ${applicationRole.name}`);
 
-    // Get questions - use per-application questions if they exist, otherwise use global
     let questions = settings.questions || ["Why do you want this role?", "What is your experience?"];
     const roleSettings = await getApplicationRoleSettings(interaction.client, interaction.guild.id, applicationRole.roleId);
     if (roleSettings.questions && roleSettings.questions.length > 0) {
@@ -389,7 +387,7 @@ async function handleStatus(interaction) {
         if (applications.length === 0) {
             return InteractionHelper.safeEditReply(interaction, {
                 embeds: [
-                    errorEmbed("You have not submitted any applications yet."),
+                    errorEmbed('You have not submitted any applications yet.'),
                 ],
                 flags: ["Ephemeral"],
             });
@@ -428,6 +426,3 @@ async function handleStatus(interaction) {
         return InteractionHelper.safeEditReply(interaction, { embeds: [embed], flags: ["Ephemeral"] });
     }
 }
-
-
-

@@ -17,11 +17,11 @@ export default {
                 .setDescription("The priority level for the ticket.")
                 .setRequired(true)
                 .addChoices(
-                    { name: "🔴 Urgent", value: "urgent" },
-                    { name: "🟠 High", value: "high" },
-                    { name: "🟡 Medium", value: "medium" },
-                    { name: "🟢 Low", value: "low" },
-                    { name: "⚪ None", value: "none" },
+                    { name: "Urgent", value: "urgent" },
+                    { name: "High", value: "high" },
+                    { name: "Medium", value: "medium" },
+                    { name: "Low", value: "low" },
+                    { name: "None", value: "none" },
                 ),
             )
         .setDMPermission(false),
@@ -113,7 +113,3 @@ export default {
         }
     },
 };
-
-
-
-

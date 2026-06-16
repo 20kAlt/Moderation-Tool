@@ -105,7 +105,7 @@ export default {
                     break;
                 default:
                     await InteractionHelper.safeReply(interaction, {
-                        embeds: [errorEmbed("Unknown subcommand.")],
+                        embeds: [errorEmbed('Unknown subcommand.')],
                         flags: MessageFlags.Ephemeral
                     });
             }
@@ -126,7 +126,3 @@ export default {
         }
     }
 };
-
-
-
-

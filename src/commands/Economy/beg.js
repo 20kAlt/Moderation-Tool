@@ -99,5 +99,3 @@ userData.lastBeg = Date.now();
             await InteractionHelper.safeEditReply(interaction, { embeds: [replyEmbed] });
     }, { command: 'beg' })
 };
-
-

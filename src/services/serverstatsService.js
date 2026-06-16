@@ -1,3 +1,5 @@
+// serverstatsService.js
+
 import { logger } from '../utils/logger.js';
 import { logEvent, EVENT_TYPES } from './loggingService.js';
 
@@ -76,7 +78,6 @@ export async function getCounterCount(guild, type) {
   }
 }
 
-
 function isValidCounterShape(counter) {
   return Boolean(
     counter &&
@@ -116,13 +117,6 @@ function sanitizeCounters(counters, guildId) {
     .map(counter => normalizeCounter(counter, guildId));
 }
 
-
-
-
-
-
-
-
 export async function updateCounter(client, guild, counter) {
   try {
     if (!counter || !counter.type || !counter.channelId) {
@@ -160,7 +154,6 @@ export async function updateCounter(client, guild, counter) {
           logger.debug(`Updated channel name to: "${newName}"`);
         }
 
-        
         try {
           await logEvent({
             client,
@@ -208,12 +201,6 @@ export async function updateCounter(client, guild, counter) {
   }
 }
 
-
-
-
-
-
-
 export async function getServerCounters(client, guildId) {
   try {
     if (!client || !client.db) {
@@ -252,13 +239,6 @@ export async function getServerCounters(client, guildId) {
   }
 }
 
-
-
-
-
-
-
-
 export async function saveServerCounters(client, guildId, counters) {
   try {
     if (!client || !client.db) {
@@ -282,5 +262,3 @@ export async function saveServerCounters(client, guildId, counters) {
     return false;
   }
 }
-
-

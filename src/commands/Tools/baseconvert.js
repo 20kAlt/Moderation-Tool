@@ -136,7 +136,7 @@ export default {
                 : numberStr;
             
             if (!cleanNumber) {
-                const embed = errorEmbed('❌ Empty Input', 'You must provide a number to convert.\n\n**Example:** `/baseconvert number:1010 from:BIN to:DEC`');
+                const embed = errorEmbed('Empty Input', 'You must provide a number to convert.\n\n**Example:** `/baseconvert number:1010 from:BIN to:DEC`');
                 embed.setColor(getColor('error'));
                 return InteractionHelper.safeEditReply(interaction, {
                     embeds: [embed],
@@ -177,7 +177,7 @@ export default {
                 }
             } catch (error) {
                 logger.error('Base conversion parse error:', error);
-                const embed = errorEmbed('⚠️ Conversion Failed', 'The number is too large to process.\n\nTry with a smaller number.');
+                const embed = errorEmbed('Conversion Failed', 'The number is too large to process.\n\nTry with a smaller number.');
                 embed.setColor(getColor('error'));
                 return InteractionHelper.safeEditReply(interaction, {
                     embeds: [embed],
@@ -203,7 +203,7 @@ export default {
                     
                 } catch (error) {
                     logger.error(`Base conversion error to ${toName}:`, error);
-                    const embed = errorEmbed(`⚠️ Failed to Convert to ${toName}`, 'The result would be too large or incompatible.\n\nTry with a smaller number or different target base.');
+                    const embed = errorEmbed('Failed to Convert to ${toName}', 'The result would be too large or incompatible.\n\nTry with a smaller number or different target base.');
                     embed.setColor(getColor('error'));
                     await InteractionHelper.safeEditReply(interaction, {
                         embeds: [embed]
@@ -243,6 +243,3 @@ export default {
         }
     },
 };
-
-
-

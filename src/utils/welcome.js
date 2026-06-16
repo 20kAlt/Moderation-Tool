@@ -1,3 +1,5 @@
+// welcome.js
+
 import { logger } from './logger.js';
 
 const DEFAULT_TEMPLATES = {
@@ -12,11 +14,6 @@ function replaceAll(message, token, value) {
     return message.split(token).join(String(value));
 }
 
-
-
-
-
-
 export function formatWelcomeMessage(message, data) {
     
     if (typeof message !== 'string') return '';
@@ -26,7 +23,6 @@ export function formatWelcomeMessage(message, data) {
     const user = data?.user;
     const guild = data?.guild;
 
-    
     if (!user || typeof user !== 'object') {
         logger.warn('Invalid user object passed to formatWelcomeMessage');
     }
@@ -67,5 +63,3 @@ export function getDefaultWelcomeMessage() {
 export function getDefaultGoodbyeMessage() {
     return DEFAULT_TEMPLATES.goodbye;
 }
-
-

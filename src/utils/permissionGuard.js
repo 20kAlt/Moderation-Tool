@@ -1,26 +1,13 @@
-﻿
-
-
-
+// permissionGuard.js
 
 import { PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { logger } from './logger.js';
 import { errorEmbed } from './embeds.js';
 
-
-
-
-
-
 export function isAdmin(member) {
   if (!member) return false;
   return member.permissions.has(PermissionFlagsBits.Administrator);
 }
-
-
-
-
-
 
 export function isModerator(member) {
   if (!member) return false;
@@ -30,22 +17,10 @@ export function isModerator(member) {
   ]);
 }
 
-
-
-
-
-
-
 export function hasPermission(member, permissions) {
   if (!member) return false;
   return member.permissions.has(permissions);
 }
-
-
-
-
-
-
 
 export function botHasPermission(channel, permissions) {
   if (!channel || !channel.guild) return false;
@@ -53,13 +28,6 @@ export function botHasPermission(channel, permissions) {
   if (!botMember) return false;
   return channel.permissionsFor(botMember).has(permissions);
 }
-
-
-
-
-
-
-
 
 export async function checkUserPermissions(
   interaction,
@@ -82,13 +50,6 @@ export async function checkUserPermissions(
   
   return true;
 }
-
-
-
-
-
-
-
 
 export async function checkBotPermissions(
   interaction,
@@ -142,11 +103,6 @@ export async function checkBotPermissions(
   return true;
 }
 
-
-
-
-
-
 function hashUserId(userId) {
   
   let hash = 0;
@@ -158,18 +114,10 @@ function hashUserId(userId) {
   return Math.abs(hash).toString(16).substring(0, 8);
 }
 
-
-
-
-
-
-
-
 export function auditPermissionCheck(userId, action, allowed, reason = null) {
   
   const userHash = hashUserId(userId);
-  
-  
+
   if (allowed) {
     logger.debug('[PERMISSION_AUDIT] Permission granted', { action, userHash });
   } else {
@@ -187,5 +135,3 @@ export default {
   checkBotPermissions,
   auditPermissionCheck
 };
-
-

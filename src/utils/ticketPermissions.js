@@ -1,3 +1,5 @@
+// ticketPermissions.js
+
 import { PermissionFlagsBits } from 'discord.js';
 import { getGuildConfig } from '../services/guildConfig.js';
 import { getTicketData } from './database.js';

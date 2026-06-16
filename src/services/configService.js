@@ -1,22 +1,4 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// configService.js
 
 import { logger } from '../utils/logger.js';
 import { getGuildConfig, setGuildConfig } from './guildConfig.js';
@@ -26,10 +8,8 @@ import { wrapServiceClassMethods } from '../utils/serviceErrorBoundary.js';
 import { z } from 'zod';
 import { LogIgnoreSchema, LoggingConfigSchema } from '../utils/schemas.js';
 
-
 const configChangeHistory = new Map();
 const CONFIG_HISTORY_LIMIT = 100;
-
 
 const CONFIG_VALIDATION_RULES = {
     logChannelId: { type: 'channel', required: false },
@@ -45,7 +25,6 @@ const CONFIG_VALIDATION_RULES = {
     logIgnore: { type: 'object', required: false },
     logging: { type: 'object', required: false }
 };
-
 
 const SETTING_CONFLICTS = {
     'logChannelId': ['logging'],
@@ -71,7 +50,6 @@ const ConfigValueSchemas = Object.freeze({
 
 class ConfigService {
 
-    
     static MAX_CHANNEL_IDS = 10;
     static MAX_ROLE_IDS = 20;
     static MAX_PREFIX_LENGTH = 10;
@@ -98,13 +76,6 @@ class ConfigService {
         }
     }
 
-    
-
-
-
-
-
-
     static async validateConfigValue(key, value, guild) {
         logger.debug(`[CONFIG_SERVICE] Validating config value`, { key, type: typeof value });
 
@@ -115,7 +86,6 @@ class ConfigService {
             return true; 
         }
 
-        
         if (rule.required === false && (value === null || value === undefined)) {
             return true;
         }
@@ -141,7 +111,6 @@ class ConfigService {
             }
         }
 
-        
         if (rule.type === 'channel') {
             if (typeof value !== 'string' && typeof value !== 'object') {
                 throw createError(
@@ -198,7 +167,6 @@ class ConfigService {
                 );
             }
 
-            
             const botHighestRole = guild.members.me?.roles.highest;
             if (role.position >= botHighestRole?.position) {
                 throw createError(
@@ -304,13 +272,6 @@ class ConfigService {
         return true;
     }
 
-    
-
-
-
-
-
-
     static detectConflicts(currentConfig, key, value) {
         logger.debug(`[CONFIG_SERVICE] Checking for config conflicts`, { key });
 
@@ -331,15 +292,6 @@ class ConfigService {
         return conflicts;
     }
 
-    
-
-
-
-
-
-
-
-
     static async updateSetting(client, guildId, key, value, adminId) {
         logger.info(`[CONFIG_SERVICE] Updating setting`, {
             guildId,
@@ -348,7 +300,6 @@ class ConfigService {
             valueType: typeof value
         });
 
-        
         this.validateConfigKeySafety(key);
 
         if (this.PROTECTED_SETTINGS.includes(key)) {
@@ -365,7 +316,6 @@ class ConfigService {
             );
         }
 
-        
         const guild = client.guilds.cache.get(guildId);
         if (!guild) {
             throw createError(
@@ -376,13 +326,10 @@ class ConfigService {
             );
         }
 
-        
         await this.validateConfigValue(key, value, guild);
 
-        
         const currentConfig = await getGuildConfig(client, guildId);
 
-        
         const conflicts = this.detectConflicts(currentConfig, key, value);
         if (conflicts.length > 0) {
             logger.warn(`[CONFIG_SERVICE] Config conflicts detected`, {
@@ -393,14 +340,11 @@ class ConfigService {
             
         }
 
-        
         const oldValue = currentConfig[key];
 
-        
         const updatedConfig = { ...currentConfig, [key]: value };
         await setGuildConfig(client, guildId, updatedConfig);
 
-        
         this.recordChange(guildId, {
             key,
             oldValue,
@@ -429,14 +373,6 @@ class ConfigService {
         };
     }
 
-    
-
-
-
-
-
-
-
     static async bulkUpdate(client, guildId, updates, adminId) {
         logger.info(`[CONFIG_SERVICE] Bulk updating settings`, {
             guildId,
@@ -454,7 +390,6 @@ class ConfigService {
             );
         }
 
-        
         const validatedUpdates = {};
         const validationErrors = [];
 
@@ -487,14 +422,11 @@ class ConfigService {
             );
         }
 
-        
         const currentConfig = await getGuildConfig(client, guildId);
 
-        
         const updatedConfig = { ...currentConfig, ...validatedUpdates };
         await setGuildConfig(client, guildId, updatedConfig);
 
-        
         for (const [key, value] of Object.entries(validatedUpdates)) {
             this.recordChange(guildId, {
                 key,
@@ -523,10 +455,6 @@ class ConfigService {
         };
     }
 
-    
-
-
-
     static recordChange(guildId, changeData) {
         if (!configChangeHistory.has(guildId)) {
             configChangeHistory.set(guildId, []);
@@ -535,7 +463,6 @@ class ConfigService {
         const history = configChangeHistory.get(guildId);
         history.push(changeData);
 
-        
         if (history.length > CONFIG_HISTORY_LIMIT) {
             history.shift();
         }
@@ -547,24 +474,10 @@ class ConfigService {
         });
     }
 
-    
-
-
-
-
-
     static getChangeHistory(guildId, limit = 20) {
         const history = configChangeHistory.get(guildId) || [];
         return history.slice(-limit).reverse();
     }
-
-    
-
-
-
-
-
-
 
     static async resetSetting(client, guildId, key, adminId) {
         logger.info(`[CONFIG_SERVICE] Resetting setting`, {
@@ -576,7 +489,6 @@ class ConfigService {
         const currentConfig = await getGuildConfig(client, guildId);
         const oldValue = currentConfig[key];
 
-        
         const defaultValue = null;
 
         const updatedConfig = { ...currentConfig, [key]: defaultValue };
@@ -607,12 +519,6 @@ class ConfigService {
         };
     }
 
-    
-
-
-
-
-
     static async getConfigSummary(client, guildId) {
         logger.debug(`[CONFIG_SERVICE] Fetching config summary`, { guildId });
 
@@ -628,7 +534,6 @@ class ConfigService {
             );
         }
 
-        
         const summary = {};
 
         for (const [key, value] of Object.entries(config)) {
@@ -662,11 +567,6 @@ class ConfigService {
             recordedAt: new Date().toISOString()
         };
     }
-
-    
-
-
-
 
     static verifyPermission(member) {
         return member.permissions.has([

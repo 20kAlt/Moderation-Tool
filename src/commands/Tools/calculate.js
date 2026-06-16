@@ -6,7 +6,6 @@ import { getColor } from '../../config/bot.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { evaluateMathExpression } from '../../utils/safeMathParser.js';
 
-// Store calculation context for modal handlers
 const calculationContexts = new Map();
 
 function evaluate(expression) {
@@ -201,7 +200,7 @@ const BUTTON_TIMEOUT = 300000;
                                 .map(
                                     (item, index) =>
                                         `${index + 1}. **${item.expression}** = \`${item.result}\`\n` +
-                                        `   <t:${Math.floor(item.timestamp / 1000)}:R>`,
+                                        `<t:${Math.floor(item.timestamp / 1000)}:R>`,
                                 )
                                 .join("\n\n");
 
@@ -319,7 +318,7 @@ const BUTTON_TIMEOUT = 300000;
             } catch (error) {
                 logger.error('Calculation error:', error);
 
-                let errorMessage = 'Failed to evaluate the expression. ';
+                let errorMessage = 'Failed to evaluate the expression.';
 
                 if (error.message.includes('Unexpected type')) {
                     errorMessage +=
@@ -353,8 +352,3 @@ const BUTTON_TIMEOUT = 300000;
         }
     },
 };
-
-
-
-
-

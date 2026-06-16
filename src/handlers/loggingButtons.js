@@ -26,7 +26,6 @@ export default {
         });
       }
 
-      // Dashboard-specific buttons
       if (interaction.customId === 'log_dash_refresh') {
         return await handleDashboardRefresh(interaction);
       }
@@ -34,7 +33,6 @@ export default {
         return await handleDashboardToggle(interaction);
       }
 
-      // Legacy /config logging status buttons
       if (interaction.customId === 'logging_refresh_status') {
         return await handleRefresh(interaction);
       }
@@ -123,11 +121,9 @@ async function handleRefresh(interaction) {
   }
 }
 
-// ─── Dashboard button handlers ────────────────────────────────────────────────
-
 async function handleDashboardToggle(interaction) {
   try {
-    // customId: log_dash_toggle:audit_enabled | log_dash_toggle:all | log_dash_toggle:category.*
+    
     const eventType = interaction.customId.replace('log_dash_toggle:', '');
     if (!eventType) {
       return interaction.reply({ content: '❌ Invalid event type.', ephemeral: true });

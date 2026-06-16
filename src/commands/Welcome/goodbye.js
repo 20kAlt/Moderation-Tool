@@ -73,7 +73,6 @@ export default {
                 });
             }
 
-            
             if (!message || message.trim().length === 0) {
                 logger.warn(`[Goodbye] Empty message provided by ${interaction.user.tag} in ${guild.name}`);
                 return await InteractionHelper.safeEditReply(interaction, {
@@ -82,7 +81,6 @@ export default {
                 });
             }
 
-            
             if (image) {
                 try {
                     new URL(image);
@@ -119,12 +117,12 @@ export default {
 
                 const embed = new EmbedBuilder()
                     .setColor(getColor('success'))
-                    .setTitle('✅ Goodbye System Configured')
+                    .setTitle('Goodbye System Configured')
                     .setDescription(`Goodbye messages will now be sent to ${channel}`)
                     .addFields(
                         { name: 'Message Preview', value: previewMessage },
-                        { name: 'Ping User', value: ping ? '✅ Yes' : '❌ No' },
-                        { name: 'Status', value: '✅ Enabled' }
+                        { name: 'Ping User', value: ping ? 'Yes' : 'No' },
+                        { name: 'Status', value: 'Enabled' }
                     )
                     .setFooter({ text: 'Tip: Use /goodbye config to customize goodbye settings' });
 
@@ -147,6 +145,3 @@ export default {
         }
     },
 };
-
-
-

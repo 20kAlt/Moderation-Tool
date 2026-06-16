@@ -1,3 +1,5 @@
+// database.js
+
 import { pgDb } from './postgresDatabase.js';
 import { MemoryStorage } from './memoryStorage.js';
 import { logger } from './logger.js';
@@ -48,13 +50,12 @@ class DatabaseWrapper {
             }
         }
 
-        
         this.db = new MemoryStorage();
         this.useFallback = true;
         this.connectionType = 'memory';
         this.degradedReason = 'POSTGRES_UNAVAILABLE';
-        logger.warn('⚠️  DATABASE DEGRADED MODE ENABLED - Using in-memory storage (data will be lost on restart)');
-        logger.warn('⚠️  Please check PostgreSQL connection and restart the bot when fixed');
+        logger.warn('⚠️ DATABASE DEGRADED MODE ENABLED - Using in-memory storage (data will be lost on restart)');
+        logger.warn('⚠️ Please check PostgreSQL connection and restart the bot when fixed');
         this.initialized = true;
         this.degradedModeWarningShown = true;
     }
@@ -124,25 +125,13 @@ class DatabaseWrapper {
         return newValue;
     }
 
-    /**
-     * Check if database is in degraded mode (memory-only fallback)
-     * @returns {boolean} True if using in-memory storage fallback
-     */
     isDegraded() {
         return this.useFallback;
     }
 
-    /**
-     * Check if database is fully available (PostgreSQL)
-     * @returns {boolean} True if connected to PostgreSQL
-     */
     isAvailable() {
         return this.db && !this.useFallback;
     }
-
-    
-
-
 
     getStatus() {
         return {
@@ -240,11 +229,6 @@ export async function insertVerificationAudit(record) {
     }
 }
 
-/**
- * Extract actual data from database response (for backward compatibility)
- * @param {any} data - Data to unwrap
- * @returns {any} Unwrapped data
- */
 export function unwrapReplitData(data) {
     if (
         typeof data === "object" &&
@@ -260,12 +244,6 @@ export function unwrapReplitData(data) {
 export const getGuildConfigKey = (guildId) => `guild:${guildId}:config`;
 export const getGuildBirthdaysKey = (guildId) => `guild:${guildId}:birthdays`;
 
-/**
- * Get or initialize guild configuration
- * @param {Object} client - Discord client with database
- * @param {string} guildId - Guild ID
- * @returns {Promise<Object>} Guild configuration
- */
 export async function getGuildConfig(client, guildId, context = {}) {
     try {
         if (!client.db || typeof client.db.get !== "function") {
@@ -289,13 +267,6 @@ export async function getGuildConfig(client, guildId, context = {}) {
     }
 }
 
-/**
- * Save guild configuration
- * @param {Object} client - Discord client with database
- * @param {string} guildId - Guild ID
- * @param {Object} config - Configuration to save
- * @returns {Promise<boolean>} Success status
- */
 export async function setGuildConfig(client, guildId, config, context = {}) {
     try {
         if (!client.db || typeof client.db.set !== "function") {
@@ -344,12 +315,6 @@ export const getColor = (path, fallback = "#000000") => {
     return typeof current === "string" ? current : fallback;
 };
 
-/**
- * Get all birthdays for a guild
- * @param {Object} client - Discord client with database
- * @param {string} guildId - Guild ID
- * @returns {Promise<Object>} Object mapping user IDs to birthday data
- */
 export async function getGuildBirthdays(client, guildId) {
     const key = getGuildBirthdaysKey(guildId);
     try {
@@ -366,15 +331,6 @@ export async function getGuildBirthdays(client, guildId) {
     }
 }
 
-/**
- * Set a user's birthday
- * @param {Object} client - Discord client with database
- * @param {string} guildId - Guild ID
- * @param {string} userId - User ID
- * @param {number} month - Month (1-12)
- * @param {number} day - Day (1-31)
- * @returns {Promise<boolean>} Success status
- */
 export async function setBirthday(client, guildId, userId, month, day) {
     try {
         if (!client.db || typeof client.db.set !== "function") {
@@ -393,13 +349,6 @@ export async function setBirthday(client, guildId, userId, month, day) {
     }
 }
 
-/**
- * Delete a user's birthday
- * @param {Object} client - Discord client with database
- * @param {string} guildId - Guild ID
- * @param {string} userId - User ID
- * @returns {Promise<boolean>} Success status
- */
 export async function deleteBirthday(client, guildId, userId) {
     try {
         if (!client.db || typeof client.db.set !== "function") {
@@ -420,11 +369,6 @@ export async function deleteBirthday(client, guildId, userId) {
     }
 }
 
-
-
-
-
-
 export function getMonthName(monthNum) {
     const months = [
         'January', 'February', 'March', 'April', 'May', 'June',
@@ -434,13 +378,6 @@ export function getMonthName(monthNum) {
     return monthNum >= 1 && monthNum <= 12 ? months[index] : 'Invalid Month';
 }
 
-
-/**
- * Get all giveaways for a guild
- * @param {Object} client - Discord client with database
- * @param {string} guildId - Guild ID
- * @returns {Promise<Object>} Object mapping message IDs to giveaway data
- */
 export async function getGuildGiveaways(client, guildId) {
     const key = giveawayKey(guildId);
     try {
@@ -457,13 +394,6 @@ export async function getGuildGiveaways(client, guildId) {
     }
 }
 
-/**
- * Save a giveaway
- * @param {Object} client - Discord client with database
- * @param {string} guildId - Guild ID
- * @param {Object} giveawayData - The giveaway data to save
- * @returns {Promise<boolean>} Success status
- */
 export async function saveGiveaway(client, guildId, giveawayData) {
     try {
         if (!client.db || typeof client.db.set !== "function") {
@@ -484,13 +414,6 @@ export async function saveGiveaway(client, guildId, giveawayData) {
     }
 }
 
-/**
- * Delete a giveaway
- * @param {Object} client - Discord client with database
- * @param {string} guildId - Guild ID
- * @param {string} messageId - The message ID of the giveaway to delete
- * @returns {Promise<boolean>} Success status
- */
 export async function deleteGiveaway(client, guildId, messageId) {
     try {
         const key = giveawayKey(guildId);
@@ -508,81 +431,130 @@ export async function deleteGiveaway(client, guildId, messageId) {
     }
 }
 
-/**
- * Get all giveaways that have ended (SQL-optimized for PostgreSQL)
- * Uses the giveaways table index on ends_at for efficient querying
- * @param {Object} client - Discord client with database
- * @returns {Promise<Array>} Array of ended giveaway records
- */
+function isPostgresSqlReady(dbWrapper) {
+    return Boolean(
+        dbWrapper?.db?.pool &&
+        typeof dbWrapper.db.isAvailable === 'function' &&
+        dbWrapper.db.isAvailable(),
+    );
+}
+
+async function getEndedGiveawaysFromKv(client) {
+    const wrapper = client?.db;
+    if (!wrapper || typeof wrapper.list !== 'function' || typeof wrapper.get !== 'function') {
+        return [];
+    }
+
+    const keys = await wrapper.list('guild:');
+    const ended = [];
+    const now = Date.now();
+
+    for (const key of keys) {
+        if (!key.endsWith(':giveaways')) {
+            continue;
+        }
+
+        const guildId = key.split(':')[1];
+        if (!guildId) {
+            continue;
+        }
+
+        const rawGiveaways = await wrapper.get(key, {});
+        const unwrapped = unwrapReplitData(rawGiveaways) || {};
+        const giveaways = Array.isArray(unwrapped) ? unwrapped : Object.values(unwrapped);
+
+        for (const giveaway of giveaways) {
+            if (!giveaway?.messageId || giveaway.ended || giveaway.isEnded) {
+                continue;
+            }
+
+            const endTime = giveaway.endsAt || giveaway.endTime;
+            if (!endTime || now < Number(endTime)) {
+                continue;
+            }
+
+            ended.push({
+                id: giveaway.id || giveaway.messageId,
+                guild_id: guildId,
+                message_id: giveaway.messageId,
+                data: giveaway,
+                ends_at: new Date(Number(endTime)),
+            });
+        }
+    }
+
+    return ended.sort((a, b) => new Date(a.ends_at) - new Date(b.ends_at));
+}
+
 export async function getEndedGiveaways(client) {
     try {
-        if (!client.db || !client.db.isAvailable()) {
-            logger.warn('Database not available for getEndedGiveaways, using fallback');
+        const wrapper = client?.db;
+        if (!wrapper || typeof wrapper.get !== 'function') {
             return [];
         }
 
-        const { pgDb } = await import('./postgresDatabase.js');
-        const { pgConfig } = await import('../config/postgres.js');
-        
-        if (!pgDb.isAvailable()) {
-            return [];
+        if (isPostgresSqlReady(wrapper)) {
+            const { pgConfig } = await import('../config/postgres.js');
+
+            const result = await wrapper.db.pool.query(
+                `SELECT id, guild_id, message_id, data, ends_at 
+                 FROM ${pgConfig.tables.giveaways} 
+                 WHERE ends_at <= NOW() 
+                 AND COALESCE((data->>'ended')::boolean, false) = false
+                 ORDER BY ends_at ASC`,
+            );
+
+            return result.rows || [];
         }
 
-        const result = await pgDb.pool.query(
-            `SELECT id, guild_id, message_id, data, ends_at 
-             FROM ${pgConfig.tables.giveaways} 
-             WHERE ends_at <= NOW() 
-             AND (data->>'ended')::boolean = false
-             ORDER BY ends_at ASC`
-        );
+        if (wrapper.isDegraded?.()) {
+            logger.debug('Postgres SQL unavailable for ended giveaways; scanning key-value store');
+        }
 
-        return result.rows || [];
+        return await getEndedGiveawaysFromKv(client);
     } catch (error) {
         logger.error('Error getting ended giveaways:', error);
-        return [];
+        try {
+            return await getEndedGiveawaysFromKv(client);
+        } catch {
+            return [];
+        }
     }
 }
 
-/**
- * Mark a giveaway as ended in the database
- * @param {Object} client - Discord client with database
- * @param {number} giveawayId - The giveaway ID from the database
- * @param {Object} endedData - The updated giveaway data to save
- * @returns {Promise<boolean>} Success status
- */
 export async function markGiveawayEnded(client, giveawayId, endedData) {
     try {
-        if (!client.db || !client.db.isAvailable()) {
-            logger.warn('Database not available for markGiveawayEnded');
+        const wrapper = client?.db;
+        if (!wrapper || typeof wrapper.get !== 'function') {
             return false;
         }
 
-        const { pgDb } = await import('./postgresDatabase.js');
-        const { pgConfig } = await import('../config/postgres.js');
-        
-        if (!pgDb.isAvailable()) {
+        if (isPostgresSqlReady(wrapper)) {
+            const { pgConfig } = await import('../config/postgres.js');
+
+            await wrapper.db.pool.query(
+                `UPDATE ${pgConfig.tables.giveaways} 
+                 SET data = $1, updated_at = NOW() 
+                 WHERE id = $2`,
+                [endedData, giveawayId],
+            );
+
+            return true;
+        }
+
+        const guildId = endedData?.guildId;
+        if (!guildId || !endedData?.messageId) {
             return false;
         }
 
-        await pgDb.pool.query(
-            `UPDATE ${pgConfig.tables.giveaways} 
-             SET data = $1, updated_at = NOW() 
-             WHERE id = $2`,
-            [endedData, giveawayId]
-        );
-
-        return true;
+        const { saveGiveaway } = await import('./giveaways.js');
+        return saveGiveaway(client, guildId, endedData);
     } catch (error) {
         logger.error('Error marking giveaway as ended:', error);
         return false;
     }
 }
 
-/**
- * Generate a consistent key for giveaways in the database
- * @param {string} guildId - The guild ID
- * @returns {string} The formatted key
- */
 export function giveawayKey(guildId) {
     return `guild:${guildId}:giveaways`;
 }
@@ -700,35 +672,17 @@ export async function incrementTicketCounter(guildId) {
     const nextCounter = currentCounter + 1;
     
     await db.set(key, nextCounter);
-    
-    // Return padded to 3 digits (001, 002, etc.)
+
     return nextCounter.toString().padStart(3, '0');
 }
-
-
-
-
-
-
 
 export function getEconomyKey(guildId, userId) {
     return `guild:${guildId}:economy:${userId}`;
 }
 
-
-
-
-
-
-
 export function getAFKKey(guildId, userId) {
     return `guild:${guildId}:afk:${userId}`;
 }
-
-
-
-
-
 
 export function getWelcomeConfigKey(guildId) {
     return `guild:${guildId}:welcome`;
@@ -782,12 +736,6 @@ function normalizeWelcomeConfig(raw = {}) {
     };
 }
 
-
-
-
-
-
-
 export async function getWelcomeConfig(client, guildId) {
     if (!client.db) {
         logger.warn('Database not available for getWelcomeConfig');
@@ -805,13 +753,6 @@ export async function getWelcomeConfig(client, guildId) {
     }
 }
 
-
-
-
-
-
-
-
 export async function saveWelcomeConfig(client, guildId, config) {
     const key = getWelcomeConfigKey(guildId);
     try {
@@ -826,13 +767,6 @@ export async function saveWelcomeConfig(client, guildId, config) {
     }
 }
 
-
-
-
-
-
-
-
 export async function updateWelcomeConfig(client, guildId, updates) {
     try {
         const currentConfig = await getWelcomeConfig(client, guildId);
@@ -846,31 +780,13 @@ export async function updateWelcomeConfig(client, guildId, updates) {
     }
 }
 
-
-
-
-
-
-
 export function getLevelingKey(guildId) {
     return `guild:${guildId}:leveling:config`;
 }
 
-
-
-
-
-
-
 export function getUserLevelKey(guildId, userId) {
     return `guild:${guildId}:leveling:users:${userId}`;
 }
-
-
-
-
-
-
 
 export async function getLevelingConfig(client, guildId) {
     const key = getLevelingKey(guildId);
@@ -904,13 +820,6 @@ export async function getLevelingConfig(client, guildId) {
     }
 }
 
-
-
-
-
-
-
-
 export async function saveLevelingConfig(client, guildId, config) {
     const key = getLevelingKey(guildId);
     try {
@@ -921,13 +830,6 @@ export async function saveLevelingConfig(client, guildId, config) {
         return false;
     }
 }
-
-
-
-
-
-
-
 
 export async function getUserLevelData(client, guildId, userId) {
     const key = getUserLevelKey(guildId, userId);
@@ -967,14 +869,6 @@ export async function getUserLevelData(client, guildId, userId) {
     }
 }
 
-
-
-
-
-
-
-
-
 export async function saveUserLevelData(client, guildId, userId, data) {
     const key = getUserLevelKey(guildId, userId);
     try {
@@ -996,21 +890,9 @@ export async function saveUserLevelData(client, guildId, userId, data) {
     }
 }
 
-
-
-
-
-
 export function getXpForLevel(level) {
     return 5 * Math.pow(level, 2) + 50 * level + 50;
 }
-
-
-
-
-
-
-
 
 export async function getLeaderboard(client, guildId, limit = 10) {
     try {
@@ -1070,21 +952,9 @@ rank: 0
     }
 }
 
-
-
-
-
-
-
 export function getApplicationRolesKey(guildId) {
     return `guild:${guildId}:applications:roles`;
 }
-
-
-
-
-
-
 
 export async function getApplicationRoles(client, guildId) {
     try {
@@ -1103,13 +973,6 @@ export async function getApplicationRoles(client, guildId) {
     }
 }
 
-
-
-
-
-
-
-
 export async function saveApplicationRoles(client, guildId, roles) {
     try {
         if (!client.db || typeof client.db.set !== "function") {
@@ -1126,40 +989,17 @@ export async function saveApplicationRoles(client, guildId, roles) {
     }
 }
 
-
-
-
-
-
 export function getApplicationSettingsKey(guildId) {
     return `guild:${guildId}:applications:settings`;
 }
-
-
-
-
-
-
 
 export function getUserApplicationsKey(guildId, userId) {
     return `guild:${guildId}:applications:users:${userId}`;
 }
 
-
-
-
-
-
-
 export function getApplicationKey(guildId, applicationId) {
     return `guild:${guildId}:applications:${applicationId}`;
 }
-
-
-
-
-
-
 
 export async function getApplicationSettings(client, guildId) {
     if (!client.db) {
@@ -1347,13 +1187,6 @@ export async function cleanupExpiredApplications(client, guildId) {
     }
 }
 
-
-
-
-
-
-
-
 export async function saveApplicationSettings(client, guildId, settings) {
     const key = getApplicationSettingsKey(guildId);
     try {
@@ -1367,8 +1200,6 @@ export async function saveApplicationSettings(client, guildId, settings) {
         return false;
     }
 }
-
-// ────────── Per-Application Settings (Questions & Log Channel) ──────────
 
 function getApplicationRoleSettingsKey(guildId, roleId) {
     return `guild:${guildId}:applications:role:${roleId}:settings`;
@@ -1421,12 +1252,6 @@ export async function deleteApplicationRoleSettings(client, guildId, roleId) {
     }
 }
 
-
-
-
-
-
-
 export async function createApplication(client, application) {
     const { guildId, userId } = application;
     const applicationId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -1470,13 +1295,6 @@ status: 'pending',
     }
 }
 
-
-
-
-
-
-
-
 export async function getApplication(client, guildId, applicationId) {
     const key = getApplicationKey(guildId, applicationId);
     try {
@@ -1488,14 +1306,6 @@ export async function getApplication(client, guildId, applicationId) {
         return null;
     }
 }
-
-
-
-
-
-
-
-
 
 export async function updateApplication(client, guildId, applicationId, updates) {
     const key = getApplicationKey(guildId, applicationId);
@@ -1518,13 +1328,6 @@ export async function updateApplication(client, guildId, applicationId, updates)
         throw error;
     }
 }
-
-
-
-
-
-
-
 
 export async function getUserApplications(client, guildId, userId) {
     const userKey = getUserApplicationsKey(guildId, userId);
@@ -1552,17 +1355,6 @@ export async function getUserApplications(client, guildId, userId) {
         return [];
     }
 }
-
-
-
-
-
-
-
-
-
-
-
 
 export async function getApplications(client, guildId, filters = {}) {
     const {
@@ -1617,41 +1409,17 @@ export async function getApplications(client, guildId, filters = {}) {
     }
 }
 
-
-
-
-
-
-
 export function getModlogSettingsKey(guildId) {
     return `guild:${guildId}:modlog:settings`;
 }
-
-
-
-
-
-
 
 export function getModlogEntryKey(guildId, caseId) {
     return `guild:${guildId}:modlog:cases:${caseId}`;
 }
 
-
-
-
-
-
-
 export function getUserModlogKey(guildId, userId) {
     return `guild:${guildId}:modlog:users:${userId}`;
 }
-
-
-
-
-
-
 
 export async function getModlogSettings(client, guildId) {
     const key = getModlogSettingsKey(guildId);
@@ -1788,13 +1556,6 @@ export async function getModlogSettings(client, guildId) {
     }
 }
 
-
-
-
-
-
-
-
 export async function saveModlogSettings(client, guildId, settings) {
     const key = getModlogSettingsKey(guildId);
     try {
@@ -1808,12 +1569,6 @@ export async function saveModlogSettings(client, guildId, settings) {
         return false;
     }
 }
-
-
-
-
-
-
 
 export async function createModlogEntry(client, entry) {
     const { guildId, userId } = entry;
@@ -1845,13 +1600,6 @@ export async function createModlogEntry(client, entry) {
     }
 }
 
-
-
-
-
-
-
-
 export async function getModlogEntry(client, guildId, caseId) {
     const key = getModlogEntryKey(guildId, caseId);
     try {
@@ -1862,14 +1610,6 @@ export async function getModlogEntry(client, guildId, caseId) {
         return null;
     }
 }
-
-
-
-
-
-
-
-
 
 export async function updateModlogEntry(client, guildId, caseId, updates) {
     const key = getModlogEntryKey(guildId, caseId);
@@ -1893,13 +1633,6 @@ export async function updateModlogEntry(client, guildId, caseId, updates) {
     }
 }
 
-
-
-
-
-
-
-
 export async function getUserModlogEntries(client, guildId, userId) {
     const userKey = getUserModlogKey(guildId, userId);
     try {
@@ -1915,18 +1648,6 @@ export async function getUserModlogEntries(client, guildId, userId) {
         return [];
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 export async function getModlogEntries(client, guildId, filters = {}) {
     const {
@@ -1967,30 +1688,13 @@ export async function getModlogEntries(client, guildId, filters = {}) {
     }
 }
 
-
-
-
-
-
-
 export function getJoinToCreateConfigKey(guildId) {
     return `guild:${guildId}:jointocreate`;
 }
 
-
-
-
-
-
 export function getJoinToCreateChannelsKey(guildId) {
     return `guild:${guildId}:jointocreate:channels`;
 }
-
-
-
-
-
-
 
 export async function getJoinToCreateConfig(client, guildId) {
     if (!client.db) {
@@ -2035,13 +1739,6 @@ export async function getJoinToCreateConfig(client, guildId) {
     }
 }
 
-
-
-
-
-
-
-
 export async function saveJoinToCreateConfig(client, guildId, config) {
     const key = getJoinToCreateConfigKey(guildId);
     try {
@@ -2056,13 +1753,6 @@ export async function saveJoinToCreateConfig(client, guildId, config) {
     }
 }
 
-
-
-
-
-
-
-
 export async function updateJoinToCreateConfig(client, guildId, updates) {
     try {
         const currentConfig = await getJoinToCreateConfig(client, guildId);
@@ -2075,14 +1765,6 @@ export async function updateJoinToCreateConfig(client, guildId, updates) {
         throw error;
     }
 }
-
-
-
-
-
-
-
-
 
 export async function addJoinToCreateTrigger(client, guildId, channelId, options = {}) {
     try {
@@ -2113,13 +1795,6 @@ export async function addJoinToCreateTrigger(client, guildId, channelId, options
     }
 }
 
-
-
-
-
-
-
-
 export async function removeJoinToCreateTrigger(client, guildId, channelId) {
     try {
         const config = await getJoinToCreateConfig(client, guildId);
@@ -2143,15 +1818,6 @@ export async function removeJoinToCreateTrigger(client, guildId, channelId) {
     }
 }
 
-
-
-
-
-
-
-
-
-
 export async function registerTemporaryChannel(client, guildId, channelId, ownerId, triggerChannelId) {
     try {
         const config = await getJoinToCreateConfig(client, guildId);
@@ -2169,13 +1835,6 @@ export async function registerTemporaryChannel(client, guildId, channelId, owner
     }
 }
 
-
-
-
-
-
-
-
 export async function unregisterTemporaryChannel(client, guildId, channelId) {
     try {
         const config = await getJoinToCreateConfig(client, guildId);
@@ -2192,13 +1851,6 @@ export async function unregisterTemporaryChannel(client, guildId, channelId) {
     }
 }
 
-
-
-
-
-
-
-
 export async function getTemporaryChannelInfo(client, guildId, channelId) {
     try {
         const config = await getJoinToCreateConfig(client, guildId);
@@ -2208,12 +1860,6 @@ export async function getTemporaryChannelInfo(client, guildId, channelId) {
         return null;
     }
 }
-
-
-
-
-
-
 
 export function formatChannelName(template, variables) {
     let formatted = template;
@@ -2236,13 +1882,6 @@ formatted = formatted.substring(0, 100);
     return formatted || 'Voice Channel';
 }
 
-
-
-
-
 function generateCaseId() {
     return `${Date.now().toString(36)}-${Math.random().toString(36).substr(2, 4)}`;
 }
-
-
-
