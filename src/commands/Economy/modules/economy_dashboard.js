@@ -30,38 +30,23 @@ async function buildDashboardEmbed(guild, client) {
     const currencySymbol = BotConfig.economy.currency.symbol;
     const currencyName = BotConfig.economy.currency.name;
 
-    let totalWallet = 0;
-    let totalBank = 0;
+    let totalInCirculation = 0;
     let userCount = 0;
-    let richestUserId = null;
-    let maxBalance = 0;
 
     try {
-        
         const economyKeys = await client.db.list(`economy:${guild.id}:`);
-        
+
         if (economyKeys && economyKeys.length > 0) {
             for (const key of economyKeys) {
-                
                 const userId = key.split(':').pop();
 
                 const member = await guild.members.fetch(userId).catch(() => null);
                 if (member?.user?.bot) continue;
-                
+
                 const userData = await client.db.get(key, {});
                 if (userData) {
-                    const wallet = userData.wallet || 0;
-                    const bank = userData.bank || 0;
-                    const total = wallet + bank;
-                    
-                    totalWallet += wallet;
-                    totalBank += bank;
+                    totalInCirculation += (userData.wallet || 0) + (userData.bank || 0);
                     userCount++;
-                    
-                    if (total > maxBalance) {
-                        maxBalance = total;
-                        richestUserId = userId;
-                    }
                 }
             }
         }
@@ -69,17 +54,6 @@ async function buildDashboardEmbed(guild, client) {
         logger.error('Error calculating economy stats:', error);
     }
 
-    let richestUser = null;
-    if (richestUserId) {
-        try {
-            const member = await guild.members.fetch(richestUserId).catch(() => null);
-            richestUser = member?.user || null;
-        } catch (error) {
-            logger.error('Error fetching richest user:', error);
-        }
-    }
-
-    const totalInCirculation = totalWallet + totalBank;
     const avgBalance = userCount > 0 ? Math.floor(totalInCirculation / userCount) : 0;
 
     return new EmbedBuilder()
@@ -87,15 +61,11 @@ async function buildDashboardEmbed(guild, client) {
         .setDescription(`Manage the economy system for **${guild.name}**.\nSelect an option below to perform an action.`)
         .setColor(getColor('economy'))
         .addFields(
-            { name: 'Total in Circulation', value: `${currencySymbol}${totalInCirculation.toLocaleString()}`, inline: true },
-            { name: 'Active Users', value: userCount.toString(), inline: true },
-            { name: 'Average Balance', value: `${currencySymbol}${avgBalance.toLocaleString()}`, inline: true },
-            { name: 'Total Wallet', value: `${currencySymbol}${totalWallet.toLocaleString()}`, inline: true },
-            { name: 'Total Bank', value: `${currencySymbol}${totalBank.toLocaleString()}`, inline: true },
-            { name: '\u200B', value: '\u200B', inline: true },
-            { name: 'Richest User', value: richestUser ? `${richestUser.tag} (${currencySymbol}${maxBalance.toLocaleString()})` : 'No data', inline: false },
-            { name: 'Currency Symbol', value: currencySymbol, inline: true },
-            { name: 'Currency Name', value: currencyName, inline: true },
+            { name: '💰 Total in Circulation', value: `\`${currencySymbol}${totalInCirculation.toLocaleString()}\``, inline: true },
+            { name: '👥 Active Users', value: `\`${userCount.toLocaleString()}\``, inline: true },
+            { name: '📊 Average Balance', value: `\`${currencySymbol}${avgBalance.toLocaleString()}\``, inline: true },
+            { name: '💱 Currency Symbol', value: `\`${currencySymbol}\``, inline: true },
+            { name: '📝 Currency Name', value: `\`${currencyName}\``, inline: true },
         )
         .setFooter({ text: 'Dashboard closes after 10 minutes of inactivity' })
         .setTimestamp();

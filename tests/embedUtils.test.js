@@ -15,7 +15,7 @@ test('createEmbed should ignore unimportant footer text and should not add a tim
   assert.equal(data.description, 'Hello world');
 });
 
-test('createEmbed should append important footer text to description when footer is important', () => {
+test('createEmbed should set important footer text on the embed footer', () => {
   const embed = createEmbed({
     title: 'Test',
     description: 'Hello world',
@@ -23,12 +23,12 @@ test('createEmbed should append important footer text to description when footer
   });
 
   const data = embed.toJSON();
-  assert.equal(data.footer, undefined);
+  assert.equal(data.footer?.text, 'Dashboard closes after 10 minutes of inactivity');
   assert.equal(data.timestamp, undefined);
-  assert.equal(data.description, 'Hello world\n\n-# Dashboard closes after 10 minutes of inactivity');
+  assert.equal(data.description, 'Hello world');
 });
 
-test('setFooter should append important footer text to description and suppress actual footer', () => {
+test('setFooter should place important footer text on the embed footer', () => {
   const embed = createEmbed({
     title: 'Footer Test',
     description: 'Base description.'
@@ -37,8 +37,26 @@ test('setFooter should append important footer text to description and suppress 
   embed.setFooter({ text: 'Dashboard closes after 10 minutes of inactivity' });
   const data = embed.toJSON();
 
-  assert.equal(data.footer, undefined);
-  assert.equal(data.description, 'Base description.\n\n-# Dashboard closes after 10 minutes of inactivity');
+  assert.equal(data.footer?.text, 'Dashboard closes after 10 minutes of inactivity');
+  assert.equal(data.description, 'Base description.');
+});
+
+test('setFooter should keep footer text at the bottom when fields are added after footer', () => {
+  const embed = createEmbed({
+    title: 'Dashboard',
+    description: 'Manage settings for **Test Server**.',
+  });
+
+  embed.setFooter({ text: 'Dashboard closes after 10 minutes of inactivity' });
+  embed.addFields(
+    { name: 'Status', value: '`Enabled`', inline: true },
+    { name: 'Channel', value: '`Not set`', inline: true },
+  );
+
+  const data = embed.toJSON();
+  assert.equal(data.footer?.text, 'Dashboard closes after 10 minutes of inactivity');
+  assert.equal(data.description, 'Manage settings for **Test Server**.');
+  assert.equal(data.fields?.length, 2);
 });
 
 test('setFooter should ignore unimportant footer text', () => {

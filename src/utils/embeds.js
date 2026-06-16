@@ -87,20 +87,6 @@ function isImportantFooter(footerText) {
   return /\b(close|closes|closed|expire|expires|available in|page\s+\d+|dashboard closes|ticket id)\b/.test(normalized);
 }
 
-function appendFooterText(description, footerText) {
-  const normalizedFooter = footerText.trim().replace(/\s+/g, '');
-  if (!normalizedFooter) {
-    return description || '';
-  }
-
-  const trimmedDescription = (description || '').trim();
-  if (!trimmedDescription) {
-    return `-# ${normalizedFooter}`;
-  }
-
-  return `${trimmedDescription}\n\n-# ${normalizedFooter}`;
-}
-
 const originalSetDescription = EmbedBuilder.prototype.setDescription;
 const originalSetFooter = EmbedBuilder.prototype.setFooter;
 const originalSetTimestamp = EmbedBuilder.prototype.setTimestamp;
@@ -108,13 +94,7 @@ const originalSetTimestamp = EmbedBuilder.prototype.setTimestamp;
 EmbedBuilder.prototype.setDescription = function(description = '') {
   const descString = sanitizeEmbedText(description || '');
   this[EMBED_BASE_DESCRIPTION_SYMBOL] = descString;
-
-  const footerText = this[EMBED_FOOTER_SYMBOL] || '';
-  const finalDescription = footerText
-    ? appendFooterText(descString, footerText)
-    : descString;
-
-  return originalSetDescription.call(this, finalDescription);
+  return originalSetDescription.call(this, descString);
 };
 
 EmbedBuilder.prototype.setFooter = function(footer) {
@@ -124,29 +104,7 @@ EmbedBuilder.prototype.setFooter = function(footer) {
   }
 
   this[EMBED_FOOTER_SYMBOL] = footerText;
-
-  const baseDescription = this[EMBED_BASE_DESCRIPTION_SYMBOL] ?? this.data?.description ?? '';
-  const finalDescription = appendFooterText(baseDescription, footerText);
-
-  originalSetDescription.call(this, finalDescription);
-  return this;
-};
-
-// Override addFields to re-apply footer text after adding fields
-EmbedBuilder.prototype.addFields = function addSanitizedFields(...fields) {
-  const normalized = fields.flatMap((field) => (Array.isArray(field) ? field : [field]));
-  const sanitized = normalized.map(sanitizeEmbedField);
-  const result = originalAddFields.call(this, sanitized);
-
-  // Re-apply footer text to ensure it stays at the bottom
-  const footerText = this[EMBED_FOOTER_SYMBOL] || '';
-  if (footerText) {
-    const baseDescription = this[EMBED_BASE_DESCRIPTION_SYMBOL] ?? this.data?.description ?? '';
-    const finalDescription = appendFooterText(baseDescription, footerText);
-    originalSetDescription.call(this, finalDescription);
-  }
-
-  return result;
+  return originalSetFooter.call(this, { text: footerText });
 };
 
 EmbedBuilder.prototype.setTimestamp = function() {
