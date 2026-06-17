@@ -97,7 +97,7 @@ export function createMockInteraction(message, commandData, args) {
         const mentionMatch = userId.match(/<@!?(\d+)>/);
         const id = mentionMatch ? mentionMatch[1] : userId;
 
-        return message.guild.members.fetch(id).catch(() => null);
+        return message.guild.members.cache.get(id) ?? null;
       },
       getChannel: (name) => {
         const channelId = options.getString(name);
