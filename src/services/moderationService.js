@@ -5,45 +5,131 @@ import { logger } from '../utils/logger.js';
 import { TitanBotError, ErrorTypes } from '../utils/errorHandler.js';
 import { logModerationAction } from '../utils/moderation.js';
 
+function getTargetLabel(target) {
+  return target.user?.tag ?? target.displayName ?? 'this user';
+}
+
+function getHighestRole(member) {
+  return member?.roles?.highest ?? null;
+}
+
 export class ModerationService {
+
+  static buildHierarchyMessage({ actor, actorRole, targetRole, targetLabel, action }) {
+    if (actor === 'moderator') {
+      return (
+        `You cannot ${action} **${targetLabel}** — their role **${targetRole.name}** is equal to or above yours (**${actorRole.name}**). ` +
+        `In **Server Settings → Roles**, drag your moderator role above **${targetRole.name}**.`
+      );
+    }
+
+    return (
+      `I cannot ${action} **${targetLabel}** — my role **${actorRole.name}** is equal to or below theirs (**${targetRole.name}**). ` +
+      `In **Server Settings → Roles**, drag my bot role above **${targetRole.name}**.`
+    );
+  }
+
+  static buildHierarchySkipReason(moderator, target, action, actor = 'moderator') {
+    const targetLabel = getTargetLabel(target);
+    const targetRole = getHighestRole(target);
+
+    if (actor === 'bot') {
+      const botMember = target.guild?.members?.me;
+      const botRole = getHighestRole(botMember);
+      if (!botRole || !targetRole) {
+        return `Bot role hierarchy blocked ${action} for ${targetLabel}`;
+      }
+      return `Bot role **${botRole.name}** is too low for **${targetRole.name}** — move the bot role higher`;
+    }
+
+    const modRole = getHighestRole(moderator);
+    if (!modRole || !targetRole) {
+      return `Role hierarchy blocked ${action} for ${targetLabel}`;
+    }
+    return `Your role **${modRole.name}** is too low for **${targetRole.name}** — move your role higher`;
+  }
 
   static validateHierarchy(moderator, target, action) {
     if (!moderator || !target) {
       return { valid: false, error: 'Invalid moderator or target' };
     }
 
-    if (moderator.guild.ownerId === moderator.id) {
+    if (moderator.guild?.ownerId === moderator.id) {
       return { valid: true };
     }
 
-    if (moderator.roles.highest.position <= target.roles.highest.position) {
+    const modRole = getHighestRole(moderator);
+    const targetRole = getHighestRole(target);
+
+    if (!modRole || !targetRole) {
       return {
         valid: false,
-        error: `You cannot ${action} a user with an equal or higher role than you.`
+        error: 'Could not resolve role hierarchy. Try mentioning the user or use the slash command.',
+      };
+    }
+
+    if (modRole.position <= targetRole.position) {
+      return {
+        valid: false,
+        error: this.buildHierarchyMessage({
+          actor: 'moderator',
+          actorRole: modRole,
+          targetRole,
+          targetLabel: getTargetLabel(target),
+          action,
+        }),
       };
     }
 
     return { valid: true };
   }
 
-  static validateBotHierarchy(client, target, action) {
-    if (!client || !target) {
-      return { valid: false, error: 'Invalid client or target' };
+  static validateBotHierarchy(target, action) {
+    if (!target) {
+      return { valid: false, error: 'Invalid target' };
     }
 
-    const botMember = target.guild.members.me;
+    const botMember = target.guild?.members?.me;
     if (!botMember) {
       return { valid: false, error: 'Bot is not in the guild' };
     }
 
-    if (botMember.roles.highest.position <= target.roles.highest.position) {
+    const botRole = getHighestRole(botMember);
+    const targetRole = getHighestRole(target);
+
+    if (!botRole || !targetRole) {
       return {
         valid: false,
-        error: `I cannot ${action} a user with an equal or higher role than me.`
+        error: 'Could not resolve bot role hierarchy. Check that my role is configured in this server.',
+      };
+    }
+
+    if (botRole.position <= targetRole.position) {
+      return {
+        valid: false,
+        error: this.buildHierarchyMessage({
+          actor: 'bot',
+          actorRole: botRole,
+          targetRole,
+          targetLabel: getTargetLabel(target),
+          action,
+        }),
       };
     }
 
     return { valid: true };
+  }
+
+  static assertModerationHierarchy(moderator, target, action) {
+    const botCheck = this.validateBotHierarchy(target, action);
+    if (!botCheck.valid) {
+      throw new TitanBotError(botCheck.error, ErrorTypes.PERMISSION, botCheck.error);
+    }
+
+    const modCheck = this.validateHierarchy(moderator, target, action);
+    if (!modCheck.valid) {
+      throw new TitanBotError(modCheck.error, ErrorTypes.PERMISSION, modCheck.error);
+    }
   }
 
   static async banUser({
@@ -70,15 +156,7 @@ export class ModerationService {
       }
 
       if (targetMember) {
-        const botCheck = this.validateBotHierarchy(guild.client, targetMember, 'ban');
-        if (!botCheck.valid) {
-          throw new TitanBotError(botCheck.error, ErrorTypes.PERMISSION, botCheck.error);
-        }
-
-        const modCheck = this.validateHierarchy(moderator, targetMember, 'ban');
-        if (!modCheck.valid) {
-          throw new TitanBotError(modCheck.error, ErrorTypes.PERMISSION, modCheck.error);
-        }
+        this.assertModerationHierarchy(moderator, targetMember, 'ban');
       } else {
 
         const isOwner = guild.ownerId === moderator.id;
@@ -144,21 +222,15 @@ export class ModerationService {
         );
       }
 
-      const botCheck = this.validateBotHierarchy(guild.client, member, 'kick');
-      if (!botCheck.valid) {
-        throw new TitanBotError(botCheck.error, ErrorTypes.PERMISSION, botCheck.error);
-      }
-
-      const modCheck = this.validateHierarchy(moderator, member, 'kick');
-      if (!modCheck.valid) {
-        throw new TitanBotError(modCheck.error, ErrorTypes.PERMISSION, modCheck.error);
-      }
+      this.assertModerationHierarchy(moderator, member, 'kick');
 
       if (!member.kickable) {
+        const targetLabel = getTargetLabel(member);
         throw new TitanBotError(
           'Cannot kick member',
           ErrorTypes.PERMISSION,
-          'I do not have permission to kick this member'
+          `I cannot kick **${targetLabel}**. They may have **Administrator** permission or a managed/integration role. ` +
+          'Ensure my bot role is above theirs in **Server Settings → Roles** and that they do not have Admin.'
         );
       }
 
@@ -209,21 +281,15 @@ export class ModerationService {
         );
       }
 
-      const botCheck = this.validateBotHierarchy(guild.client, member, 'timeout');
-      if (!botCheck.valid) {
-        throw new TitanBotError(botCheck.error, ErrorTypes.PERMISSION, botCheck.error);
-      }
-
-      const modCheck = this.validateHierarchy(moderator, member, 'timeout');
-      if (!modCheck.valid) {
-        throw new TitanBotError(modCheck.error, ErrorTypes.PERMISSION, modCheck.error);
-      }
+      this.assertModerationHierarchy(moderator, member, 'timeout');
 
       if (!member.moderatable) {
+        const targetLabel = getTargetLabel(member);
         throw new TitanBotError(
           'Cannot timeout member',
           ErrorTypes.PERMISSION,
-          'I cannot timeout this member'
+          `I cannot timeout **${targetLabel}**. They may have **Administrator** permission or a managed/integration role. ` +
+          'Ensure my bot role is above theirs in **Server Settings → Roles** and that they do not have Admin.'
         );
       }
 
@@ -277,11 +343,15 @@ export class ModerationService {
         );
       }
 
+      this.assertModerationHierarchy(moderator, member, 'remove the timeout from');
+
       if (!member.moderatable) {
+        const targetLabel = getTargetLabel(member);
         throw new TitanBotError(
           'Cannot modify member',
           ErrorTypes.PERMISSION,
-          'I cannot modify this member'
+          `I cannot modify **${targetLabel}**. They may have **Administrator** permission or a managed/integration role. ` +
+          'Ensure my bot role is above theirs in **Server Settings → Roles**.'
         );
       }
 

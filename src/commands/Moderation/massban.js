@@ -3,6 +3,8 @@ import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '
 import { logModerationAction } from '../../utils/moderation.js';
 import { logger } from '../../utils/logger.js';
 import { checkRateLimit } from '../../utils/rateLimiter.js';
+import { ModerationService } from '../../services/moderationService.js';
+import { TitanBotError } from '../../utils/errorHandler.js';
 
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 export default {
@@ -130,12 +132,22 @@ export default {
                     const member = await interaction.guild.members.fetch(userId).catch(() => null);
                     
                     if (member) {
-                        if (member.roles.highest.position >= interaction.member.roles.highest.position && 
-                            interaction.guild.ownerId !== interaction.user.id) {
-                            results.skipped.push({ 
-                                user: user.tag, 
-                                userId, 
-                                reason: "Cannot ban user with equal or higher role" 
+                        const modCheck = ModerationService.validateHierarchy(interaction.member, member, 'ban');
+                        if (!modCheck.valid) {
+                            results.skipped.push({
+                                user: user.tag,
+                                userId,
+                                reason: ModerationService.buildHierarchySkipReason(interaction.member, member, 'ban'),
+                            });
+                            continue;
+                        }
+
+                        const botCheck = ModerationService.validateBotHierarchy(member, 'ban');
+                        if (!botCheck.valid) {
+                            results.skipped.push({
+                                user: user.tag,
+                                userId,
+                                reason: ModerationService.buildHierarchySkipReason(interaction.member, member, 'ban', 'bot'),
                             });
                             continue;
                         }
@@ -170,9 +182,12 @@ export default {
 
                 } catch (error) {
                     logger.error(`Failed to ban user ${userId}:`, error);
+                    const reason = error instanceof TitanBotError
+                        ? (error.userMessage || error.message)
+                        : (error.message || "Unknown error");
                     results.failed.push({ 
                         userId, 
-                        reason: error.message || "Unknown error" 
+                        reason,
                     });
                 }
             }

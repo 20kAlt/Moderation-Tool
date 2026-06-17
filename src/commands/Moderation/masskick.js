@@ -3,6 +3,8 @@ import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '
 import { logModerationAction } from '../../utils/moderation.js';
 import { logger } from '../../utils/logger.js';
 import { checkRateLimit } from '../../utils/rateLimiter.js';
+import { ModerationService } from '../../services/moderationService.js';
+import { TitanBotError } from '../../utils/errorHandler.js';
 
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 export default {
@@ -118,12 +120,31 @@ export default {
                         continue;
                     }
 
-                    if (member.roles.highest.position >= interaction.member.roles.highest.position && 
-                        interaction.guild.ownerId !== interaction.user.id) {
-                        results.skipped.push({ 
-                            user: member.user.tag, 
-                            userId, 
-                            reason: "Cannot kick user with equal or higher role" 
+                    const modCheck = ModerationService.validateHierarchy(interaction.member, member, 'kick');
+                    if (!modCheck.valid) {
+                        results.skipped.push({
+                            user: member.user.tag,
+                            userId,
+                            reason: ModerationService.buildHierarchySkipReason(interaction.member, member, 'kick'),
+                        });
+                        continue;
+                    }
+
+                    const botCheck = ModerationService.validateBotHierarchy(member, 'kick');
+                    if (!botCheck.valid) {
+                        results.skipped.push({
+                            user: member.user.tag,
+                            userId,
+                            reason: ModerationService.buildHierarchySkipReason(interaction.member, member, 'kick', 'bot'),
+                        });
+                        continue;
+                    }
+
+                    if (!member.kickable) {
+                        results.skipped.push({
+                            user: member.user.tag,
+                            userId,
+                            reason: 'Target has Admin or a managed role, or bot lacks Kick Members',
                         });
                         continue;
                     }
@@ -153,9 +174,12 @@ export default {
 
                 } catch (error) {
                     logger.error(`Failed to kick user ${userId}:`, error);
+                    const reason = error instanceof TitanBotError
+                        ? (error.userMessage || error.message)
+                        : (error.message || "Unknown error");
                     results.failed.push({ 
                         userId, 
-                        reason: error.message || "Unknown error" 
+                        reason,
                     });
                 }
             }

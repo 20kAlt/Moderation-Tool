@@ -1,9 +1,9 @@
-import { SlashCommandBuilder, PermissionFlagsBits, PermissionsBitField, ChannelType } from 'discord.js';
-import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
-import { logModerationAction } from '../../utils/moderation.js';
+import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
+import { successEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
-import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
+import { ModerationService } from '../../services/moderationService.js';
+import { handleInteractionError, TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -23,7 +23,6 @@ export default {
 
   async execute(interaction, config, client) {
     try {
-      
       if (!interaction.member.permissions.has(PermissionFlagsBits.KickMembers)) {
         throw new TitanBotError(
           "User lacks permission",
@@ -70,54 +69,24 @@ export default {
         );
       }
 
-      if (interaction.member.roles.highest.position <= member.roles.highest.position) {
-        throw new TitanBotError(
-          "Cannot kick user",
-          ErrorTypes.PERMISSION,
-          "You cannot kick a user with an equal or higher role than you."
-        );
-      }
-
-      if (!member.kickable) {
-        throw new TitanBotError(
-          "Bot cannot kick",
-          ErrorTypes.PERMISSION,
-          "I cannot kick this user. Please check my role position relative to the target user."
-        );
-      }
-
-      await member.kick(reason);
-
-      const caseId = await logModerationAction({
-        client,
+      const result = await ModerationService.kickUser({
         guild: interaction.guild,
-        event: {
-          action: "Member Kicked",
-          target: `${targetUser.tag} (${targetUser.id})`,
-          executor: `${interaction.user.tag} (${interaction.user.id})`,
-          reason,
-          metadata: {
-            userId: targetUser.id,
-            moderatorId: interaction.user.id
-          }
-        }
+        member,
+        moderator: interaction.member,
+        reason,
       });
 
       await InteractionHelper.universalReply(interaction, {
         embeds: [
           successEmbed(
             `👢 **Kicked** ${targetUser.tag}`,
-            `**Reason:** ${reason}\n**Case ID:** #${caseId}`,
+            `**Reason:** ${reason}\n**Case ID:** #${result.caseId}`,
           ),
         ],
       });
     } catch (error) {
       logger.error('Kick command error:', error);
-      const errorEmbed_default = errorEmbed(
-        "An unexpected error occurred while trying to kick the user.",
-        error.message || "Could not kick the user"
-      );
-      await InteractionHelper.universalReply(interaction, { embeds: [errorEmbed_default] });
+      await handleInteractionError(interaction, error, { subtype: 'kick_failed' });
     }
   }
 };
