@@ -4,108 +4,64 @@ import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 import dashboard from './modules/logging_dashboard.js';
-import setchannel from './modules/logging_setchannel.js';
-import filter from './modules/logging_filter.js';
+import channel from './modules/logging_channel.js';
 
 export default {
     data: new SlashCommandBuilder()
         .setName('logging')
-        .setDescription('Manage audit logging for this server.')
+        .setDescription('Manage server logging — channels, filters, and event categories.')
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
         .setDMPermission(false)
         .addSubcommand((subcommand) =>
             subcommand
                 .setName('dashboard')
-                .setDescription('Open the interactive logging dashboard — view status and toggle event categories.'),
+                .setDescription('Open the logging dashboard — set channels, filters, and toggle categories.'),
         )
         .addSubcommand((subcommand) =>
             subcommand
-                .setName('setchannel')
-                .setDescription('Set the audit log channel for this server.')
+                .setName('channel')
+                .setDescription('Quick-set a log channel without opening the dashboard.')
+                .addStringOption((option) =>
+                    option
+                        .setName('destination')
+                        .setDescription('Which log destination to configure.')
+                        .setRequired(true)
+                        .addChoices(
+                            { name: 'Audit (moderation, messages, members…)', value: 'audit' },
+                            { name: 'Applications', value: 'applications' },
+                            { name: 'Reports', value: 'reports' },
+                        ),
+                )
                 .addChannelOption((option) =>
                     option
                         .setName('channel')
-                        .setDescription('The text channel for audit logs.')
+                        .setDescription('The text channel for logs.')
                         .addChannelTypes(ChannelType.GuildText)
                         .setRequired(false),
                 )
                 .addBooleanOption((option) =>
                     option
                         .setName('disable')
-                        .setDescription('Set to True to disable audit logging entirely.')
+                        .setDescription('Set to True to clear this log channel.')
                         .setRequired(false),
-                ),
-        )
-        .addSubcommandGroup((group) =>
-            group
-                .setName('filter')
-                .setDescription('Manage the log ignore list (users and channels to skip).')
-                .addSubcommand((subcommand) =>
-                    subcommand
-                        .setName('add')
-                        .setDescription('Add a user or channel to the log ignore list.')
-                        .addStringOption((option) =>
-                            option
-                                .setName('type')
-                                .setDescription('Whether to ignore a user or channel.')
-                                .setRequired(true)
-                                .addChoices(
-                                    { name: 'User', value: 'user' },
-                                    { name: 'Channel', value: 'channel' },
-                                ),
-                        )
-                        .addStringOption((option) =>
-                            option
-                                .setName('id')
-                                .setDescription('The ID of the user or channel to ignore.')
-                                .setRequired(true),
-                        ),
-                )
-                .addSubcommand((subcommand) =>
-                    subcommand
-                        .setName('remove')
-                        .setDescription('Remove a user or channel from the log ignore list.')
-                        .addStringOption((option) =>
-                            option
-                                .setName('type')
-                                .setDescription('Whether this is a user or channel.')
-                                .setRequired(true)
-                                .addChoices(
-                                    { name: 'User', value: 'user' },
-                                    { name: 'Channel', value: 'channel' },
-                                ),
-                        )
-                        .addStringOption((option) =>
-                            option
-                                .setName('id')
-                                .setDescription('The ID of the user or channel to remove from the ignore list.')
-                                .setRequired(true),
-                        ),
                 ),
         ),
 
     async execute(interaction, config, client) {
         try {
-            
-            const subcommandGroup = interaction.options.getSubcommandGroup(false);
             const subcommand = interaction.options.getSubcommand();
 
             if (subcommand === 'dashboard') {
                 return await dashboard.execute(interaction, config, client);
             }
 
-            await InteractionHelper.safeDefer(interaction);
-
-            if (subcommand === 'setchannel') {
-                return await setchannel.execute(interaction, config, client);
+            if (subcommand === 'channel') {
+                return await channel.execute(interaction, config, client);
             }
 
-            if (subcommandGroup === 'filter') {
-                return await filter.execute(interaction, config, client);
-            }
-
-            await InteractionHelper.safeEditReply(interaction, {
+            await InteractionHelper.safeReply(interaction, {
                 embeds: [errorEmbed('Unknown Subcommand', 'This subcommand is not recognised.')],
+                ephemeral: true,
             });
         } catch (error) {
             logger.error('logging command error:', error);

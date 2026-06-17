@@ -3,6 +3,7 @@
 import { logger } from '../utils/logger.js';
 import { getLevelingConfig, getXpForLevel, getUserLevelData, saveUserLevelData } from './leveling.js';
 import { logEvent, EVENT_TYPES } from './loggingService.js';
+import { formatLogLine } from '../utils/logEmbeds.js';
 import { Mutex } from '../utils/mutex.js';
 
 export async function addXp(client, guild, member, xpToAdd) {
@@ -55,31 +56,15 @@ export async function addXp(client, guild, member, xpToAdd) {
             guildId: guild.id,
             eventType: EVENT_TYPES.LEVELING_LEVELUP,
             data: {
-              description: `${member.user.tag} reached level ${levelData.level}`,
+              title: 'Level Up',
+              lines: [
+                formatLogLine('Member', `${member.user.tag} (\`${member.user.id}\`)`),
+                formatLogLine('New Level', levelData.level.toString()),
+                formatLogLine('Levels Gained', (levelData.level - initialLevel).toString()),
+                formatLogLine('Total XP', levelData.totalXp.toString()),
+              ],
               userId: member.user.id,
-              fields: [
-                {
-                  name: '👤 Member',
-                  value: `${member.user.tag} (${member.user.id})`,
-                  inline: true
-                },
-                {
-                  name: '📊 New Level',
-                  value: levelData.level.toString(),
-                  inline: true
-                },
-                {
-                  name: '📈 Levels Gained',
-                  value: (levelData.level - initialLevel).toString(),
-                  inline: true
-                },
-                {
-                  name: '✨ Total XP',
-                  value: levelData.totalXp.toString(),
-                  inline: true
-                }
-              ]
-            }
+            },
           });
         } catch (logError) {
           logger.debug('Failed to log leveling event:', logError.message);

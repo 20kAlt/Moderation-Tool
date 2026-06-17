@@ -34,9 +34,13 @@ import {
     getApplications,
     deleteApplication,
 } from '../../../utils/database.js';
+import { getGuildConfig } from '../../../services/guildConfig.js';
+import { setLogChannel, resolveApplicationLogChannel, resolveLogChannel } from '../../../services/loggingService.js';
 
-function buildDashboardEmbed(settings, roles, guild) {
-    const logChannel = settings.logChannelId ? `<#${settings.logChannelId}>` : '`Not set`';
+async function buildDashboardEmbed(settings, roles, guild, client) {
+    const guildConfig = await getGuildConfig(client, guild.id);
+    const applicationsChannel = resolveLogChannel(guildConfig, 'applications') || settings.logChannelId;
+    const logChannel = applicationsChannel ? `<#${applicationsChannel}>` : '`Not set`';
     const managerRoleList =
         settings.managerRoles?.length > 0
             ? settings.managerRoles.map(id => `<@&${id}>`).join(',')
@@ -121,10 +125,10 @@ function buildButtonRow(settings, guildId, disabled = false) {
     );
 }
 
-async function refreshDashboard(rootInteraction, settings, roles, guildId) {
+async function refreshDashboard(rootInteraction, settings, roles, guildId, client) {
     const selectMenu = buildSelectMenu(guildId);
     await InteractionHelper.safeEditReply(rootInteraction, {
-        embeds: [buildDashboardEmbed(settings, roles, rootInteraction.guild)],
+        embeds: [await buildDashboardEmbed(settings, roles, rootInteraction.guild, client)],
         components: [
             buildButtonRow(settings, guildId),
             new ActionRowBuilder().addComponents(selectMenu),
@@ -145,8 +149,11 @@ export default {
                 getApplicationRoles(client, guildId),
             ]);
 
+            const guildConfig = await getGuildConfig(client, guildId);
+            const applicationsChannel = resolveLogChannel(guildConfig, 'applications') || settings.logChannelId;
+
             const isCompletelyUnconfigured = 
-                !settings.logChannelId && 
+                !applicationsChannel && 
                 !settings.enabled && 
                 (settings.managerRoles?.length ?? 0) === 0 && 
                 roles.length === 0;
@@ -246,7 +253,7 @@ async function showGlobalDashboard(interaction, settings, roles, guildId, client
     const selectMenu = buildSelectMenu(guildId);
 
     await InteractionHelper.safeEditReply(interaction, {
-        embeds: [buildDashboardEmbed(settings, roles, interaction.guild)],
+        embeds: [await buildDashboardEmbed(settings, roles, interaction.guild, client)],
         components: [
             buildButtonRow(settings, guildId),
             new ActionRowBuilder().addComponents(selectMenu),
@@ -259,9 +266,10 @@ async function showGlobalDashboard(interaction, settings, roles, guildId, client
 async function showApplicationDashboard(rootInteraction, selectedRole, settings, roles, guildId, client) {
     const roleObj = rootInteraction.guild.roles.cache.get(selectedRole.roleId);
 
+    const guildConfig = await getGuildConfig(client, guildId);
     const appSettings = await getApplicationRoleSettings(client, guildId, selectedRole.roleId);
     const questions = appSettings.questions || settings.questions || [];
-    const appLogChannelId = appSettings.logChannelId || settings.logChannelId;
+    const appLogChannelId = resolveApplicationLogChannel(guildConfig, appSettings, settings);
     const isEnabled = selectedRole.enabled !== false; 
 
     const logChannelDisplay = appLogChannelId 
@@ -712,16 +720,17 @@ async function handleLogChannel(selectInteraction, rootInteraction, settings, ro
             roleSettings.logChannelId = channelId;
             await saveApplicationRoleSettings(client, guildId, selectedRoleId, roleSettings);
         } else {
+            await setLogChannel(client, guildId, 'applications', channelId);
             settings.logChannelId = channelId;
             await saveApplicationSettings(client, guildId, settings);
         }
 
         await modalSubmission.reply({
-            embeds: [successEmbed('Log Channel Updated', `Application logs will now be sent to ${channel ??`<#${channelId}>`}.`)],
+            embeds: [successEmbed('Log Channel Updated', `Application logs will now be sent to ${channel ?? `<#${channelId}>`}.\nYou can also manage this from \`/logging dashboard\`.`)],
             flags: MessageFlags.Ephemeral,
         });
 
-        await refreshDashboard(rootInteraction, settings, roles, guildId);
+        await refreshDashboard(rootInteraction, settings, roles, guildId, client);
     } catch (error) {
         if (error.code === 'INTERACTION_TIMEOUT') return;
         logger.error('Error in log channel modal:', error);
@@ -782,7 +791,7 @@ async function handleManagerRole(selectInteraction, rootInteraction, settings, r
             flags: MessageFlags.Ephemeral,
         });
 
-        await refreshDashboard(rootInteraction, settings, roles, guildId);
+        await refreshDashboard(rootInteraction, settings, roles, guildId, client);
     } catch (error) {
         if (error.code === 'INTERACTION_TIMEOUT') return;
         logger.error('Error in manager role modal:', error);
@@ -898,7 +907,7 @@ async function handleQuestions(selectInteraction, rootInteraction, settings, rol
         flags: MessageFlags.Ephemeral,
     });
 
-    await refreshDashboard(rootInteraction, settings, roles, guildId);
+    await refreshDashboard(rootInteraction, settings, roles, guildId, client);
 }
 
 async function handleRoleAdd(selectInteraction, rootInteraction, settings, roles, guildId, client) {
@@ -956,7 +965,7 @@ async function handleRoleAdd(selectInteraction, rootInteraction, settings, roles
             flags: MessageFlags.Ephemeral,
         });
 
-        await refreshDashboard(rootInteraction, settings, roles, guildId);
+        await refreshDashboard(rootInteraction, settings, roles, guildId, client);
     } catch (error) {
         if (error.code === 'INTERACTION_TIMEOUT') return;
         logger.error('Error in role add modal:', error);
@@ -1021,7 +1030,7 @@ async function handleRoleRemove(selectInteraction, rootInteraction, settings, ro
             flags: MessageFlags.Ephemeral,
         });
 
-        await refreshDashboard(rootInteraction, settings, roles, guildId);
+        await refreshDashboard(rootInteraction, settings, roles, guildId, client);
     } catch (error) {
         if (error.code === 'INTERACTION_TIMEOUT') return;
         logger.error('Error in role remove modal:', error);
@@ -1117,7 +1126,7 @@ async function handleRetention(selectInteraction, rootInteraction, settings, rol
         flags: MessageFlags.Ephemeral,
     });
 
-    await refreshDashboard(rootInteraction, settings, roles, guildId);
+    await refreshDashboard(rootInteraction, settings, roles, guildId, client);
 }
 
 async function handleDeleteApplication(confirmSubmit, selectedRoleId, guildId, roles, client) {

@@ -1,10 +1,73 @@
 // moderation.js
 
-import { EmbedBuilder } from 'discord.js';
-import { getGuildConfig } from '../services/guildConfig.js';
+import { logEvent as logAuditEvent, EVENT_TYPES } from '../services/loggingService.js';
+import { formatLogLine } from './logEmbeds.js';
 import { logger } from './logger.js';
 import { getFromDb, setInDb } from './database.js';
-import { getColor } from '../config/bot.js';
+
+const ACTION_TO_EVENT_TYPE = {
+  'Member Banned': EVENT_TYPES.MODERATION_BAN,
+  'Member Kicked': EVENT_TYPES.MODERATION_KICK,
+  'Member Timed Out': EVENT_TYPES.MODERATION_TIMEOUT,
+  'Member Untimeouted': EVENT_TYPES.MODERATION_UNTIMEOUT,
+  'Member Unbanned': EVENT_TYPES.MODERATION_UNBAN,
+  'User Warned': EVENT_TYPES.MODERATION_WARN,
+  'Warnings Viewed': EVENT_TYPES.MODERATION_WARN,
+  'Messages Purged': EVENT_TYPES.MODERATION_PURGE,
+  'Channel Locked': EVENT_TYPES.MODERATION_LOCK,
+  'Channel Unlocked': EVENT_TYPES.MODERATION_UNLOCK,
+  'DM Sent': EVENT_TYPES.MODERATION_DM,
+  'Log Channel Activated': EVENT_TYPES.MODERATION_CONFIG,
+  'Log Filter Updated': EVENT_TYPES.MODERATION_CONFIG,
+  'Case Created': EVENT_TYPES.MODERATION_CONFIG,
+  'Case Updated': EVENT_TYPES.MODERATION_CONFIG,
+};
+
+function buildModerationLogData(event) {
+  const targetIdMatch = event.target?.match(/\((\d+)\)/);
+  const targetId = targetIdMatch?.[1];
+  const executorIdMatch = event.executor?.match(/\((\d+)\)/);
+  const executorTag = event.executor?.split(' (')[0] || 'Moderator';
+
+  const lines = [];
+  if (event.target) {
+    lines.push(formatLogLine('User', event.target));
+  }
+  if (event.reason) {
+    const reason = event.reason.length > 900
+      ? `${event.reason.substring(0, 897)}...`
+      : event.reason;
+    lines.push(formatLogLine('Reason', reason));
+  }
+  if (event.duration) {
+    lines.push(formatLogLine('Duration', event.duration));
+  }
+  if (event.caseId) {
+    lines.push(formatLogLine('Case', `\`${event.caseId}\``));
+  }
+
+  const meta = [];
+  if (event.metadata) {
+    Object.entries(event.metadata).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && key !== 'userId' && key !== 'moderatorId') {
+        meta.push([key.charAt(0).toUpperCase() + key.slice(1), String(value)]);
+      }
+    });
+  }
+
+  const title = event.caseId ? `${event.action} · Case #${event.caseId}` : event.action;
+
+  return {
+    title,
+    lines,
+    meta,
+    userId: event.metadata?.userId || targetId || undefined,
+    thumbnail: targetId ? `https://cdn.discordapp.com/embed/avatars/${Number(targetId) % 5}.png` : undefined,
+    footer: executorIdMatch
+      ? { text: executorTag, iconURL: undefined }
+      : undefined,
+  };
+}
 
 export async function logEvent({ client, guild, guildId, event }) {
   try {
@@ -15,105 +78,20 @@ export async function logEvent({ client, guild, guildId, event }) {
       logger.warn('logEvent invoked without valid guild or guildId');
       return;
     }
-    const config = await getGuildConfig(client, guild.id);
-    const loggingDisabled = config?.logging?.enabled === false || config?.enableLogging === false;
-    const logChannelId = config?.logging?.channelId || config?.logChannelId;
-    if (!logChannelId || loggingDisabled) {
-      logger.debug(`Logging disabled or no log channel configured for guild ${guild.id}`);
-      return;
-    }
 
-    const ignoredUsers = config.logIgnore?.users || [];
-    if (event.metadata?.userId && ignoredUsers.includes(event.metadata.userId)) {
-      return;
-    }
+    const eventType = ACTION_TO_EVENT_TYPE[event.action] || EVENT_TYPES.MODERATION_CONFIG;
+    const data = buildModerationLogData(event);
 
-    const logChannel = guild.channels.cache.get(logChannelId);
-    if (!logChannel) {
-      logger.warn(`Log channel ${logChannelId} not found in guild ${guild.id}`);
-      return;
-    }
+    await logAuditEvent({
+      client,
+      guildId: guild.id,
+      eventType,
+      data,
+    });
 
-    const actionStyles = {
-      'Member Banned': { color: getColor('error'), icon: '🔨' },
-      'Member Kicked': { color: getColor('warning'), icon: '👢' },
-      'Member Timed Out': { color: getColor('warning'), icon: '⏳' },
-      'Member Untimeouted': { color: getColor('success'), icon: '✅' },
-      'User Warned': { color: getColor('warning'), icon: '⚠️' },
-      'Warnings Viewed': { color: getColor('info'), icon: '👁️' },
-      'Messages Purged': { color: getColor('moderation'), icon: '🗑️' },
-      'Channel Locked': { color: getColor('moderation'), icon: '🔒' },
-      'Channel Unlocked': { color: getColor('success'), icon: '🔓' },
-      'Case Created': { color: getColor('info'), icon: '📋' },
-      'Case Updated': { color: getColor('moderation'), icon: '📝' },
-      'DM Sent': { color: getColor('info'), icon: '✉️' },
-      'Log Channel Activated': { color: getColor('success'), icon: '📝' }
-    };
-
-    const style = actionStyles[event.action] || { color: getColor('primary'), icon: '🔨' };
-
-    const targetIdMatch = event.target?.match(/\((\d+)\)/);
-    const targetId = targetIdMatch?.[1];
-    const executorIdMatch = event.executor?.match(/\((\d+)\)/);
-    const executorId = executorIdMatch?.[1];
-
-    const lines = [];
-    if (event.target) {
-      lines.push(`**User:** ${event.target}`);
-    }
-    if (targetId) {
-      lines.push(`**ID:** \`${targetId}\``);
-    }
-    if (event.reason) {
-      const reason = event.reason.length > 900
-        ? `${event.reason.substring(0, 897)}...`
-        : event.reason;
-      lines.push(`**Reason:** ${reason}`);
-    }
-    if (event.duration) {
-      lines.push(`**Duration:** ${event.duration}`);
-    }
-    if (event.caseId) {
-      lines.push(`**Case:** \`${event.caseId}\``);
-    }
-
-    const meta = [];
-    if (event.metadata) {
-      Object.entries(event.metadata).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          meta.push([key.charAt(0).toUpperCase() + key.slice(1), String(value)]);
-        }
-      });
-    }
-
-    const description = [
-      lines.join('\n'),
-      meta.length ? meta.map(([k, v]) => `**${k}:** ${v}`).join(' • ') : '',
-    ].filter(Boolean).join('\n\n');
-
-    const embed = new EmbedBuilder()
-      .setColor(event.color || style.color)
-      .setTitle(`${style.icon} ${event.action}${event.caseId ? ` \`${event.caseId}\`` : ''}`)
-      .setDescription(description.slice(0, 4096))
-      .setTimestamp();
-
-    if (executorId) {
-      embed.setFooter({
-        text: event.executor?.split(' (')[0] || 'Moderator',
-        iconURL: guild.iconURL({ dynamic: true }) || undefined,
-      });
-    }
-
-    if (targetId) {
-      embed.setThumbnail(`https://cdn.discordapp.com/embed/avatars/${Number(targetId) % 5}.png`);
-    }
-
-    await logChannel.send({ embeds: [embed] });
-    
     logger.info(`Moderation action logged: ${event.action} by ${event.executor} on ${event.target} in guild ${guild.id}`);
-    
   } catch (error) {
-    logger.error("Error logging moderation event:", error);
+    logger.error('Error logging moderation event:', error);
   }
 }
 

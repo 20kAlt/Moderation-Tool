@@ -2,6 +2,7 @@
 
 import { logger } from '../utils/logger.js';
 import { logEvent, EVENT_TYPES } from './loggingService.js';
+import { formatLogLine } from '../utils/logEmbeds.js';
 
 export const COUNTER_TYPE_CONFIG = {
   members: {
@@ -160,26 +161,14 @@ export async function updateCounter(client, guild, counter) {
             guildId: guild.id,
             eventType: EVENT_TYPES.COUNTER_UPDATE,
             data: {
-              description: `Counter updated: ${baseName}`,
+              title: 'Counter Updated',
+              lines: [
+                formatLogLine('Type', getCounterTypeLabel(type)),
+                formatLogLine('Count', count.toString()),
+                formatLogLine('Channel', channel.toString()),
+              ],
               channelId: channel.id,
-              fields: [
-                {
-                  name: '📊 Counter Type',
-                  value: getCounterTypeLabel(type),
-                  inline: true
-                },
-                {
-                  name: '🔢 New Count',
-                  value: count.toString(),
-                  inline: true
-                },
-                {
-                  name: '📍 Channel',
-                  value: channel.toString(),
-                  inline: true
-                }
-              ]
-            }
+            },
           });
         } catch (error) {
           logger.debug('Error logging counter update:', error);

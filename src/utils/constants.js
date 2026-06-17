@@ -23,19 +23,18 @@ export const DEFAULT_ECONOMY_DATA = {
 };
 
 export const DEFAULT_GUILD_CONFIG = {
-    logIgnore: { users: [], channels: [] },
     enabledCommands: {},
-    reportChannelId: null,
     birthdayChannelId: null,
     premiumRoleId: null,
     modRole: null,
     adminRole: null,
-    logChannelId: null,
     welcomeChannel: null,
     autoRole: null,
     logging: {
         enabled: false,
-        enabledEvents: {}
+        channels: { audit: null, applications: null, reports: null },
+        ignore: { users: [], channels: [] },
+        enabledEvents: {},
     },
     verification: {
         enabled: false

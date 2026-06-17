@@ -112,7 +112,7 @@ function buildDashboardEmbed(config, guild) {
             },
             {
                 name: '📋 Log Channel',
-                value: formatChannelMention(guild, config.logChannelId),
+                value: formatChannelMention(guild, config.logging?.channels?.audit),
                 inline: true,
             },
             {

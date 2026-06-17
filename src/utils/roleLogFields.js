@@ -1,5 +1,7 @@
 // roleLogFields.js
 
+import { formatLogLine } from './logEmbeds.js';
+
 const MAX_DISPLAYED_ROLE_PERMISSIONS = 5;
 
 export function buildRoleAuditFields(role, { includeMemberCount = false } = {}) {
@@ -60,4 +62,10 @@ export function buildRoleAuditFields(role, { includeMemberCount = false } = {}) 
   }
 
   return fields;
+}
+
+export function buildRoleAuditLines(role, options = {}) {
+  return buildRoleAuditFields(role, options).map((field) =>
+    formatLogLine(field.name, field.value),
+  );
 }

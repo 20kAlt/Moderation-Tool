@@ -2,7 +2,6 @@
 
 import { ChannelType } from 'discord.js';
 import { getGuildConfig } from '../services/guildConfig.js';
-import { EVENT_TYPES } from '../services/loggingService.js';
 import { logger } from './logger.js';
 import {
   buildStandardLogEmbed,
@@ -93,26 +92,6 @@ function getLogChannelForEventType(config, eventType) {
     case 'feedback':
       return config.ticketLogsChannelId || null;
 
-    default:
-      return null;
-  }
-}
-
-function mapTicketEventType(eventType) {
-  switch (eventType) {
-    case 'open':
-      return EVENT_TYPES.TICKET_CREATE;
-    case 'close':
-      return EVENT_TYPES.TICKET_CLOSE;
-    case 'delete':
-      return EVENT_TYPES.TICKET_DELETE;
-    case 'claim':
-    case 'unclaim':
-      return EVENT_TYPES.TICKET_CLAIM;
-    case 'priority':
-      return EVENT_TYPES.TICKET_PRIORITY;
-    case 'transcript':
-      return EVENT_TYPES.TICKET_TRANSCRIPT;
     default:
       return null;
   }
@@ -299,4 +278,3 @@ export function validateLogChannel(channel, botMember) {
   return { valid: true };
 }
 
-export { mapTicketEventType };

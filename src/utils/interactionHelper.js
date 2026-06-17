@@ -176,6 +176,20 @@ export class InteractionHelper {
                 logger.debug(`Interaction ${interaction.id} not replied, using reply fallback instead of edit:`, error.message);
                 return await this.safeReply(interaction, options);
             }
+            if (error.code === 10008) {
+                logger.debug(`Interaction ${interaction.id} reply message deleted, using followUp fallback`);
+                try {
+                    await interaction.followUp(options);
+                    return true;
+                } catch (followUpError) {
+                    if (isInteractionUnavailableError(followUpError)) {
+                        logger.warn(`Interaction ${interaction.id} unavailable during followUp:`, followUpError.message);
+                        return false;
+                    }
+                    logger.error('Failed to follow up after deleted reply:', followUpError);
+                    return false;
+                }
+            }
             logger.error('Failed to edit reply:', error);
             return false;
         }

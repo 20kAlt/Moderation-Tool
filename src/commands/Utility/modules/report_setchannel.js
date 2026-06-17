@@ -1,6 +1,6 @@
-import { PermissionsBitField, ChannelType } from 'discord.js';
+import { PermissionsBitField } from 'discord.js';
 import { errorEmbed, successEmbed } from '../../../utils/embeds.js';
-import { getGuildConfig, setGuildConfig } from '../../../services/guildConfig.js';
+import { setLogChannel } from '../../../services/loggingService.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
 import { logger } from '../../../utils/logger.js';
 
@@ -17,12 +17,13 @@ export default {
         const guildId = interaction.guildId;
 
         try {
-            const guildConfig = await getGuildConfig(client, guildId);
-            guildConfig.reportChannelId = channel.id;
-            await setGuildConfig(client, guildId, guildConfig);
+            await setLogChannel(client, guildId, 'reports', channel.id);
 
             return InteractionHelper.safeReply(interaction, {
-                embeds: [successEmbed('Report Channel Set', `All new reports will now be sent to ${channel}.`)],
+                embeds: [successEmbed(
+                    'Report Channel Set',
+                    `All new reports will now be sent to ${channel}.\nYou can also manage this from \`/logging dashboard\`.`,
+                )],
                 ephemeral: true,
             });
         } catch (error) {

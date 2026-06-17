@@ -27,15 +27,18 @@ const CONFIG_VALIDATION_RULES = {
 };
 
 const SETTING_CONFLICTS = {
-    'logChannelId': ['logging'],
     'birthdayChannelId': [],
-    'reportChannelId': [],
-    'logging': ['logChannelId']
+    'logging': [],
+};
+
+const LEGACY_LOGGING_KEY_MAP = {
+    logChannelId: 'audit',
+    reportChannelId: 'reports',
 };
 
 const ConfigValueSchemas = Object.freeze({
-    logChannelId: z.union([z.string().min(1), z.object({ id: z.string().min(1) })]),
-    reportChannelId: z.union([z.string().min(1), z.object({ id: z.string().min(1) })]),
+    logChannelId: z.union([z.string().min(1), z.object({ id: z.string().min(1) }), z.null()]),
+    reportChannelId: z.union([z.string().min(1), z.object({ id: z.string().min(1) }), z.null()]),
     premiumRoleId: z.union([z.string().min(1), z.object({ id: z.string().min(1) })]),
     autoRole: z.union([z.string().min(1), z.object({ id: z.string().min(1) })]),
     modRole: z.union([z.string().min(1), z.object({ id: z.string().min(1) })]),
@@ -55,6 +58,43 @@ class ConfigService {
     static MAX_PREFIX_LENGTH = 10;
     static PROTECTED_SETTINGS = ['_id', 'guildId', 'createdAt']; 
     static UNSAFE_KEYS = ['__proto__', 'prototype', 'constructor'];
+
+    static applyLoggingLegacyKey(config, key, value, previousConfig = {}) {
+        if (key === 'logIgnore') {
+            const logging = {
+                ...(previousConfig.logging || config.logging || {}),
+                ignore: value,
+            };
+            const next = { ...config, logging };
+            delete next.logIgnore;
+            return next;
+        }
+
+        const destination = LEGACY_LOGGING_KEY_MAP[key];
+        if (!destination) {
+            return config;
+        }
+
+        const channelId = value && typeof value === 'object' ? value.id : value;
+        const logging = {
+            ...(previousConfig.logging || config.logging || {}),
+            channels: {
+                ...((previousConfig.logging || config.logging || {}).channels || {}),
+                [destination]: channelId ?? null,
+            },
+            enabled: channelId ? true : (previousConfig.logging?.enabled ?? config.logging?.enabled ?? false),
+        };
+
+        const next = { ...config, logging };
+        delete next[key];
+        if (key === 'logChannelId') {
+            delete next.enableLogging;
+        }
+        if (key === 'reportChannelId') {
+            delete next.reportChannelId;
+        }
+        return next;
+    }
 
     static validateConfigKeySafety(key) {
         if (typeof key !== 'string' || key.trim().length === 0) {
@@ -342,7 +382,9 @@ class ConfigService {
 
         const oldValue = currentConfig[key];
 
-        const updatedConfig = { ...currentConfig, [key]: value };
+        let updatedConfig = { ...currentConfig, [key]: value };
+        updatedConfig = this.applyLoggingLegacyKey(updatedConfig, key, value, currentConfig);
+
         await setGuildConfig(client, guildId, updatedConfig);
 
         this.recordChange(guildId, {

@@ -10,6 +10,7 @@ import {
 import { logger } from '../utils/logger.js';
 import { TitanBotError, ErrorTypes } from '../utils/errorHandler.js';
 import { logEvent, EVENT_TYPES } from './loggingService.js';
+import { formatLogLine } from '../utils/logEmbeds.js';
 import { ChannelType, PermissionFlagsBits } from 'discord.js';
 
 const CHANNEL_NAME_MAX_LENGTH = 100;
@@ -463,14 +464,15 @@ export async function logConfigurationChange(client, guildId, userId, action, de
         await logEvent({
             client,
             guildId,
-            eventType: EVENT_TYPES.CONFIGURATION_CHANGE,
+            eventType: EVENT_TYPES.COUNTER_CONFIG,
             data: {
-                description: `Join to Create: ${action}`,
+                title: 'Join to Create Updated',
+                lines: [
+                    formatLogLine('Action', action),
+                    formatLogLine('Details', typeof details === 'string' ? details : JSON.stringify(details)),
+                ],
                 userId,
-                action,
-                details,
-                timestamp: new Date().toISOString()
-            }
+            },
         });
     } catch (error) {
         logger.warn(`Failed to log Join to Create configuration change: ${error.message}`);

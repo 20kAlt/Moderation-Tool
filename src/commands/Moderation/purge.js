@@ -20,7 +20,9 @@ export default {
   category: "moderation",
 
   async execute(interaction, config, client) {
-    const deferSuccess = await InteractionHelper.safeDefer(interaction);
+    const deferSuccess = await InteractionHelper.safeDefer(interaction, {
+      flags: MessageFlags.Ephemeral,
+    });
     if (!deferSuccess) {
       logger.warn(`Purge interaction defer failed`, {
         userId: interaction.user.id,
@@ -107,9 +109,12 @@ export default {
 
       await InteractionHelper.safeEditReply(interaction, {
         embeds: [
-          successEmbed('Deleted ${deletedCount} messages in ${channel}.'),
+          successEmbed(
+            "Messages Purged",
+            `Deleted ${deletedCount} messages in ${channel}.`,
+          ),
         ],
-flags: MessageFlags.Ephemeral,
+        flags: MessageFlags.Ephemeral,
       });
 
       setTimeout(() => {

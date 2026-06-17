@@ -5,6 +5,9 @@ import { logger } from '../../utils/logger.js';
 import { handleInteractionError, withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import ApplicationService from '../../services/applicationService.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
+import { logEvent, EVENT_TYPES, resolveApplicationLogChannel } from '../../services/loggingService.js';
+import { formatLogLine, resolveUserAuthor } from '../../utils/logEmbeds.js';
+import { getGuildConfig } from '../../services/guildConfig.js';
 import { 
     getApplicationSettings, 
     getUserApplications, 
@@ -179,26 +182,35 @@ export async function handleApplicationModal(interaction) {
         
         const settings = await getApplicationSettings(interaction.client, interaction.guild.id);
         const roleSettings = await getApplicationRoleSettings(interaction.client, interaction.guild.id, roleId);
+        const guildConfig = await getGuildConfig(interaction.client, interaction.guild.id);
 
-        const logChannelId = roleSettings.logChannelId || settings.logChannelId;
-        
+        const logChannelId = resolveApplicationLogChannel(guildConfig, roleSettings, settings);
+
         if (logChannelId) {
-            const logChannel = interaction.guild.channels.cache.get(logChannelId);
-            if (logChannel) {
-                const logEmbed = createEmbed({
-                    title: 'New Application',
-                    description: `**User:** <@${interaction.user.id}> (${interaction.user.tag})\n` +
-                        `**Application:** ${applicationRole.name}\n` +
-                        `**Role:** ${role.name}\n` +
-                        `**Application ID:** \`${application.id}\`\n` +
-                        `**Status:** 🟡 In Progress`
-                }).setColor(getColor('warning'));
-                
-                const logMessage = await logChannel.send({ embeds: [logEmbed] });
-                
+            const logMessage = await logEvent({
+                client: interaction.client,
+                guildId: interaction.guild.id,
+                eventType: EVENT_TYPES.APPLICATION_SUBMIT,
+                channelId: logChannelId,
+                data: {
+                    title: 'Application Submitted',
+                    lines: [
+                        formatLogLine('Applicant', `<@${interaction.user.id}> (${interaction.user.tag})`),
+                        formatLogLine('Application', applicationRole.name),
+                        formatLogLine('Role', role.name),
+                        formatLogLine('Application ID', `\`${application.id}\``),
+                    ],
+                    inlineFields: [
+                        { name: 'Status', value: '🟡 In Progress', inline: true },
+                    ],
+                    author: await resolveUserAuthor(interaction.client, interaction.user.id),
+                },
+            });
+
+            if (logMessage) {
                 await updateApplication(interaction.client, interaction.guild.id, application.id, {
                     logMessageId: logMessage.id,
-                    logChannelId: logChannelId
+                    logChannelId,
                 });
             }
         }

@@ -9,19 +9,18 @@ const GUILD_CONFIG_DEFAULTS = {
     prefix: BotConfig.prefix,
     modRole: null,
     adminRole: null,
-    logChannelId: null,
     welcomeChannel: null,
     welcomeMessage: 'Welcome {user} to {server}!',
     autoRole: null,
     dmOnClose: true,
-    logIgnore: { users: [], channels: [] },
     disabledCommands: {},
     disabledCategories: {},
     logging: {
         enabled: false,
-        channelId: null,
-        enabledEvents: {}
-    }
+        channels: { audit: null, applications: null, reports: null },
+        ignore: { users: [], channels: [] },
+        enabledEvents: {},
+    },
 };
 
 export const getGuildConfig = wrapServiceBoundary(async function getGuildConfig(client, guildId, context = {}) {
