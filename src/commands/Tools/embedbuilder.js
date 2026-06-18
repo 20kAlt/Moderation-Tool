@@ -18,9 +18,9 @@ import {
     RadioGroupBuilder,
 } from 'discord.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
-import { successEmbed, errorEmbed } from '../../utils/embeds.js';
+import { successEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
-import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
+import { TitanBotError, replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
 import { getColor } from '../../config/bot.js';
 
 const MAX_FIELDS = 25;
@@ -334,14 +334,9 @@ async function handleSetColor(selectInteraction, rootInteraction, state) {
 
             const hex = hexSubmit.fields.getTextInputValue('hex_value').trim();
             if (!isValidHex(hex)) {
-                await hexSubmit.reply({
-                    embeds: [
-                        errorEmbed(
-                            'Invalid Hex',
-                            `\`${hex}\` is not a valid hex color. Use the format \`#RRGGBB\` (e.g. \`#5865F2\`).`,
-                        ),
-                    ],
-                    flags: MessageFlags.Ephemeral,
+                await replyUserError(hexSubmit, {
+                    type: ErrorTypes.USER_INPUT,
+                    message: `\`${hex}\` is not a valid hex color. Use the format \`#RRGGBB\` (e.g. \`#5865F2\`).`,
                 });
                 return;
             }
@@ -412,16 +407,16 @@ async function handleSetAuthor(selectInteraction, rootInteraction, state) {
     const url     = submitted.fields.getTextInputValue('author_url').trim();
 
     if (iconUrl && !isValidUrl(iconUrl)) {
-        await submitted.reply({
-            embeds: [errorEmbed('Invalid URL', 'Author icon URL must be a valid `https://` URL.')],
-            flags: MessageFlags.Ephemeral,
+        await replyUserError(submitted, {
+            type: ErrorTypes.USER_INPUT,
+            message: 'Author icon URL must be a valid `https://` URL.',
         });
         return;
     }
     if (url && !isValidUrl(url)) {
-        await submitted.reply({
-            embeds: [errorEmbed('Invalid URL', 'Author link URL must be a valid `https://` URL.')],
-            flags: MessageFlags.Ephemeral,
+        await replyUserError(submitted, {
+            type: ErrorTypes.USER_INPUT,
+            message: 'Author link URL must be a valid `https://` URL.',
         });
         return;
     }
@@ -474,9 +469,9 @@ async function handleSetFooter(selectInteraction, rootInteraction, state) {
     const iconUrl = submitted.fields.getTextInputValue('footer_icon').trim();
 
     if (iconUrl && !isValidUrl(iconUrl)) {
-        await submitted.reply({
-            embeds: [errorEmbed('Invalid URL', 'Footer icon URL must be a valid `https://` URL.')],
-            flags: MessageFlags.Ephemeral,
+        await replyUserError(submitted, {
+            type: ErrorTypes.USER_INPUT,
+            message: 'Footer icon URL must be a valid `https://` URL.',
         });
         return;
     }
@@ -588,11 +583,9 @@ async function handleSetImages(selectInteraction, rootInteraction, state) {
 
         const url = submitted.fields.getTextInputValue('image_url').trim();
         if (!isValidUrl(url)) {
-            await submitted.reply({
-                embeds: [
-                    errorEmbed('Invalid URL', 'Image URL must be a valid `https://` link to a publicly accessible image.'),
-                ],
-                flags: MessageFlags.Ephemeral,
+            await replyUserError(submitted, {
+                type: ErrorTypes.USER_INPUT,
+                message: 'Image URL must be a valid `https://` link to a publicly accessible image.',
             });
             return;
         }
@@ -611,9 +604,9 @@ async function handleSetImages(selectInteraction, rootInteraction, state) {
 async function handleAddField(selectInteraction, rootInteraction, state) {
     if (state.fields.length >= MAX_FIELDS) {
         await selectInteraction.deferUpdate();
-        await selectInteraction.followUp({
-            embeds: [errorEmbed('Fields Full', `Embeds can have a maximum of ${MAX_FIELDS} fields.`)],
-            flags: MessageFlags.Ephemeral,
+        await replyUserError(selectInteraction, {
+            type: ErrorTypes.VALIDATION,
+            message: `Embeds can have a maximum of ${MAX_FIELDS} fields.`,
         });
         return;
     }
@@ -950,14 +943,9 @@ async function handlePostEmbed(selectInteraction, rootInteraction, state, guild)
         !state.author?.name
     ) {
         await selectInteraction.deferUpdate();
-        await selectInteraction.followUp({
-            embeds: [
-                errorEmbed(
-                    'Empty Embed',
-                    'Add at least a title, description, or field before posting.',
-                ),
-            ],
-            flags: MessageFlags.Ephemeral,
+        await replyUserError(selectInteraction, {
+            type: ErrorTypes.VALIDATION,
+            message: 'Add at least a title, description, or field before posting.',
         });
         return;
     }
@@ -993,23 +981,18 @@ async function handlePostEmbed(selectInteraction, rootInteraction, state, guild)
         const channel = chanInter.channels.first();
 
         if (!channel) {
-            await chanInter.followUp({
-                embeds: [errorEmbed('No Channel', 'Could not resolve the selected channel.')],
-                flags: MessageFlags.Ephemeral,
+            await replyUserError(chanInter, {
+                type: ErrorTypes.USER_INPUT,
+                message: 'Could not resolve the selected channel.',
             });
             return;
         }
 
         const perms = channel.permissionsFor(guild.members.me);
         if (!perms?.has([PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks])) {
-            await chanInter.followUp({
-                embeds: [
-                    errorEmbed(
-                        'Missing Permissions',
-                        `I need **Send Messages** and **Embed Links** permissions in ${channel} to post there.`,
-                    ),
-                ],
-                flags: MessageFlags.Ephemeral,
+            await replyUserError(chanInter, {
+                type: ErrorTypes.PERMISSION,
+                message: `I need **Send Messages** and **Embed Links** permissions in ${channel} to post there.`,
             });
             return;
         }
@@ -1165,12 +1148,10 @@ export default {
                             ? error.userMessage || 'An error occurred.'
                             : 'An unexpected error occurred.';
                     if (!ci.replied && !ci.deferred) await ci.deferUpdate().catch(() => {});
-                    await ci
-                        .followUp({
-                            embeds: [errorEmbed('Error', msg)],
-                            flags: MessageFlags.Ephemeral,
-                        })
-                        .catch(() => {});
+                    await replyUserError(ci, {
+                        type: ErrorTypes.UNKNOWN,
+                        message: msg,
+                    }).catch(() => {});
                 }
             });
 

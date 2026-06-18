@@ -1,4 +1,4 @@
-import { createEmbed, errorEmbed } from '../../../utils/embeds.js';
+import { createEmbed } from '../../../utils/embeds.js';
 import { getGuildConfig } from '../../../services/guildConfig.js';
 import { logEvent, EVENT_TYPES, resolveLogChannel } from '../../../services/loggingService.js';
 import { formatLogLine, resolveUserAuthor } from '../../../utils/logEmbeds.js';
@@ -22,9 +22,7 @@ export default {
         const reportChannelId = resolveLogChannel(guildConfig, 'reports');
 
         if (!reportChannelId) {
-            return InteractionHelper.safeEditReply(interaction, {
-                embeds: [errorEmbed('Setup Required', 'The report channel has not been set up. Ask a moderator to use `/logging dashboard` or `/logging channel`.')],
-            });
+            return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'The report channel has not been set up. Ask a moderator to use `/logging dashboard` or `/logging channel`.' });
         }
 
         try {

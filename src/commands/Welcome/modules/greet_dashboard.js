@@ -18,9 +18,9 @@ import {
     TextDisplayBuilder,
 } from 'discord.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
-import { successEmbed, errorEmbed } from '../../../utils/embeds.js';
+import { successEmbed } from '../../../utils/embeds.js';
 import { logger } from '../../../utils/logger.js';
-import { TitanBotError, ErrorTypes } from '../../../utils/errorHandler.js';
+import { TitanBotError, ErrorTypes, replyUserError } from '../../../utils/errorHandler.js';
 import { getWelcomeConfig, saveWelcomeConfig } from '../../../utils/database.js';
 import { botHasPermission } from '../../../utils/permissionGuard.js';
 
@@ -220,12 +220,10 @@ export default {
                         await selectInteraction.deferUpdate().catch(() => {});
                     }
 
-                    await selectInteraction
-                        .followUp({
-                            embeds: [errorEmbed('Configuration Error', errorMessage)],
-                            flags: MessageFlags.Ephemeral,
-                        })
-                        .catch(() => {});
+                    await replyUserError(selectInteraction, {
+                        type: ErrorTypes.CONFIGURATION,
+                        message: errorMessage,
+                    }).catch(() => {});
                 }
             });
 
@@ -371,14 +369,9 @@ async function handleWelcomeChannel(selectInteraction, rootInteraction, cfg, gui
         const channel = chanInteraction.channels.first();
 
         if (!botHasPermission(channel, ['ViewChannel', 'SendMessages', 'EmbedLinks'])) {
-            await chanInteraction.followUp({
-                embeds: [
-                    errorEmbed(
-                        'Missing Permissions',
-                        `I need **View Channel**, **Send Messages**, and **Embed Links** in ${channel}.`,
-                    ),
-                ],
-                flags: MessageFlags.Ephemeral,
+            await replyUserError(chanInteraction, {
+                type: ErrorTypes.PERMISSION,
+                message: `I need **View Channel**, **Send Messages**, and **Embed Links** in ${channel}.`,
             });
             return;
         }
@@ -396,12 +389,10 @@ async function handleWelcomeChannel(selectInteraction, rootInteraction, cfg, gui
 
     chanCollector.on('end', (collected, reason) => {
         if (reason === 'time' && collected.size === 0) {
-            selectInteraction
-                .followUp({
-                    embeds: [errorEmbed('Timed Out', 'No channel was selected. The setting was not changed.')],
-                    flags: MessageFlags.Ephemeral,
-                })
-                .catch(() => {});
+            replyUserError(selectInteraction, {
+                type: ErrorTypes.RATE_LIMIT,
+                message: 'No channel was selected. The setting was not changed.',
+            }).catch(() => {});
         }
     });
 }
@@ -504,17 +495,11 @@ async function handleWelcomeImage(selectInteraction, rootInteraction, cfg, guild
         try {
             new URL(imageUrl);
             if (!['http:', 'https:'].includes(new URL(imageUrl).protocol)) {
-                await submitted.reply({
-                    embeds: [errorEmbed('Invalid URL', 'Image URL must start with `http://` or `https://`.')],
-                    flags: MessageFlags.Ephemeral,
-                });
+                await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: 'Image URL must start with `http://` or `https://`.' });
                 return;
             }
         } catch {
-            await submitted.reply({
-                embeds: [errorEmbed('Invalid URL', 'Please provide a valid image URL.')],
-                flags: MessageFlags.Ephemeral,
-            });
+            await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: 'Please provide a valid image URL.' });
             return;
         }
     }
@@ -588,14 +573,9 @@ async function handleGoodbyeChannel(selectInteraction, rootInteraction, cfg, gui
         const channel = chanInteraction.channels.first();
 
         if (!botHasPermission(channel, ['ViewChannel', 'SendMessages', 'EmbedLinks'])) {
-            await chanInteraction.followUp({
-                embeds: [
-                    errorEmbed(
-                        'Missing Permissions',
-                        `I need **View Channel**, **Send Messages**, and **Embed Links** in ${channel}.`,
-                    ),
-                ],
-                flags: MessageFlags.Ephemeral,
+            await replyUserError(chanInteraction, {
+                type: ErrorTypes.PERMISSION,
+                message: `I need **View Channel**, **Send Messages**, and **Embed Links** in ${channel}.`,
             });
             return;
         }
@@ -613,12 +593,10 @@ async function handleGoodbyeChannel(selectInteraction, rootInteraction, cfg, gui
 
     chanCollector.on('end', (collected, reason) => {
         if (reason === 'time' && collected.size === 0) {
-            selectInteraction
-                .followUp({
-                    embeds: [errorEmbed('Timed Out', 'No channel was selected. The setting was not changed.')],
-                    flags: MessageFlags.Ephemeral,
-                })
-                .catch(() => {});
+            replyUserError(selectInteraction, {
+                type: ErrorTypes.RATE_LIMIT,
+                message: 'No channel was selected. The setting was not changed.',
+            }).catch(() => {});
         }
     });
 }
@@ -725,17 +703,11 @@ async function handleGoodbyeImage(selectInteraction, rootInteraction, cfg, guild
         try {
             new URL(imageUrl);
             if (!['http:', 'https:'].includes(new URL(imageUrl).protocol)) {
-                await submitted.reply({
-                    embeds: [errorEmbed('Invalid URL', 'Image URL must start with `http://` or `https://`.')],
-                    flags: MessageFlags.Ephemeral,
-                });
+                await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: 'Image URL must start with `http://` or `https://`.' });
                 return;
             }
         } catch {
-            await submitted.reply({
-                embeds: [errorEmbed('Invalid URL', 'Please provide a valid image URL.')],
-                flags: MessageFlags.Ephemeral,
-            });
+            await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: 'Please provide a valid image URL.' });
             return;
         }
     }

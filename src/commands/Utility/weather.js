@@ -1,5 +1,5 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
+import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
 import { handleInteractionError } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
@@ -42,14 +42,7 @@ export default {
                     city: city,
                     guildId: interaction.guildId
                 });
-                await InteractionHelper.safeEditReply(interaction, {
-                    embeds: [
-                        errorEmbed(
-                            "City Not Found",
-                            `Could not find a location for **${city}**. Please check the spelling.`,
-                        ),
-                    ],
-                });
+                await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: 'Could not find a location for **${city}**. Please check the spelling.' });
                 return;
             }
 
@@ -68,14 +61,7 @@ export default {
                     userId: interaction.user.id,
                     guildId: interaction.guildId
                 });
-                await InteractionHelper.safeEditReply(interaction, {
-                    embeds: [
-                        errorEmbed(
-                            "API Error",
-                            "A weather service error occurred.",
-                        ),
-                    ],
-                });
+                await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'A weather service error occurred.' });
                 return;
             }
 

@@ -378,59 +378,6 @@ export function getMonthName(monthNum) {
     return monthNum >= 1 && monthNum <= 12 ? months[index] : 'Invalid Month';
 }
 
-export async function getGuildGiveaways(client, guildId) {
-    const key = giveawayKey(guildId);
-    try {
-        if (!client.db || typeof client.db.get !== "function") {
-            logger.error("Database client is not available for getGuildGiveaways.");
-            return {};
-        }
-
-        const giveaways = await client.db.get(key, {});
-        return unwrapReplitData(giveaways) || {};
-    } catch (error) {
-        logger.error(`Error getting giveaways for guild ${guildId}:`, error);
-        return {};
-    }
-}
-
-export async function saveGiveaway(client, guildId, giveawayData) {
-    try {
-        if (!client.db || typeof client.db.set !== "function") {
-            logger.error("Database client is not available for saveGiveaway.");
-            return false;
-        }
-
-        const key = giveawayKey(guildId);
-        const giveaways = await getGuildGiveaways(client, guildId);
-        
-        giveaways[giveawayData.messageId] = giveawayData;
-        
-        await client.db.set(key, giveaways);
-        return true;
-    } catch (error) {
-        logger.error('Error saving giveaway:', error);
-        return false;
-    }
-}
-
-export async function deleteGiveaway(client, guildId, messageId) {
-    try {
-        const key = giveawayKey(guildId);
-        const giveaways = await getGuildGiveaways(client, guildId);
-        
-        if (giveaways[messageId]) {
-            delete giveaways[messageId];
-            await client.db.set(key, giveaways);
-            return true;
-        }
-        return false;
-    } catch (error) {
-        logger.error('Error deleting giveaway:', error);
-        return false;
-    }
-}
-
 function isPostgresSqlReady(dbWrapper) {
     return Boolean(
         dbWrapper?.db?.pool &&
@@ -554,12 +501,6 @@ export async function markGiveawayEnded(client, giveawayId, endedData) {
         return false;
     }
 }
-
-export function giveawayKey(guildId) {
-    return `guild:${guildId}:giveaways`;
-}
-
-export const getGiveawaysKey = giveawayKey;
 
 export function getTicketKey(guildId, channelId) {
     return `guild:${guildId}:ticket:${channelId}`;

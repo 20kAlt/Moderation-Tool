@@ -1,8 +1,7 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
+import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
-import { MessageTemplates } from '../../utils/messageTemplates.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 const CRIME_COOLDOWN = 60 * 60 * 1000;
@@ -108,7 +107,7 @@ export default {
                 
                 await setEconomyData(client, guildId, userId, userData);
                 
-                const embed = errorEmbed(
+                const embed = warningEmbed(
                     "🚔 Crime Failed!",
                     `You were caught while attempting ${crime.name} and have been sent to jail!` +
                     `You were fined ${fine} coins and will be in jail for 2 hours.`

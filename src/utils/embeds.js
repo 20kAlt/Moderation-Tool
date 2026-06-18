@@ -220,6 +220,41 @@ const NOTIFICATION_DEFAULT_TITLES = {
   primary: 'Notice',
 };
 
+export const USER_ERROR_TITLES = {
+  validation: 'Invalid Input',
+  permission: 'Permission Denied',
+  configuration: 'Configuration Error',
+  database: 'Database Error',
+  network: 'Network Error',
+  discord_api: 'Discord API Error',
+  user_input: 'Input Error',
+  rate_limit: 'Too Fast',
+  unknown: 'Something Went Wrong',
+};
+
+const USER_ERROR_COLORS = {
+  rate_limit: 'warning',
+};
+
+/**
+ * Build a consistent user-facing error embed.
+ * @param {string} errorType - Error category key (e.g. validation, permission)
+ * @param {string} [description] - Specific, actionable message for the user
+ * @param {{ titleOverride?: string }} [options]
+ */
+export function buildUserErrorEmbed(errorType, description = '', options = {}) {
+  const type = errorType || 'unknown';
+  const title = options.titleOverride || USER_ERROR_TITLES[type] || USER_ERROR_TITLES.unknown;
+  const color = USER_ERROR_COLORS[type] || 'error';
+  const body = description ? String(description).trim() : undefined;
+
+  return createEmbed({
+    title,
+    description: body,
+    color,
+  });
+}
+
 function containsDiscordRenderable(content = '') {
   return /<@!?&?\d+>|<#\d+>|\b\d{17,19}\b/.test(String(content));
 }
@@ -241,6 +276,9 @@ function buildNotificationEmbed(title, body = '', color = 'primary') {
   });
 }
 
+/**
+ * @deprecated Prefer buildUserErrorEmbed or replyUserError from errorHandler.js.
+ */
 export function errorEmbed(title, detail = null, options = {}) {
   const { showDetails = process.env.NODE_ENV !== 'production' } = options;
   let body = detail;
@@ -250,9 +288,13 @@ export function errorEmbed(title, detail = null, options = {}) {
     body = formatCodeBlock(detailText);
   }
 
-  return buildNotificationEmbed(title || 'Error', body, 'error');
+  const description = body ? String(body).trim() : '';
+  const titleOverride = title && title !== 'Error' ? title : undefined;
+
+  return buildUserErrorEmbed('unknown', description, { titleOverride });
 }
 
+/** @param {string} titleOrBody - With one arg: body text. With two args: title and body. */
 export function successEmbed(title, body = '') {
   if (arguments.length === 1) {
     return buildNotificationEmbed('Success', title, 'success');
@@ -261,6 +303,7 @@ export function successEmbed(title, body = '') {
   return buildNotificationEmbed(title || 'Success', body, 'success');
 }
 
+/** @param {string} titleOrBody - With one arg: body text. With two args: title and body. */
 export function infoEmbed(title, body = '') {
   if (arguments.length === 1) {
     return buildNotificationEmbed('Information', title, 'info');
@@ -269,6 +312,7 @@ export function infoEmbed(title, body = '') {
   return buildNotificationEmbed(title || 'Information', body, 'info');
 }
 
+/** @param {string} titleOrBody - With one arg: body text. With two args: title and body. */
 export function warningEmbed(title, body = '') {
   if (arguments.length === 1) {
     return buildNotificationEmbed('Warning', title, 'warning');
@@ -325,6 +369,23 @@ export function formatList(items, ordered = false) {
   return items
     .map((item, index) => (ordered ? `${index + 1}.` : '•') + `${item}`)
     .join('\n');
+}
+
+export function formatDuration(ms) {
+  if (ms < 0) return '0s';
+
+  const seconds = Math.floor(ms / 1000) % 60;
+  const minutes = Math.floor(ms / (1000 * 60)) % 60;
+  const hours = Math.floor(ms / (1000 * 60 * 60)) % 24;
+  const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+
+  const parts = [];
+  if (days > 0) parts.push(`${days}d`);
+  if (hours > 0) parts.push(`${hours}h`);
+  if (minutes > 0) parts.push(`${minutes}m`);
+  if (seconds > 0 || parts.length === 0) parts.push(`${seconds}s`);
+
+  return parts.join('');
 }
 
 export function formatProgressBar(current, max, size = 10) {

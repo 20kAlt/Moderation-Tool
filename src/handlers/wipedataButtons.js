@@ -1,4 +1,4 @@
-import { createEmbed, errorEmbed, successEmbed } from '../utils/embeds.js';
+import { createEmbed, successEmbed } from '../utils/embeds.js';
 import { InteractionHelper } from '../utils/interactionHelper.js';
 import { MessageFlags } from 'discord.js';
 import { logger } from '../utils/logger.js';
@@ -116,10 +116,7 @@ const wipedataConfirmHandler = {
     } catch (error) {
       logger.error('Wipedata confirm button handler error:', error);
       
-      await interaction.editReply({
-        embeds: [errorEmbed('Data Wipe Failed', 'An error occurred while wiping your data. Please try again later or contact support.')],
-        components: []
-      });
+      await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'An error occurred while wiping your data. Please try again later or contact support.' });
     }
   }
 };
@@ -144,10 +141,7 @@ const wipedataCancelHandler = {
       logger.error('Wipedata cancel button handler error:', error);
       
       if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({
-          embeds: [errorEmbed('Error', 'Could not cancel data wipe.')],
-          flags: MessageFlags.Ephemeral
-        });
+        await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Could not cancel data wipe.' });
       }
     }
   }

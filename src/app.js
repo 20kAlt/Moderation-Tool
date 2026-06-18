@@ -12,6 +12,7 @@ import { logger, startupLog, shutdownLog } from './utils/logger.js';
 import { checkBirthdays } from './services/birthdayService.js';
 import { checkGiveaways } from './services/giveawayService.js';
 import { loadCommands, registerCommands as registerSlashCommands } from './handlers/commandLoader.js';
+import pkg from '../package.json' with { type: 'json' };
 
 class TitanBot extends Client {
   constructor() {
@@ -85,6 +86,11 @@ class TitanBot extends Client {
       
       startupLog('Registering slash commands...');
       await this.registerCommands();
+      if (this.config.bot.multiGuild) {
+        startupLog('Multi-guild mode enabled — slash commands registered globally');
+      } else if (this.config.bot.guildId) {
+        startupLog(`Single-guild mode — slash commands registered for guild ${this.config.bot.guildId}`);
+      }
       startupLog('Slash commands registration complete');
       
       const databaseMode = dbStatus.isDegraded
@@ -184,7 +190,7 @@ class TitanBot extends Client {
     app.get('/', (req, res) => {
       res.status(200).json({ 
         message: 'TitanBot System Online',
-        version: '2.0.0',
+        version: pkg.version,
         timestamp: new Date().toISOString()
       });
     });
@@ -303,7 +309,8 @@ class TitanBot extends Client {
 
   async registerCommands() {
     try {
-      await registerSlashCommands(this, this.config.bot.guildId);
+      const { clientId, guildId, multiGuild } = this.config.bot;
+      await registerSlashCommands(this, { clientId, guildId, multiGuild });
     } catch (error) {
       logger.error('Error registering commands:', error);
     }

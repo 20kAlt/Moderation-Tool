@@ -3,7 +3,7 @@
 import { logger } from '../utils/logger.js';
 import { createError, ErrorTypes } from '../utils/errorHandler.js';
 import { PermissionFlagsBits } from 'discord.js';
-import { sanitizeInput, sanitizeMarkdown } from '../utils/sanitization.js';
+import { sanitizeInput, sanitizeMarkdown } from '../utils/validation.js';
 import {
     getApplicationSettings,
     saveApplicationSettings,

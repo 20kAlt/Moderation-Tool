@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import axios from 'axios';
-import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
+import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
 import { handleInteractionError } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
@@ -25,10 +25,7 @@ export default {
                     term: term,
                     guildId: interaction.guildId
                 });
-                return await InteractionHelper.safeReply(interaction, {
-                    embeds: [errorEmbed('Error', 'Please enter a term with at least 2 characters.')],
-                    flags: MessageFlags.Ephemeral
-                });
+                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Please enter a term with at least 2 characters.' });
             }
 
             let deferTimer = null;
@@ -56,9 +53,7 @@ export default {
             clearDeferTimer();
             
             if (!response.data?.list?.length) {
-                return await InteractionHelper.safeReply(interaction, {
-                    embeds: [errorEmbed('Not Found', `No definitions found for "${term}" on Urban Dictionary.`)]
-                });
+                return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: 'No definitions found for "${term}" on Urban Dictionary.' });
             }
             
             const definition = response.data.list[0];
@@ -122,13 +117,9 @@ export default {
             });
 
             if (error.response?.status === 404 || !error.response) {
-                await InteractionHelper.safeEditReply(interaction, {
-                    embeds: [errorEmbed('Not Found', `No definitions found for "${interaction.options.getString('term')}" on Urban Dictionary.`)]
-                });
+                await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: 'No definitions found for "${interaction.options.getString(\'term\')}" on Urban Dictionary.' });
             } else if (error.response?.status === 429) {
-                await InteractionHelper.safeEditReply(interaction, {
-                    embeds: [errorEmbed('Rate Limited', 'Too many requests to Urban Dictionary. Please try again in a few minutes.')]
-                });
+                await replyUserError(interaction, { type: ErrorTypes.RATE_LIMIT, message: 'Too many requests to Urban Dictionary. Please try again in a few minutes.' });
             } else {
                 await handleInteractionError(interaction, error, {
                     commandName: 'urban',

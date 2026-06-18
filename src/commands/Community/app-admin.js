@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, PermissionFlagsBits, PermissionsBitField, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ComponentType, LabelBuilder, RoleSelectMenuBuilder } from 'discord.js';
-import { createEmbed, errorEmbed, successEmbed } from '../../utils/embeds.js';
+import { createEmbed, successEmbed } from '../../utils/embeds.js';
 import { getColor } from '../../config/bot.js';
 import { logger } from '../../utils/logger.js';
 import { handleInteractionError, withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
@@ -103,10 +103,7 @@ export default {
 
     execute: withErrorHandling(async (interaction) => {
         if (!interaction.inGuild()) {
-            return InteractionHelper.safeReply(interaction, {
-                embeds: [errorEmbed('This command can only be used in a server.')],
-                flags: ["Ephemeral"],
-            });
+            return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'This command can only be used in a server.' });
         }
 
         const { options, guild, member } = interaction;
@@ -140,10 +137,7 @@ export default {
 async function handleSetup(interaction) {
     
     if (interaction.deferred || interaction.replied) {
-        return InteractionHelper.safeReply(interaction, {
-            embeds: [errorEmbed('This interaction has already been processed. Please try the command again.')],
-            flags: ["Ephemeral"],
-        });
+        return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'This interaction has already been processed. Please try the command again.' });
     }
 
     const modal = new ModalBuilder()
@@ -226,10 +220,7 @@ async function handleSetup(interaction) {
     const roleId = selectedRoles.first()?.id;
 
     if (!roleId) {
-        await submitted.reply({
-            embeds: [errorEmbed('No Role Selected', 'You must select a role for the application.')],
-            flags: ['Ephemeral'],
-        });
+        await replyUserError(submitted, { type: ErrorTypes.USER_INPUT, message: 'You must select a role for the application.' });
         return;
     }
 
@@ -241,19 +232,13 @@ async function handleSetup(interaction) {
 
     const role = await interaction.guild.roles.fetch(roleId).catch(() => null);
     if (!role) {
-        await submitted.reply({
-            embeds: [errorEmbed('Invalid Role', 'The selected role could not be found.')],
-            flags: ['Ephemeral'],
-        });
+        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: 'The selected role could not be found.' });
         return;
     }
 
     const existingRoles = await getApplicationRoles(interaction.client, interaction.guild.id);
     if (existingRoles.some(r => r.roleId === roleId)) {
-        await submitted.reply({
-            embeds: [errorEmbed('Already Configured', `The role ${role} is already configured as an application.`)],
-            flags: ['Ephemeral'],
-        });
+        await replyUserError(submitted, { type: ErrorTypes.CONFIGURATION, message: 'The role ${role} is already configured as an application.' });
         return;
     }
 
@@ -294,19 +279,11 @@ async function handleReview(interaction) {
         appId,
     );
     if (!application) {
-        return InteractionHelper.safeEditReply(interaction, {
-            embeds: [errorEmbed('Application not found.')],
-            flags: ["Ephemeral"],
-        });
+        return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: 'Application not found.' });
     }
 
     if (application.status !== "pending") {
-        return InteractionHelper.safeEditReply(interaction, {
-            embeds: [
-                errorEmbed('This application has already been processed.'),
-            ],
-            flags: ["Ephemeral"],
-        });
+        return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'This application has already been processed.' });
     }
 
     const appEmbed = createEmbed({
@@ -483,10 +460,7 @@ async function handleReview(interaction) {
 
         } catch (error) {
             logger.error('Error reviewing application:', error);
-            await buttonInteraction.reply({
-                embeds: [errorEmbed('Error', 'An error occurred while reviewing the application.')],
-                flags: ["Ephemeral"],
-            });
+            await replyUserError(buttonInteraction, { type: ErrorTypes.UNKNOWN, message: 'An error occurred while reviewing the application.' });
         }
     });
 
@@ -568,15 +542,7 @@ async function handleList(interaction) {
 
             return InteractionHelper.safeEditReply(interaction, { embeds: [embed], flags: ["Ephemeral"] });
         } else {
-            return InteractionHelper.safeEditReply(interaction, {
-                embeds: [
-                    errorEmbed(
-                        "No applications found and no application roles configured.\n" +
-                        "Use `/app-admin roles add` to configure application roles first."
-                    ),
-                ],
-                flags: ["Ephemeral"],
-            });
+            return await replyUserError(interaction, { type: ErrorTypes.CONFIGURATION, message: '"No applications found and no application roles configured.\\n" +\n                        "Use `/app-admin roles add` to configure application roles first."' });
         }
     }
 
@@ -624,10 +590,7 @@ export async function handleApplicationReviewModal(interaction) {
     try {
         const application = await getApplication(interaction.client, interaction.guild.id, appId);
         if (!application) {
-            return InteractionHelper.safeReply(interaction, {
-                embeds: [errorEmbed('Application not found.')],
-                flags: ["Ephemeral"]
-            });
+            return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: 'Application not found.' });
         }
         
         const status = isApprove ? 'approved' : 'denied';
@@ -703,9 +666,6 @@ export async function handleApplicationReviewModal(interaction) {
         
     } catch (error) {
         logger.error('Error processing application review:', error);
-        await InteractionHelper.safeEditReply(interaction, {
-            embeds: [errorEmbed('An error occurred while processing the application.')],
-            flags: ["Ephemeral"]
-        });
+        await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'An error occurred while processing the application.' });
     }
 }

@@ -5,34 +5,13 @@ import { logger } from '../utils/logger.js';
 import { TitanBotError, ErrorTypes } from '../utils/errorHandler.js';
 import { getColor } from '../config/bot.js';
 import { getEndedGiveaways, markGiveawayEnded } from '../utils/database.js';
+import { checkRateLimit, getRateLimitStatus } from '../utils/rateLimiter.js';
 import { logEvent, EVENT_TYPES } from './loggingService.js';
 
-const userGiveawayInteractions = new Map();
-const GIVEAWAY_INTERACTION_COOLDOWN = 1000; 
-const GIVEAWAY_INTERACTION_TTL = 5 * 60 * 1000; 
-const GIVEAWAY_INTERACTION_MAX_ENTRIES = 5000;
-const GIVEAWAY_INTERACTION_CLEANUP_INTERVAL = 60 * 1000;
-let lastInteractionCleanupAt = 0;
+const GIVEAWAY_INTERACTION_COOLDOWN = 1000;
 
-function cleanupInteractionCache(force = false) {
-    const now = Date.now();
-    if (!force && (now - lastInteractionCleanupAt) < GIVEAWAY_INTERACTION_CLEANUP_INTERVAL) {
-        return;
-    }
-
-    lastInteractionCleanupAt = now;
-    const cutoff = now - GIVEAWAY_INTERACTION_TTL;
-    for (const [key, timestamp] of userGiveawayInteractions.entries()) {
-        if (timestamp < cutoff) {
-            userGiveawayInteractions.delete(key);
-        }
-    }
-
-    while (userGiveawayInteractions.size > GIVEAWAY_INTERACTION_MAX_ENTRIES) {
-        const oldestKey = userGiveawayInteractions.keys().next().value;
-        if (!oldestKey) break;
-        userGiveawayInteractions.delete(oldestKey);
-    }
+function getGiveawayInteractionKey(userId, giveawayId) {
+    return `giveaway:${userId}:${giveawayId}`;
 }
 
 export function parseDuration(durationString) {
@@ -271,26 +250,19 @@ export function selectWinners(participants, winnerCount) {
 }
 
 export function isUserRateLimited(userId, giveawayId) {
-    cleanupInteractionCache();
-
-    const key = `${userId}:${giveawayId}`;
-    const lastInteraction = userGiveawayInteractions.get(key);
-    
-    if (!lastInteraction) {
-        return false;
-    }
-
-    const elapsed = Date.now() - lastInteraction;
-    return elapsed < GIVEAWAY_INTERACTION_COOLDOWN;
+    const status = getRateLimitStatus(
+        getGiveawayInteractionKey(userId, giveawayId),
+        GIVEAWAY_INTERACTION_COOLDOWN,
+    );
+    return status.attempts >= 1 && status.remaining > 0;
 }
 
-export function recordUserInteraction(userId, giveawayId) {
-    cleanupInteractionCache();
-
-    const key = `${userId}:${giveawayId}`;
-    userGiveawayInteractions.set(key, Date.now());
-
-    cleanupInteractionCache(true);
+export async function recordUserInteraction(userId, giveawayId) {
+    await checkRateLimit(
+        getGiveawayInteractionKey(userId, giveawayId),
+        1,
+        GIVEAWAY_INTERACTION_COOLDOWN,
+    );
 }
 
 export async function endGiveaway(client, giveaway, guildId, endedBy) {

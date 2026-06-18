@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, PermissionFlagsBits, PermissionsBitField, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
+import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
 import { getFromDb, setInDb } from '../../utils/database.js';
 import { logger } from '../../utils/logger.js';
 import { handleInteractionError } from '../../utils/errorHandler.js';
@@ -212,15 +212,11 @@ export default {
                         
                         const listData = await getOrCreateSharedList(listId);
                         if (!listData) {
-                            return await InteractionHelper.safeEditReply(interaction, {
-                                embeds: [errorEmbed('Error', "Shared list not found.")]
-                            });
+                            return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Shared list not found.' });
                         }
                         
                         if (listData.creatorId !== userId) {
-                            return await InteractionHelper.safeEditReply(interaction, {
-                                embeds: [errorEmbed('Error', "Only the list creator can add members.")]
-                            });
+                            return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Only the list creator can add members.' });
                         }
                         
                         if (!listData.members.includes(memberToAdd.id)) {
@@ -242,9 +238,7 @@ export default {
                                 ]
                             });
                         } else {
-                            return await InteractionHelper.safeEditReply(interaction, {
-                                embeds: [errorEmbed('Error', "User is already a member of this list.")]
-                            });
+                            return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'User is already a member of this list.' });
                         }
                     }
                     
@@ -253,15 +247,11 @@ export default {
                         const listData = await getOrCreateSharedList(listId);
                         
                         if (!listData) {
-                            return await InteractionHelper.safeEditReply(interaction, {
-                                embeds: [errorEmbed('Error', "Shared list not found.")]
-                            });
+                            return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Shared list not found.' });
                         }
                         
                         if (!listData.members.includes(userId)) {
-                            return await InteractionHelper.safeEditReply(interaction, {
-                                embeds: [errorEmbed('Error', "You don't have access to this list.")]
-                            });
+                            return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'You don\'t have access to this list.' });
                         }
                         
                         if (listData.tasks.length === 0) {
@@ -353,15 +343,11 @@ export default {
                         const listData = await getOrCreateSharedList(listId);
                         
                         if (!listData) {
-                            return await InteractionHelper.safeEditReply(interaction, {
-                                embeds: [errorEmbed('Error', "Shared list not found.")]
-                            });
+                            return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Shared list not found.' });
                         }
                         
                         if (!listData.members.includes(userId)) {
-                            return await InteractionHelper.safeEditReply(interaction, {
-                                embeds: [errorEmbed('Error', "You don't have access to this list.")]
-                            });
+                            return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'You don\'t have access to this list.' });
                         }
                         
                         const newTask = {
@@ -389,22 +375,16 @@ export default {
                         const listData = await getOrCreateSharedList(listId);
 
                         if (!listData) {
-                            return await InteractionHelper.safeEditReply(interaction, {
-                                embeds: [errorEmbed('Error', "Shared list not found.")]
-                            });
+                            return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Shared list not found.' });
                         }
 
                         if (!listData.members.includes(userId)) {
-                            return await InteractionHelper.safeEditReply(interaction, {
-                                embeds: [errorEmbed('Error', "You don't have access to this list.")]
-                            });
+                            return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'You don\'t have access to this list.' });
                         }
 
                         const taskIndex = listData.tasks.findIndex(task => task.id === taskNumber);
                         if (taskIndex === -1) {
-                            return await InteractionHelper.safeEditReply(interaction, {
-                                embeds: [errorEmbed('Error', "Task not found.")]
-                            });
+                            return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Task not found.' });
                         }
 
                         const [removedTask] = listData.tasks.splice(taskIndex, 1);
@@ -480,15 +460,11 @@ export default {
                     const task = userData.tasks.find(t => t.id === taskNumber);
                     
                     if (!task) {
-                        return await InteractionHelper.safeEditReply(interaction, {
-                            embeds: [errorEmbed('Error', "Task not found.")],
-                        });
+                        return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Task not found.' });
                     }
 
                     if (task.completed) {
-                        return await InteractionHelper.safeEditReply(interaction, {
-                            embeds: [errorEmbed('Task Already Completed', `Task #${task.id} is already completed.`)],
-                        });
+                        return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Task #${task.id} is already completed.' });
                     }
                     
                     task.completed = true;
@@ -506,9 +482,7 @@ export default {
                     const taskIndex = userData.tasks.findIndex(t => t.id === taskNumber);
                     
                     if (taskIndex === -1) {
-                        return await InteractionHelper.safeEditReply(interaction, {
-                            embeds: [errorEmbed('Error', "Task not found.")],
-                        });
+                        return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Task not found.' });
                     }
                     
                     const [removedTask] = userData.tasks.splice(taskIndex, 1);
@@ -522,9 +496,7 @@ export default {
                 }
 
                 default:
-                    return await InteractionHelper.safeEditReply(interaction, {
-                        embeds: [errorEmbed('Error', "Invalid subcommand.")],
-                    });
+                    return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Invalid subcommand.' });
             }
         } catch (error) {
             logger.error(`Todo command execution failed`, {

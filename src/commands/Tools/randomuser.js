@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
+import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
-import { handleInteractionError } from '../../utils/errorHandler.js';
+import { handleInteractionError, replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
 import { getColor } from '../../config/bot.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
@@ -39,8 +39,9 @@ export default {
 
 try {
             if (!interaction.guild) {
-                return interaction.editReply({
-                    embeds: [errorEmbed('Server Only', 'This command can only be used in a server/guild.')],
+                return replyUserError(interaction, {
+                    type: ErrorTypes.VALIDATION,
+                    message: 'This command can only be used in a server/guild.',
                 });
             }
             
@@ -71,9 +72,9 @@ try {
                 if (onlineOnly) errorMessage = 'No users are currently online.'; 
                 if (role && onlineOnly) errorMessage = `No **${role.name}** members are online.`;
                 
-                return interaction.editReply({
-                    embeds: [errorEmbed('No Users Found', errorMessage + '\n\nTry adjusting your filters.')],
-                    flags: ["Ephemeral"]
+                return replyUserError(interaction, {
+                    type: ErrorTypes.USER_INPUT,
+                    message: errorMessage + '\n\nTry adjusting your filters.',
                 });
             }
             
@@ -137,9 +138,9 @@ const collector = response.createMessageComponentCollector({ filter, time: 30000
                     }
                     
                     if (newMemberArray.length === 0) {
-                        await i.update({
-                            embeds: [errorEmbed('No Users Found', 'No users found matching the criteria.')],
-                            components: [row]
+                        await replyUserError(i, {
+                            type: ErrorTypes.USER_INPUT,
+                            message: 'No users found matching the criteria.',
                         });
                         return;
                     }

@@ -19,7 +19,8 @@ import {
   getIgnoreList,
 } from '../services/loggingService.js';
 import { getGuildConfig } from '../services/guildConfig.js';
-import { successEmbed, errorEmbed } from '../utils/embeds.js';
+import { successEmbed } from '../utils/embeds.js';
+import { replyUserError, ErrorTypes } from '../utils/errorHandler.js';
 import { logger } from '../utils/logger.js';
 import {
   buildLoggingDashboardView,
@@ -195,9 +196,9 @@ async function handleAddFilterModal(interaction) {
     }
 
     if (!id) {
-      return modalSubmission.reply({
-        embeds: [errorEmbed('Invalid Selection', `Please select a ${filterType} to ignore.`)],
-        flags: MessageFlags.Ephemeral,
+      return replyUserError(modalSubmission, {
+        type: ErrorTypes.VALIDATION,
+        message: `Please select a ${filterType} to ignore.`,
       });
     }
 
@@ -243,9 +244,9 @@ async function handleRemoveFilterModal(interaction) {
   }
 
   if (options.length === 0) {
-    return interaction.reply({
-      embeds: [errorEmbed('No Filters', 'There are no ignore filters to remove.')],
-      flags: MessageFlags.Ephemeral,
+    return replyUserError(interaction, {
+      type: ErrorTypes.USER_INPUT,
+      message: 'There are no ignore filters to remove.',
     });
   }
 
@@ -278,9 +279,9 @@ async function handleRemoveFilterModal(interaction) {
 
     const entry = modalSubmission.fields.getField('filter_entry')?.values?.[0];
     if (!entry) {
-      return modalSubmission.reply({
-        embeds: [errorEmbed('Invalid Selection', 'Please select a filter to remove.')],
-        flags: MessageFlags.Ephemeral,
+      return replyUserError(modalSubmission, {
+        type: ErrorTypes.VALIDATION,
+        message: 'Please select a filter to remove.',
       });
     }
 

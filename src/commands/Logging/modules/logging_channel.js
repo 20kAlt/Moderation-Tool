@@ -1,6 +1,6 @@
 import { PermissionsBitField, ChannelType } from 'discord.js';
 import { setLogChannel } from '../../../services/loggingService.js';
-import { successEmbed, errorEmbed } from '../../../utils/embeds.js';
+import { successEmbed } from '../../../utils/embeds.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
 import { logger } from '../../../utils/logger.js';
 
@@ -15,10 +15,7 @@ export default {
   async execute(interaction, config, client) {
     try {
       if (!interaction.member.permissions.has(PermissionsBitField.Flags.ManageGuild)) {
-        return InteractionHelper.safeReply(interaction, {
-          embeds: [errorEmbed('Permission Denied', 'You need **Manage Server** permissions to configure logging channels.')],
-          ephemeral: true,
-        });
+        return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need **Manage Server** permissions to configure logging channels.' });
       }
 
       await InteractionHelper.safeDefer(interaction, { ephemeral: true });
@@ -38,19 +35,12 @@ export default {
       }
 
       if (!channel || channel.type !== ChannelType.GuildText) {
-        return InteractionHelper.safeEditReply(interaction, {
-          embeds: [errorEmbed('Invalid Channel', 'Please provide a valid text channel.')],
-        });
+        return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: 'Please provide a valid text channel.' });
       }
 
       const botPerms = channel.permissionsFor(interaction.guild.members.me);
       if (!botPerms?.has(['ViewChannel', 'SendMessages', 'EmbedLinks'])) {
-        return InteractionHelper.safeEditReply(interaction, {
-          embeds: [errorEmbed(
-            'Missing Permissions',
-            `I need **View Channel**, **Send Messages**, and **Embed Links** in ${channel}.`,
-          )],
-        });
+        return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'I need **View Channel**, **Send Messages**, and **Embed Links** in ${channel}.' });
       }
 
       await setLogChannel(client, interaction.guildId, destination, channel.id);
@@ -63,9 +53,7 @@ export default {
       });
     } catch (error) {
       logger.error('logging_channel error:', error);
-      await InteractionHelper.safeEditReply(interaction, {
-        embeds: [errorEmbed('Error', 'Failed to update the log channel.')],
-      });
+      await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Failed to update the log channel.' });
     }
   },
 };

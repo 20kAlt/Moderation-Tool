@@ -4,9 +4,9 @@ import {
   MessageFlags,
 } from 'discord.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
-import { errorEmbed, successEmbed } from '../../utils/embeds.js';
+import { successEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
-import { handleInteractionError } from '../../utils/errorHandler.js';
+import { handleInteractionError, replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
 import {
   disableCategory,
   enableCategory,
@@ -38,10 +38,7 @@ function buildCategoryChoices(client) {
 
 async function ensureManageGuild(interaction) {
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-    await InteractionHelper.safeReply(interaction, {
-      embeds: [errorEmbed('Missing Permissions', 'You need the **Manage Server** permission to manage commands.')],
-      flags: MessageFlags.Ephemeral,
-    });
+    await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need the **Manage Server** permission to manage commands.' });
     return false;
   }
 
@@ -198,9 +195,9 @@ export default {
               customId: componentInteraction.customId,
               guildId: interaction.guildId,
             });
-            await componentInteraction.followUp({
-              embeds: [errorEmbed('Error', error.message || 'Failed to update command access.')],
-              ephemeral: true,
+            await replyUserError(componentInteraction, {
+              type: ErrorTypes.UNKNOWN,
+              message: error.message || 'Failed to update command access.',
             }).catch(() => {});
           }
         });
@@ -231,9 +228,7 @@ export default {
       if (scope === 'category') {
         const category = resolveCategoryChoice(client, target);
         if (!category) {
-          return InteractionHelper.safeEditReply(interaction, {
-            embeds: [errorEmbed('Unknown Category', `No category matched \`${target}\`. Use \`/commands dashboard\` to browse categories.`)],
-          });
+          return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'No category matched \\`${target}\\`. Use \\`/commands dashboard\\` to browse categories.' });
         }
 
         if (isDisable) {

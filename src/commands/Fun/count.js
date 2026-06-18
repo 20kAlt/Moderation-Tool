@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags } from 'discord.js';
-import { createEmbed, successEmbed, errorEmbed, infoEmbed } from '../../utils/embeds.js';
+import { createEmbed, successEmbed, infoEmbed } from '../../utils/embeds.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import {
   getCountingGameConfig,
@@ -69,9 +69,7 @@ export default {
       }
 
       if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-        return await InteractionHelper.safeEditReply(interaction, {
-          embeds: [errorEmbed('Missing Permissions', 'You need the **Manage Server** permission to use this command.')],
-        });
+        return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need the **Manage Server** permission to use this command.' });
       }
 
       const guildId = interaction.guildId;
@@ -82,20 +80,11 @@ export default {
         const channel = interaction.options.getChannel('channel');
         const system = interaction.options.getString('system');
         if (!channel || channel.type !== ChannelType.GuildText) {
-          return await InteractionHelper.safeEditReply(interaction, {
-            embeds: [errorEmbed('Invalid Channel', 'Please choose a text channel for the counting game.')],
-          });
+          return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: 'Please choose a text channel for the counting game.' });
         }
 
         if (config.enabled && config.channelId && config.channelId !== channel.id) {
-          return await InteractionHelper.safeEditReply(interaction, {
-            embeds: [
-              errorEmbed(
-                'Counting Channel Already Set',
-                `This server already has an active counting channel configured: <#${config.channelId}>. Disable the current counting game first, or use that existing channel.`,
-              ),
-            ],
-          });
+          return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'This server already has an active counting channel configured: <#${config.channelId}>. Disable the current counting game first, or use that existing channel.' });
         }
 
         await activateCountingGame(interaction.client, guildId, channel.id, system);
@@ -147,9 +136,7 @@ export default {
 
       if (subcommand === 'reset') {
         if (!config.enabled) {
-          return await InteractionHelper.safeEditReply(interaction, {
-            embeds: [errorEmbed('Counting Game Not Active', 'Enable the counting game first with `/count setup`.')],
-          });
+          return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Enable the counting game first with `/count setup`.' });
         }
 
         const startNumber = interaction.options.getInteger('start') || 1;
@@ -179,14 +166,10 @@ export default {
         });
       }
 
-      return await InteractionHelper.safeEditReply(interaction, {
-        embeds: [errorEmbed('Unknown Subcommand', 'Please choose a valid counting game action.')],
-      });
+      return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: 'Please choose a valid counting game action.' });
     } catch (error) {
       logger.error('Count command error:', error);
-      return await InteractionHelper.safeEditReply(interaction, {
-        embeds: [errorEmbed('Counting Game Error', 'Something went wrong while managing the counting game.')],
-      });
+      return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Something went wrong while managing the counting game.' });
     }
   },
 };

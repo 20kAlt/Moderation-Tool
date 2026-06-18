@@ -17,9 +17,9 @@ import {
     EmbedBuilder,
 } from 'discord.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
-import { successEmbed, errorEmbed } from '../../../utils/embeds.js';
+import { successEmbed } from '../../../utils/embeds.js';
 import { logger } from '../../../utils/logger.js';
-import { TitanBotError, ErrorTypes } from '../../../utils/errorHandler.js';
+import { TitanBotError, ErrorTypes, replyUserError } from '../../../utils/errorHandler.js';
 import { getGuildConfig } from '../../../services/guildConfig.js';
 import { getGuildConfigKey } from '../../../utils/database.js';
 import { getUserTicketCount } from '../../../services/ticket.js';
@@ -263,12 +263,10 @@ export default {
                             ? error.userMessage || 'An error occurred while processing your selection.'
                             : 'An unexpected error occurred while updating the configuration.';
 
-                    await selectInteraction
-                        .followUp({
-                            embeds: [errorEmbed('Configuration Error', errorMessage)],
-                            flags: MessageFlags.Ephemeral,
-                        })
-                        .catch(() => {});
+                    await replyUserError(selectInteraction, {
+                        type: ErrorTypes.CONFIGURATION,
+                        message: errorMessage,
+                    }).catch(() => {});
                 }
             });
 
@@ -293,12 +291,10 @@ export default {
                             ? error.userMessage || 'An error occurred while processing your selection.'
                             : 'An unexpected error occurred while updating the configuration.';
 
-                    await btnInteraction
-                        .followUp({
-                            embeds: [errorEmbed('Configuration Error', errorMessage)],
-                            flags: MessageFlags.Ephemeral,
-                        })
-                        .catch(() => {});
+                    await replyUserError(btnInteraction, {
+                        type: ErrorTypes.CONFIGURATION,
+                        message: errorMessage,
+                    }).catch(() => {});
                 }
             });
 
@@ -446,288 +442,7 @@ async function handleStaffRole(selectInteraction, rootInteraction, guildConfig, 
 
     const row = new ActionRowBuilder().addComponents(roleSelect);
 
-    await selectInteraction.followUp({
-        embeds: [
-            new EmbedBuilder()
-                .setTitle('🛡️ Change Staff Role')
-                .setDescription(
-                    `**Current:** ${guildConfig.ticketStaffRoleId ?`<@&${guildConfig.ticketStaffRoleId}>`: '`Not set`'}\n\nSelect the role that should have staff access to manage tickets.`,
-                )
-                .setColor(getColor('info')),
-        ],
-        components: [row],
-        flags: MessageFlags.Ephemeral,
-    });
-
-    const roleCollector = rootInteraction.channel.createMessageComponentCollector({
-        componentType: ComponentType.RoleSelect,
-        filter: i =>
-            i.user.id === selectInteraction.user.id && i.customId === 'ticket_cfg_staff_role',
-        time: 60_000,
-        max: 1,
-    });
-
-    roleCollector.on('collect', async roleInteraction => {
-        await roleInteraction.deferUpdate();
-        const role = roleInteraction.roles.first();
-
-        guildConfig.ticketStaffRoleId = role.id;
-        await client.db.set(getGuildConfigKey(guildId), guildConfig);
-
-        await roleInteraction.followUp({
-            embeds: [successEmbed('Staff Role Updated', `Staff role set to ${role}.`)],
-            flags: MessageFlags.Ephemeral,
-        });
-
-        await refreshDashboard(rootInteraction, guildConfig, guildId);
-    });
-
-    roleCollector.on('end', (collected, reason) => {
-        if (reason === 'time' && collected.size === 0) {
-            selectInteraction
-                .followUp({
-                    embeds: [errorEmbed('Timed Out', 'No role was selected. The staff role was not changed.')],
-                    flags: MessageFlags.Ephemeral,
-                })
-                .catch(() => {});
-        }
-    });
-}
-
-async function handleOpenCategory(selectInteraction, rootInteraction, guildConfig, guildId, client) {
-    await selectInteraction.deferUpdate();
-
-    const channelSelect = new ChannelSelectMenuBuilder()
-        .setCustomId('ticket_cfg_open_cat')
-        .setPlaceholder('Select a category...')
-        .addChannelTypes(ChannelType.GuildCategory)
-        .setMaxValues(1);
-
-    const row = new ActionRowBuilder().addComponents(channelSelect);
-
-    await selectInteraction.followUp({
-        embeds: [
-            new EmbedBuilder()
-                .setTitle('📁 Change Open Tickets Category')
-                .setDescription(
-                    `**Current:** ${guildConfig.ticketCategoryId ?`<#${guildConfig.ticketCategoryId}>`: '`Not set`'}\n\nSelect the category where new tickets will be created.`,
-                )
-                .setColor(getColor('info')),
-        ],
-        components: [row],
-        flags: MessageFlags.Ephemeral,
-    });
-
-    const catCollector = rootInteraction.channel.createMessageComponentCollector({
-        componentType: ComponentType.ChannelSelect,
-        filter: i =>
-            i.user.id === selectInteraction.user.id && i.customId === 'ticket_cfg_open_cat',
-        time: 60_000,
-        max: 1,
-    });
-
-    catCollector.on('collect', async catInteraction => {
-        await catInteraction.deferUpdate();
-        const category = catInteraction.channels.first();
-
-        guildConfig.ticketCategoryId = category.id;
-        await client.db.set(getGuildConfigKey(guildId), guildConfig);
-
-        await catInteraction.followUp({
-            embeds: [
-                successEmbed(
-                    '✅ Open Category Updated',
-                    `New tickets will now be created in **${category.name}**.`,
-                ),
-            ],
-            flags: MessageFlags.Ephemeral,
-        });
-
-        await refreshDashboard(rootInteraction, guildConfig, guildId);
-    });
-
-    catCollector.on('end', (collected, reason) => {
-        if (reason === 'time' && collected.size === 0) {
-            selectInteraction
-                .followUp({
-                    embeds: [
-                        errorEmbed('Timed Out', 'No category was selected. The setting was not changed.'),
-                    ],
-                    flags: MessageFlags.Ephemeral,
-                })
-                .catch(() => {});
-        }
-    });
-}
-
-async function handleClosedCategory(
-    selectInteraction,
-    rootInteraction,
-    guildConfig,
-    guildId,
-    client,
-) {
-    await selectInteraction.deferUpdate();
-
-    const channelSelect = new ChannelSelectMenuBuilder()
-        .setCustomId('ticket_cfg_closed_cat')
-        .setPlaceholder('Select a category...')
-        .addChannelTypes(ChannelType.GuildCategory)
-        .setMaxValues(1);
-
-    const row = new ActionRowBuilder().addComponents(channelSelect);
-
-    await selectInteraction.followUp({
-        embeds: [
-            new EmbedBuilder()
-                .setTitle('📂 Change Closed Tickets Category')
-                .setDescription(
-                    `**Current:** ${guildConfig.ticketClosedCategoryId ?`<#${guildConfig.ticketClosedCategoryId}>`: '`Not set`'}\n\nSelect the category where closed tickets will be moved.`,
-                )
-                .setColor(getColor('info')),
-        ],
-        components: [row],
-        flags: MessageFlags.Ephemeral,
-    });
-
-    const catCollector = rootInteraction.channel.createMessageComponentCollector({
-        componentType: ComponentType.ChannelSelect,
-        filter: i =>
-            i.user.id === selectInteraction.user.id && i.customId === 'ticket_cfg_closed_cat',
-        time: 60_000,
-        max: 1,
-    });
-
-    catCollector.on('collect', async catInteraction => {
-        await catInteraction.deferUpdate();
-        const category = catInteraction.channels.first();
-
-        guildConfig.ticketClosedCategoryId = category.id;
-        await client.db.set(getGuildConfigKey(guildId), guildConfig);
-
-        await catInteraction.followUp({
-            embeds: [
-                successEmbed(
-                    '✅ Closed Category Updated',
-                    `Closed tickets will now be moved to **${category.name}**.`,
-                ),
-            ],
-            flags: MessageFlags.Ephemeral,
-        });
-
-        await refreshDashboard(rootInteraction, guildConfig, guildId);
-    });
-
-    catCollector.on('end', (collected, reason) => {
-        if (reason === 'time' && collected.size === 0) {
-            selectInteraction
-                .followUp({
-                    embeds: [
-                        errorEmbed('Timed Out', 'No category was selected. The setting was not changed.'),
-                    ],
-                    flags: MessageFlags.Ephemeral,
-                })
-                .catch(() => {});
-        }
-    });
-}
-
-async function handleMaxTickets(selectInteraction, rootInteraction, guildConfig, guildId, client) {
-    const modal = new ModalBuilder()
-        .setCustomId('ticket_cfg_max_tickets')
-        .setTitle('Set Max Tickets per User')
-        .addComponents(
-            new ActionRowBuilder().addComponents(
-                new TextInputBuilder()
-                    .setCustomId('max_tickets_input')
-                    .setLabel('Max Open Tickets (1–10)')
-                    .setStyle(TextInputStyle.Short)
-                    .setValue(String(guildConfig.maxTicketsPerUser || 3))
-                    .setMaxLength(2)
-                    .setMinLength(1)
-                    .setRequired(true)
-                    .setPlaceholder('3'),
-            ),
-        );
-
-    await selectInteraction.showModal(modal);
-
-    const submitted = await selectInteraction
-        .awaitModalSubmit({
-            filter: i =>
-                i.customId === 'ticket_cfg_max_tickets' && i.user.id === selectInteraction.user.id,
-            time: 120_000,
-        })
-        .catch(() => null);
-
-    if (!submitted) return;
-
-    const raw = submitted.fields.getTextInputValue('max_tickets_input').trim();
-    const newMax = parseInt(raw, 10);
-
-    if (isNaN(newMax) || newMax < 1 || newMax > 10) {
-        await submitted.reply({
-            embeds: [errorEmbed('Invalid Value', 'Max tickets must be a whole number between **1** and **10**.')],
-            flags: MessageFlags.Ephemeral,
-        });
-        return;
-    }
-
-    guildConfig.maxTicketsPerUser = newMax;
-    await client.db.set(getGuildConfigKey(guildId), guildConfig);
-
-    await submitted.reply({
-        embeds: [
-            successEmbed(
-                '✅ Max Tickets Updated',
-                `Users can now have at most **${newMax}** open ticket${newMax !== 1 ? 's' : ''} at a time.`,
-            ),
-        ],
-        flags: MessageFlags.Ephemeral,
-    });
-
-    await refreshDashboard(rootInteraction, guildConfig, guildId);
-}
-
-async function handleDmOnClose(btnInteraction, rootInteraction, guildConfig, guildId, client) {
-    await btnInteraction.deferUpdate();
-
-    const newState = guildConfig.dmOnClose === false;
-    guildConfig.dmOnClose = newState;
-    await client.db.set(getGuildConfigKey(guildId), guildConfig);
-
-    await btnInteraction.followUp({
-        embeds: [
-            successEmbed(
-                '✅ DM on Close Updated',
-                `Users will **${newState ? 'now' : 'no longer'}** receive a DM when their ticket is closed.`,
-            ),
-        ],
-        flags: MessageFlags.Ephemeral,
-    });
-
-    await refreshDashboard(rootInteraction, guildConfig, guildId);
-}
-
-async function handleLogsChannel(selectInteraction, rootInteraction, guildConfig, guildId, client) {
-    await selectInteraction.deferUpdate();
-
-    const channelSelect = new ChannelSelectMenuBuilder()
-        .setCustomId('ticket_cfg_logs_channel')
-        .setPlaceholder('Select a channel...')
-        .addChannelTypes(ChannelType.GuildText)
-        .setMaxValues(1);
-
-    await selectInteraction.followUp({
-        embeds: [
-            new EmbedBuilder()
-                .setTitle('📋 Select Ticket Logs Channel')
-                .setDescription('Choose where ticket feedback, lifecycle events (open, close, claim, etc.), and other logs will be sent.')
-                .setColor(getColor('info'))
-        ],
-        components: [new ActionRowBuilder().addComponents(channelSelect)],
-        flags: MessageFlags.Ephemeral
-    });
+    await replyUserError(selectInteraction, { type: ErrorTypes.RATE_LIMIT, message: 'No role was selected. The staff role was not changed.' });
 
     const collector = rootInteraction.channel.createMessageComponentCollector({
         componentType: ComponentType.ChannelSelect,
@@ -753,9 +468,9 @@ async function handleLogsChannel(selectInteraction, rootInteraction, guildConfig
 
     collector.on('end', (collected, reason) => {
         if (reason === 'time' && collected.size === 0) {
-            selectInteraction.followUp({
-                embeds: [errorEmbed('Timed Out', 'No channel selected. No changes were made.')],
-                flags: MessageFlags.Ephemeral
+            replyUserError(selectInteraction, {
+                type: ErrorTypes.RATE_LIMIT,
+                message: 'No channel selected. No changes were made.',
             }).catch(() => {});
         }
     });
@@ -805,9 +520,9 @@ async function handleTranscriptChannel(selectInteraction, rootInteraction, guild
 
     collector.on('end', (collected, reason) => {
         if (reason === 'time' && collected.size === 0) {
-            selectInteraction.followUp({
-                embeds: [errorEmbed('Timed Out', 'No channel selected. No changes were made.')],
-                flags: MessageFlags.Ephemeral
+            replyUserError(selectInteraction, {
+                type: ErrorTypes.RATE_LIMIT,
+                message: 'No channel selected. No changes were made.',
             }).catch(() => {});
         }
     });
@@ -870,12 +585,10 @@ async function handleCheckUser(selectInteraction, rootInteraction, guildConfig, 
 
     userCollector.on('end', (collected, reason) => {
         if (reason === 'time' && collected.size === 0) {
-            selectInteraction
-                .followUp({
-                    embeds: [errorEmbed('Timed Out', 'No user was selected.')],
-                    flags: MessageFlags.Ephemeral,
-                })
-                .catch(() => {});
+            replyUserError(selectInteraction, {
+                type: ErrorTypes.RATE_LIMIT,
+                message: 'No user was selected.',
+            }).catch(() => {});
         }
     });
 }
@@ -914,10 +627,7 @@ async function handleDeleteSystem(btnInteraction, rootInteraction, guildConfig, 
     const confirmation = submitted.fields.getTextInputValue('delete_confirmation').trim();
 
     if (confirmation !== 'DELETE') {
-        await submitted.reply({
-            embeds: [errorEmbed('Incorrect Confirmation', 'You must type "DELETE" exactly to confirm deletion.')],
-            flags: MessageFlags.Ephemeral,
-        });
+        await replyUserError(submitted, { type: ErrorTypes.UNKNOWN, message: 'You must type "DELETE" exactly to confirm deletion.' });
         await refreshDashboard(rootInteraction, guildConfig, guildId);
         return;
     }

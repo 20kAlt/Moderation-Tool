@@ -11,9 +11,9 @@ import {
     ButtonStyle
 } from 'discord.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
-import { successEmbed, errorEmbed } from '../../../utils/embeds.js';
+import { successEmbed } from '../../../utils/embeds.js';
 import { logger } from '../../../utils/logger.js';
-import { TitanBotError, ErrorTypes } from '../../../utils/errorHandler.js';
+import { TitanBotError, ErrorTypes, replyUserError } from '../../../utils/errorHandler.js';
 import { 
     getJoinToCreateConfig, 
     updateJoinToCreateConfig,
@@ -136,9 +136,9 @@ time: 60000
                     ? error.userMessage || 'An error occurred while processing your selection.'
                     : 'An error occurred while processing your selection.';
                     
-                await selectInteraction.followUp({
-                    embeds: [errorEmbed('Configuration Error', errorMessage)],
-                    flags: MessageFlags.Ephemeral,
+                await replyUserError(selectInteraction, {
+                    type: ErrorTypes.CONFIGURATION,
+                    message: errorMessage
                 }).catch(() => {});
             }
         });
@@ -200,9 +200,9 @@ time: 600_000,
             const newTemplate = message.content.trim();
             
             if (!newTemplate || newTemplate.length > 100) {
-                await interaction.followUp({
-                    embeds: [errorEmbed('Invalid Template', 'Template must be between 1 and 100 characters.')],
-                    flags: MessageFlags.Ephemeral,
+                await replyUserError(interaction, {
+                    type: ErrorTypes.VALIDATION,
+                    message: 'Template must be between 1 and 100 characters.'
                 });
                 return;
             }
@@ -234,18 +234,18 @@ time: 600_000,
                 ? error.userMessage || 'Could not update the channel name template.'
                 : 'Could not update the channel name template.';
                 
-            await interaction.followUp({
-                embeds: [errorEmbed('Update Failed', errorMessage)],
-                flags: MessageFlags.Ephemeral,
+            await replyUserError(interaction, {
+                type: ErrorTypes.CONFIGURATION,
+                message: errorMessage
             }).catch(() => {});
         }
     });
 
     collector.on('end', (collected, reason) => {
         if (reason === 'time') {
-            interaction.followUp({
-                embeds: [errorEmbed('Timeout', 'No response received. Template update cancelled.')],
-                flags: MessageFlags.Ephemeral,
+            replyUserError(interaction, {
+                type: ErrorTypes.RATE_LIMIT,
+                message: 'No response received. Template update cancelled.'
             }).catch(() => {});
         }
     });
@@ -278,9 +278,9 @@ async function handleUserLimitChange(interaction, triggerChannel, currentConfig,
             const newLimit = parseInt(message.content.trim());
             
             if (newLimit < 0 || newLimit > 99) {
-                await interaction.followUp({
-                    embeds: [errorEmbed('Invalid Limit', 'User limit must be between 0 and 99.')],
-                    flags: MessageFlags.Ephemeral,
+                await replyUserError(interaction, {
+                    type: ErrorTypes.VALIDATION,
+                    message: 'User limit must be between 0 and 99.'
                 });
                 return;
             }
@@ -312,18 +312,18 @@ async function handleUserLimitChange(interaction, triggerChannel, currentConfig,
                 ? error.userMessage || 'Could not update the user limit.'
                 : 'Could not update the user limit.';
                 
-            await interaction.followUp({
-                embeds: [errorEmbed('Update Failed', errorMessage)],
-                flags: MessageFlags.Ephemeral,
+            await replyUserError(interaction, {
+                type: ErrorTypes.CONFIGURATION,
+                message: errorMessage
             }).catch(() => {});
         }
     });
 
     collector.on('end', (collected, reason) => {
         if (reason === 'time') {
-            interaction.followUp({
-                embeds: [errorEmbed('Timeout', 'No valid response received. Update cancelled.')],
-                flags: MessageFlags.Ephemeral,
+            replyUserError(interaction, {
+                type: ErrorTypes.RATE_LIMIT,
+                message: 'No valid response received. Update cancelled.'
             }).catch(() => {});
         }
     });
@@ -361,9 +361,9 @@ async function handleBitrateChange(interaction, triggerChannel, currentConfig, c
             const newBitrate = parseInt(message.content.trim());
             
             if (newBitrate < 8 || newBitrate > 384) {
-                await interaction.followUp({
-                    embeds: [errorEmbed('Invalid Bitrate', 'Bitrate must be between 8 and 384 kbps.')],
-                    flags: MessageFlags.Ephemeral,
+                await replyUserError(interaction, {
+                    type: ErrorTypes.VALIDATION,
+                    message: 'Bitrate must be between 8 and 384 kbps.'
                 });
                 return;
             }
@@ -395,18 +395,18 @@ async function handleBitrateChange(interaction, triggerChannel, currentConfig, c
                 ? error.userMessage || 'Could not update the bitrate.'
                 : 'Could not update the bitrate.';
                 
-            await interaction.followUp({
-                embeds: [errorEmbed('Update Failed', errorMessage)],
-                flags: MessageFlags.Ephemeral,
+            await replyUserError(interaction, {
+                type: ErrorTypes.CONFIGURATION,
+                message: errorMessage
             }).catch(() => {});
         }
     });
 
     collector.on('end', (collected, reason) => {
         if (reason === 'time') {
-            interaction.followUp({
-                embeds: [errorEmbed('Timeout', 'No valid response received. Update cancelled.')],
-                flags: MessageFlags.Ephemeral,
+            replyUserError(interaction, {
+                type: ErrorTypes.RATE_LIMIT,
+                message: 'No valid response received. Update cancelled.'
             }).catch(() => {});
         }
     });
@@ -457,9 +457,9 @@ async function handleRemoveTrigger(interaction, triggerChannel, currentConfig, c
                         flags: MessageFlags.Ephemeral,
                     });
                 } else {
-                    await buttonInteraction.followUp({
-                        embeds: [errorEmbed('Removal Failed', 'Could not remove the trigger channel.')],
-                        flags: MessageFlags.Ephemeral,
+                    await replyUserError(buttonInteraction, {
+                        type: ErrorTypes.CONFIGURATION,
+                        message: 'Could not remove the trigger channel.'
                     });
                 }
             } catch (error) {
@@ -473,9 +473,9 @@ async function handleRemoveTrigger(interaction, triggerChannel, currentConfig, c
                     ? error.userMessage || 'An error occurred while removing the trigger channel.'
                     : 'An error occurred while removing the trigger channel.';
                     
-                await buttonInteraction.followUp({
-                    embeds: [errorEmbed('Removal Failed', errorMessage)],
-                    flags: MessageFlags.Ephemeral,
+                await replyUserError(buttonInteraction, {
+                    type: ErrorTypes.CONFIGURATION,
+                    message: errorMessage
                 }).catch(() => {});
             }
         } else {
@@ -488,9 +488,9 @@ async function handleRemoveTrigger(interaction, triggerChannel, currentConfig, c
 
     collector.on('end', (collected, reason) => {
         if (reason === 'time') {
-            interaction.followUp({
-                embeds: [errorEmbed('Timeout', 'No response received. Removal cancelled.')],
-                flags: MessageFlags.Ephemeral,
+            replyUserError(interaction, {
+                type: ErrorTypes.RATE_LIMIT,
+                message: 'No response received. Removal cancelled.'
             }).catch(() => {});
         }
     });

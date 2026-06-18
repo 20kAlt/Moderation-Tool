@@ -1,10 +1,9 @@
 import { botConfig, getColor } from '../../config/bot.js';
 import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
-import { createEmbed, errorEmbed, infoEmbed, successEmbed } from '../../utils/embeds.js';
+import { createEmbed, infoEmbed, successEmbed } from '../../utils/embeds.js';
 import { getGuildConfig, setGuildConfig } from '../../services/guildConfig.js';
 import { handleInteractionError, withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { removeVerification, verifyUser } from '../../services/verificationService.js';
-import { ContextualMessages } from '../../utils/messageTemplates.js';
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { getWelcomeConfig } from '../../utils/database.js';
@@ -213,13 +212,13 @@ async function handleSetup(interaction, guild, client) {
     await setGuildConfig(client, guild.id, guildConfig);
 
     await InteractionHelper.safeEditReply(interaction, {
-        embeds: [ContextualMessages.configUpdated(
-            "Verification System",
+        embeds: [successEmbed(
+            'Verification System Updated',
             [
                 `Channel: ${verificationChannel}`,
                 `Verified Role: ${verifiedRole}`,
                 `Button Text: ${buttonText}`
-            ]
+            ].join('\n')
         )]
     });
 }

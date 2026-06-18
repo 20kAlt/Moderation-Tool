@@ -10,7 +10,6 @@ import {
   DASHBOARD_CATEGORY_LABELS,
   EVENT_TYPES_BY_CATEGORY,
 } from '../../../utils/loggingUi.js';
-import { errorEmbed } from '../../../utils/embeds.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
 import { logger } from '../../../utils/logger.js';
 
@@ -180,10 +179,7 @@ export default {
   async execute(interaction, config, client) {
     try {
       if (!interaction.member.permissions.has(PermissionsBitField.Flags.ManageGuild)) {
-        return InteractionHelper.safeReply(interaction, {
-          embeds: [errorEmbed('Permission Denied', 'You need **Manage Server** permissions to view the logging dashboard.')],
-          flags: MessageFlags.Ephemeral,
-        });
+        return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need **Manage Server** permissions to view the logging dashboard.' });
       }
 
       await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
@@ -191,9 +187,7 @@ export default {
       await InteractionHelper.safeEditReply(interaction, { embeds: [embed], components });
     } catch (error) {
       logger.error('logging_dashboard error:', error);
-      await InteractionHelper.safeEditReply(interaction, {
-        embeds: [errorEmbed('Dashboard Error', 'Failed to load the logging dashboard.')],
-      });
+      await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Failed to load the logging dashboard.' });
     }
   },
 };

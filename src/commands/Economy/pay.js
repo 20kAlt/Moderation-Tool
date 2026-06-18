@@ -4,7 +4,6 @@ import { getEconomyData, addMoney, removeMoney, setEconomyData } from '../../uti
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
-import { MessageTemplates } from '../../utils/messageTemplates.js';
 import EconomyService from '../../services/economyService.js';
 
 export default {
@@ -102,8 +101,8 @@ export default {
             const updatedSenderData = await getEconomyData(client, guildId, senderId);
             const updatedReceiverData = await getEconomyData(client, guildId, receiver.id);
 
-            const embed = MessageTemplates.SUCCESS.DATA_UPDATED(
-                "payment",
+            const embed = successEmbed(
+                'Payment Successful',
                 `You successfully paid **${receiver.username}** the amount of **$${amount.toLocaleString()}**!`
             )
                 .addFields(

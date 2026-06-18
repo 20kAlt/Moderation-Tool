@@ -1,8 +1,8 @@
 import { SlashCommandBuilder, PermissionFlagsBits, PermissionsBitField, ChannelType, MessageFlags } from 'discord.js';
-import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
+import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
 import { logEvent } from '../../utils/moderation.js';
 import { logger } from '../../utils/logger.js';
-import { sanitizeMarkdown } from '../../utils/sanitization.js';
+import { sanitizeMarkdown } from '../../utils/validation.js';
 
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 export default {
@@ -49,27 +49,11 @@ export default {
         try {
             
             if (message.length > 2000) {
-                return await InteractionHelper.safeEditReply(interaction, {
-                    embeds: [
-                        errorEmbed(
-                            "Message Too Long",
-                            "Messages must be under 2000 characters."
-                        ),
-                    ],
-                    flags: MessageFlags.Ephemeral,
-                });
+                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Messages must be under 2000 characters.' });
             }
 
             if (targetUser.bot) {
-                return await InteractionHelper.safeEditReply(interaction, {
-                    embeds: [
-                        errorEmbed(
-                            "Cannot DM Bot",
-                            "You cannot send DMs to bot accounts."
-                        ),
-                    ],
-                    flags: MessageFlags.Ephemeral,
-                });
+                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'You cannot send DMs to bot accounts.' });
             }
 
             const sanitized = sanitizeMarkdown(message);
@@ -116,18 +100,10 @@ export default {
             logger.error('DM command error:', error);
             
 if (error.code === 50007) {
-                return await InteractionHelper.safeEditReply(interaction, {
-                    embeds: [
-                        errorEmbed('Error', `Could not send a DM to ${targetUser.tag}. They may have DMs disabled.`),
-                    ],
-                });
+                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Could not send a DM to ${targetUser.tag}. They may have DMs disabled.' });
             }
             
-            return await InteractionHelper.safeEditReply(interaction, {
-                embeds: [
-                    errorEmbed('Error', `Failed to send DM: ${error.message}`),
-                ],
-            });
+            return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Failed to send DM: ${error.message}' });
         }
     }
 };

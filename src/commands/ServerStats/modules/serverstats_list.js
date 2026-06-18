@@ -1,6 +1,6 @@
 import { getColor } from '../../../config/bot.js';
 import { PermissionFlagsBits } from 'discord.js';
-import { createEmbed, errorEmbed } from '../../../utils/embeds.js';
+import { createEmbed } from '../../../utils/embeds.js';
 import { getServerCounters, saveServerCounters, getCounterEmoji as getCounterTypeEmoji, getCounterTypeLabel, getGuildCounterStats } from '../../../services/serverstatsService.js';
 import { logger } from '../../../utils/logger.js';
 
@@ -16,9 +16,7 @@ export async function handleList(interaction, client) {
     }
 
     if (!interaction.member.permissions.has(PermissionFlagsBits.ManageChannels)) {
-        await InteractionHelper.safeEditReply(interaction, { 
-            embeds: [errorEmbed('You need **Manage Channels** permission to view counters.')]
-        }).catch(logger.error);
+        await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need **Manage Channels** permission to view counters.' }).catch(logger.error);
         return;
     }
 
@@ -121,9 +119,7 @@ export async function handleList(interaction, client) {
 
     } catch (error) {
         logger.error("Error displaying counters:", error);
-        await InteractionHelper.safeEditReply(interaction, {
-            embeds: [errorEmbed('An error occurred while fetching counters. Please try again.')]
-        }).catch(logger.error);
+        await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'An error occurred while fetching counters. Please try again.' }).catch(logger.error);
     }
 }
 

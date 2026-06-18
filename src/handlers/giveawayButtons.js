@@ -1,5 +1,5 @@
 import { MessageFlags, PermissionFlagsBits } from 'discord.js';
-import { errorEmbed, successEmbed } from '../utils/embeds.js';
+import { successEmbed } from '../utils/embeds.js';
 import { logger } from '../utils/logger.js';
 import { TitanBotError, ErrorTypes, handleInteractionError } from '../utils/errorHandler.js';
 import { 
@@ -23,18 +23,10 @@ export const giveawayJoinHandler = {
         try {
             
             if (isUserRateLimited(interaction.user.id, interaction.message.id)) {
-                return interaction.reply({
-                    embeds: [
-                        errorEmbed(
-                            'Rate Limited',
-                            'Please wait a moment before interacting with this giveaway again.'
-                        )
-                    ],
-                    flags: MessageFlags.Ephemeral
-                });
+                return replyUserError(interaction, { type: ErrorTypes.RATE_LIMIT, message: 'Please wait a moment before interacting with this giveaway again.' });
             }
 
-            recordUserInteraction(interaction.user.id, interaction.message.id);
+            await recordUserInteraction(interaction.user.id, interaction.message.id);
 
             const lockKey = `giveaway:${interaction.message.id}`;
             await Mutex.runExclusive(lockKey, async () => {
@@ -54,30 +46,14 @@ export const giveawayJoinHandler = {
                 const endedByFlag = giveaway.ended || giveaway.isEnded;
 
                 if (endedByTime || endedByFlag) {
-                    return interaction.reply({
-                        embeds: [
-                            errorEmbed(
-                                'Giveaway Ended',
-                                'This giveaway has already ended.'
-                            )
-                        ],
-                        flags: MessageFlags.Ephemeral
-                    });
+                    return replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'This giveaway has already ended.' });
                 }
 
                 const participants = giveaway.participants || [];
                 const userId = interaction.user.id;
 
                 if (participants.includes(userId)) {
-                    return interaction.reply({
-                        embeds: [
-                            errorEmbed(
-                                'Already Entered',
-                                'You have already entered this giveaway! 🎉'
-                            )
-                        ],
-                        flags: MessageFlags.Ephemeral
-                    });
+                    return replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'You have already entered this giveaway! 🎉' });
                 }
 
                 participants.push(userId);
@@ -131,10 +107,7 @@ export const giveawayEndHandler = {
             }
 
             if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
-                return interaction.reply({
-                    embeds: [errorEmbed('Permission Denied', "You need the 'Manage Server' permission to end a giveaway.")],
-                    flags: MessageFlags.Ephemeral
-                });
+                return replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need the \'Manage Server\' permission to end a giveaway.' });
             }
 
             const guildGiveaways = await getGuildGiveaways(client, interaction.guildId);
@@ -250,10 +223,7 @@ export const giveawayRerollHandler = {
             }
 
             if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
-                return interaction.reply({
-                    embeds: [errorEmbed('Permission Denied', "You need the 'Manage Server' permission to reroll a giveaway.")],
-                    flags: MessageFlags.Ephemeral
-                });
+                return replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need the \'Manage Server\' permission to reroll a giveaway.' });
             }
 
             const guildGiveaways = await getGuildGiveaways(client, interaction.guildId);
@@ -386,15 +356,7 @@ export const giveawayViewHandler = {
             }
 
             if (!giveaway.ended && !giveaway.isEnded && !isGiveawayEnded(giveaway)) {
-                return interaction.reply({
-                    embeds: [
-                        errorEmbed(
-                            'Giveaway Still Active',
-                            'This giveaway has not ended yet, so winners are not available.'
-                        )
-                    ],
-                    flags: MessageFlags.Ephemeral
-                });
+                return replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'This giveaway has not ended yet, so winners are not available.' });
             }
 
             const winnerIds = Array.isArray(giveaway.winnerIds) ? giveaway.winnerIds : [];

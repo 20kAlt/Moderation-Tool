@@ -1,8 +1,7 @@
 import { SlashCommandBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } from 'discord.js';
-import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
+import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
-import { handleInteractionError } from '../../utils/errorHandler.js';
-import { getColor } from '../../config/bot.js';
+import { handleInteractionError, replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { evaluateMathExpression } from '../../utils/safeMathParser.js';
 
@@ -48,16 +47,7 @@ try {
             if (
                 !/^[0-9+\-*/.()^%! ,<>=&|~?:\[\]{}a-z√π∞°]+$/i.test(expression)
             ) {
-                return InteractionHelper.safeEditReply(interaction, {
-                    embeds: [
-                        errorEmbed(
-                            "❌ Invalid Expression",
-                            "**Contains unsupported characters.**\n\n" +
-                                "✅ Supported: Numbers, decimals, + - * / ^ %, sin cos tan sqrt abs log exp, pi e, ()\n" +
-                                "❌ Not supported: Brackets, curly braces, and other symbols",
-                        ),
-                    ],
-                });
+                return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: '"**Contains unsupported characters.**\\n\\n" +\n                                "✅ Supported: Numbers, decimals, + - * / ^ %, sin cos tan sqrt abs log exp, pi e, ()\\n" +\n                                "❌ Not supported: Brackets, curly braces, and other symbols"' });
             }
 
             const dangerousPatterns = [
@@ -71,17 +61,7 @@ try {
 
             for (const pattern of dangerousPatterns) {
                 if (pattern.test(expression)) {
-                    return InteractionHelper.safeEditReply(interaction, {
-                        embeds: [
-                            errorEmbed(
-                                "🔒 Security Alert",
-                                "**Contains blocked code patterns.**\n\n" +
-                                "🚫 **Blocked:** import, require, eval, Function, setTimeout, setInterval, process, fs, document, window, fetch, loops, async/await\n\n" +
-                                "Code-like syntax is not allowed in calculations.",
-                            ),
-                        ],
-                        flags: ["Ephemeral"],
-                    });
+                    return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: '"**Contains blocked code patterns.**\\n\\n" +\n                                "🚫 **Blocked:** import, require, eval, Function, setTimeout, setInterval, process, fs, document, window, fetch, loops, async/await\\n\\n" +\n                                "Code-like syntax is not allowed in calculations."' });
                 }
             }
 
@@ -338,10 +318,9 @@ const BUTTON_TIMEOUT = 300000;
                     errorMessage += 'Please check the syntax and try again.';
                 }
 
-                const embed = errorEmbed('Calculation Error', errorMessage);
-                embed.setColor(getColor('error'));
-                await InteractionHelper.safeEditReply(interaction, {
-                    embeds: [embed],
+                await replyUserError(interaction, {
+                    type: ErrorTypes.VALIDATION,
+                    message: errorMessage,
                 });
             }
         } catch (error) {

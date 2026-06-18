@@ -1,8 +1,8 @@
 import { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } from 'discord.js';
-import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
+import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
 import { getFromDb, setInDb, deleteFromDb } from '../../utils/database.js';
-import { sanitizeInput } from '../../utils/sanitization.js';
+import { sanitizeInput } from '../../utils/validation.js';
 
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 function getUserNotesKey(guildId, userId) {
@@ -91,14 +91,7 @@ export default {
 
     async execute(interaction, config, client) {
         if (!interaction.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
-            return InteractionHelper.safeReply(interaction, {
-                embeds: [
-                    errorEmbed(
-                        "Permission Denied",
-                        "You do not have permission to manage user notes."
-                    ),
-                ],
-            });
+            return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You do not have permission to manage user notes.' });
         }
 
         const subcommand = interaction.options.getSubcommand();
@@ -106,14 +99,7 @@ export default {
         const guildId = interaction.guild.id;
 
         if (subcommand !== "view" && subcommand !== "remove" && subcommand !== "clear" && subcommand !== "add") {
-            return InteractionHelper.safeReply(interaction, {
-                embeds: [
-                    errorEmbed(
-                        "Invalid Subcommand",
-                        "Please select a valid subcommand."
-                    ),
-                ],
-            });
+            return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: 'Please select a valid subcommand.' });
         }
 
         let notes = [];
@@ -133,26 +119,11 @@ export default {
                 case "clear":
                     return await handleClearNotes(interaction, targetUser, notes, guildId);
                 default:
-                    return InteractionHelper.safeReply(interaction, {
-                        embeds: [
-                            errorEmbed(
-                                "Invalid Subcommand",
-                                "Please select a valid subcommand."
-                            ),
-                        ],
-                    });
+                    return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: 'Please select a valid subcommand.' });
             }
         } catch (error) {
             logger.error(`Error in usernotes command (${subcommand}):`, error);
-            return InteractionHelper.safeReply(interaction, {
-                embeds: [
-                    errorEmbed(
-                        "System Error",
-                        "An error occurred while processing your request. Please try again later."
-                    ),
-                ],
-                flags: MessageFlags.Ephemeral
-            });
+            return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'An error occurred while processing your request. Please try again later.' });
         }
     }
 };
@@ -162,25 +133,11 @@ async function handleAddNote(interaction, targetUser, notes, guildId) {
     const type = interaction.options.getString("type") || "neutral";
 
     if (note.length > 1000) {
-        return InteractionHelper.safeReply(interaction, {
-            embeds: [
-                errorEmbed(
-                    "Note Too Long",
-                    "Notes must be 1000 characters or less."
-                ),
-            ],
-        });
+        return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Notes must be 1000 characters or less.' });
     }
 
     if (note.length === 0) {
-        return InteractionHelper.safeReply(interaction, {
-            embeds: [
-                errorEmbed(
-                    "Empty Note",
-                    "Note cannot be empty."
-                ),
-            ],
-        });
+        return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Note cannot be empty.' });
     }
 
     note = sanitizeInput(note);
@@ -256,14 +213,7 @@ async function handleRemoveNote(interaction, targetUser, notes, guildId) {
 const index = interaction.options.getInteger("index") - 1;
 
     if (index < 0 || index >= notes.length) {
-        return InteractionHelper.safeReply(interaction, {
-            embeds: [
-                errorEmbed(
-                    "Invalid Index",
-                    `Please provide a valid note index (1-${notes.length}).`
-                ),
-            ],
-        });
+        return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: 'Please provide a valid note index (1-${notes.length}).' });
     }
 
     const removedNote = notes[index];

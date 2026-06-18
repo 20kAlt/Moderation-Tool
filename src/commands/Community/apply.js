@@ -1,6 +1,6 @@
 import { getColor } from '../../config/bot.js';
 import { SlashCommandBuilder, ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
-import { createEmbed, errorEmbed, successEmbed } from '../../utils/embeds.js';
+import { createEmbed, successEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
 import { handleInteractionError, withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import ApplicationService from '../../services/applicationService.js';
@@ -72,10 +72,7 @@ export default {
 
     execute: withErrorHandling(async (interaction) => {
         if (!interaction.inGuild()) {
-            return InteractionHelper.safeReply(interaction, {
-                embeds: [errorEmbed('This command can only be used in a server.')],
-                flags: ["Ephemeral"],
-            });
+            return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'This command can only be used in a server.' });
         }
 
         const { options, guild, member } = interaction;
@@ -128,19 +125,13 @@ export async function handleApplicationModal(interaction) {
     const applicationRole = applicationRoles.find(appRole => appRole.roleId === roleId);
     
     if (!applicationRole) {
-        return InteractionHelper.safeEditReply(interaction, {
-            embeds: [errorEmbed('Application configuration not found.')],
-            flags: ["Ephemeral"]
-        });
+        return await replyUserError(interaction, { type: ErrorTypes.CONFIGURATION, message: 'Application configuration not found.' });
     }
     
     const role = interaction.guild.roles.cache.get(roleId);
     
     if (!role) {
-        return InteractionHelper.safeEditReply(interaction, {
-            embeds: [errorEmbed('Role not found.')],
-            flags: ["Ephemeral"]
-        });
+        return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: 'Role not found.' });
     }
     
     const answers = [];
@@ -236,9 +227,7 @@ async function handleList(interaction) {
         const applicationRoles = await getApplicationRoles(interaction.client, interaction.guild.id);
         
         if (applicationRoles.length === 0) {
-            return InteractionHelper.safeEditReply(interaction, {
-                embeds: [errorEmbed('No applications are currently available.')],
-            });
+            return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: 'No applications are currently available.' });
         }
 
         const embed = createEmbed({
@@ -288,15 +277,7 @@ async function handleSubmit(interaction, settings) {
     );
 
     if (!applicationRole) {
-        return InteractionHelper.safeEditReply(interaction, {
-            embeds: [
-                errorEmbed(
-                    "Application not found.",
-                    "Use `/apply list` to see available applications."
-                ),
-            ],
-            flags: ["Ephemeral"],
-        });
+        return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: 'Use `/apply list` to see available applications.' });
     }
 
     const userApps = await getUserApplications(
@@ -307,22 +288,12 @@ async function handleSubmit(interaction, settings) {
     const pendingApp = userApps.find((app) => app.status === "pending");
 
     if (pendingApp) {
-        return InteractionHelper.safeEditReply(interaction, {
-            embeds: [
-                errorEmbed(
-                    `You already have a pending application. Please wait for it to be reviewed.`,
-                ),
-            ],
-            flags: ["Ephemeral"],
-        });
+        return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'You already have a pending application. Please wait for it to be reviewed.' });
     }
 
     const role = interaction.guild.roles.cache.get(applicationRole.roleId);
     if (!role) {
-        return InteractionHelper.safeEditReply(interaction, {
-            embeds: [errorEmbed('The role for this application no longer exists.')],
-            flags: ["Ephemeral"]
-        });
+        return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: 'The role for this application no longer exists.' });
     }
 
     const modal = new ModalBuilder()
@@ -365,14 +336,7 @@ async function handleStatus(interaction) {
         );
 
         if (!application || application.userId !== interaction.user.id) {
-            return InteractionHelper.safeEditReply(interaction, {
-                embeds: [
-                    errorEmbed(
-                        "Application not found or you do not have permission to view it.",
-                    ),
-                ],
-                flags: ["Ephemeral"],
-            });
+            return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'Application not found or you do not have permission to view it.' });
         }
 
         const submittedAt = application?.createdAt ? new Date(application.createdAt) : null;
@@ -397,12 +361,7 @@ async function handleStatus(interaction) {
         );
 
         if (applications.length === 0) {
-            return InteractionHelper.safeEditReply(interaction, {
-                embeds: [
-                    errorEmbed('You have not submitted any applications yet.'),
-                ],
-                flags: ["Ephemeral"],
-            });
+            return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'You have not submitted any applications yet.' });
         }
 
         const recentApplications = applications

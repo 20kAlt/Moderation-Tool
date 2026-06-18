@@ -1,5 +1,4 @@
 import { SlashCommandBuilder, PermissionFlagsBits, ChannelType } from 'discord.js';
-import { errorEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
@@ -59,16 +58,10 @@ export default {
                 return await channel.execute(interaction, config, client);
             }
 
-            await InteractionHelper.safeReply(interaction, {
-                embeds: [errorEmbed('Unknown Subcommand', 'This subcommand is not recognised.')],
-                ephemeral: true,
-            });
+            await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: 'This subcommand is not recognised.' });
         } catch (error) {
             logger.error('logging command error:', error);
-            await InteractionHelper.safeReply(interaction, {
-                embeds: [errorEmbed('Error', 'An unexpected error occurred.')],
-                ephemeral: true,
-            }).catch(() => {});
+            await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'An unexpected error occurred.' }).catch(() => {});
         }
     },
 };

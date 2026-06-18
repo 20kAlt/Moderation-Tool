@@ -17,9 +17,9 @@ import {
     EmbedBuilder,
 } from 'discord.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
-import { successEmbed, errorEmbed } from '../../../utils/embeds.js';
+import { successEmbed } from '../../../utils/embeds.js';
 import { logger } from '../../../utils/logger.js';
-import { TitanBotError, ErrorTypes } from '../../../utils/errorHandler.js';
+import { TitanBotError, ErrorTypes, replyUserError } from '../../../utils/errorHandler.js';
 import { getLevelingConfig, saveLevelingConfig } from '../../../services/leveling.js';
 import { botHasPermission } from '../../../utils/permissionGuard.js';
 
@@ -215,12 +215,10 @@ export default {
                         await selectInteraction.deferUpdate().catch(() => {});
                     }
 
-                    await selectInteraction
-                        .followUp({
-                            embeds: [errorEmbed('Configuration Error', errorMessage)],
-                            flags: MessageFlags.Ephemeral,
-                        })
-                        .catch(() => {});
+                    await replyUserError(selectInteraction, {
+                        type: ErrorTypes.CONFIGURATION,
+                        message: errorMessage,
+                    }).catch(() => {});
                 }
             });
 
@@ -356,10 +354,7 @@ async function handleRoleRewardAdd(selectInteraction, rootInteraction, cfg, guil
     const level = parseInt(rawLevel, 10);
 
     if (isNaN(level) || level < 1 || level > 500) {
-        await submitted.reply({
-            embeds: [errorEmbed('Invalid Level', 'Level must be a whole number between **1** and **500**.')],
-            flags: MessageFlags.Ephemeral,
-        });
+        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: 'Level must be a whole number between **1** and **500**.' });
         return;
     }
 
@@ -383,9 +378,9 @@ async function handleRoleRewardRemove(selectInteraction, rootInteraction, cfg, g
 
     if (entries.length === 0) {
         await selectInteraction.deferUpdate();
-        await selectInteraction.followUp({
-            embeds: [errorEmbed('No Rewards', 'There are no role rewards configured to remove.')],
-            flags: MessageFlags.Ephemeral,
+        await replyUserError(selectInteraction, {
+            type: ErrorTypes.USER_INPUT,
+            message: 'There are no role rewards configured to remove.',
         });
         return;
     }
@@ -430,10 +425,7 @@ async function handleRoleRewardRemove(selectInteraction, rootInteraction, cfg, g
     const level = parseInt(rawLevel, 10);
 
     if (isNaN(level) || !cfg.roleRewards?.[level]) {
-        await submitted.reply({
-            embeds: [errorEmbed('Not Found', `No role reward is configured for level **${rawLevel}**.`)],
-            flags: MessageFlags.Ephemeral,
-        });
+        await replyUserError(submitted, { type: ErrorTypes.USER_INPUT, message: 'No role reward is configured for level **${rawLevel}**.' });
         return;
     }
 
@@ -483,10 +475,7 @@ async function handleChannel(selectInteraction, rootInteraction, cfg, guildId, c
     const channel = selectInteraction.guild.channels.cache.get(channelId);
 
     if (channel && !botHasPermission(channel, ['SendMessages', 'EmbedLinks'])) {
-        await submitted.reply({
-            embeds: [errorEmbed('Missing Permissions', `I need **SendMessages** and **EmbedLinks** permissions in ${channel} to send level-up notifications.`)],
-            flags: MessageFlags.Ephemeral,
-        });
+        await replyUserError(submitted, { type: ErrorTypes.PERMISSION, message: 'I need **SendMessages** and **EmbedLinks** permissions in ${channel} to send level-up notifications.' });
         return;
     }
 
@@ -720,22 +709,12 @@ async function handleXpRange(selectInteraction, rootInteraction, cfg, guildId, c
     const newMax = parseInt(rawMax, 10);
 
     if (isNaN(newMin) || isNaN(newMax) || newMin < 1 || newMax < 1 || newMin > 500 || newMax > 500) {
-        await submitted.reply({
-            embeds: [
-                errorEmbed('Invalid Values', 'Both XP values must be whole numbers between **1** and **500**.'),
-            ],
-            flags: MessageFlags.Ephemeral,
-        });
+        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: 'Both XP values must be whole numbers between **1** and **500**.' });
         return;
     }
 
     if (newMin > newMax) {
-        await submitted.reply({
-            embeds: [
-                errorEmbed('Invalid Range', 'Minimum XP cannot be greater than maximum XP.'),
-            ],
-            flags: MessageFlags.Ephemeral,
-        });
+        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: 'Minimum XP cannot be greater than maximum XP.' });
         return;
     }
 
@@ -789,15 +768,7 @@ async function handleXpCooldown(selectInteraction, rootInteraction, cfg, guildId
     const newCooldown = parseInt(raw, 10);
 
     if (isNaN(newCooldown) || newCooldown < 0 || newCooldown > 3600) {
-        await submitted.reply({
-            embeds: [
-                errorEmbed(
-                    'Invalid Value',
-                    'Cooldown must be a whole number between **0** and **3600** seconds.',
-                ),
-            ],
-            flags: MessageFlags.Ephemeral,
-        });
+        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: 'Cooldown must be a whole number between **0** and **3600** seconds.' });
         return;
     }
 

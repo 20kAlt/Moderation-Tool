@@ -19,9 +19,9 @@ import {
     TextDisplayBuilder,
 } from 'discord.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
-import { successEmbed, errorEmbed } from '../../../utils/embeds.js';
+import { successEmbed } from '../../../utils/embeds.js';
 import { logger } from '../../../utils/logger.js';
-import { TitanBotError, ErrorTypes } from '../../../utils/errorHandler.js';
+import { TitanBotError, ErrorTypes, replyUserError } from '../../../utils/errorHandler.js';
 import { safeDeferInteraction } from '../../../utils/interactionValidator.js';
 import {
     getApplicationSettings,
@@ -241,9 +241,9 @@ async function showApplicationSelector(interaction, roles, settings, guildId, cl
 
     collector.on('end', (collected, reason) => {
         if (reason === 'time' && collected.size === 0) {
-            InteractionHelper.safeEditReply(interaction, {
-                embeds: [errorEmbed('Timed Out', 'No selection was made. The dashboard has closed.')],
-                components: [],
+            replyUserError(interaction, {
+                type: ErrorTypes.RATE_LIMIT,
+                message: 'No selection was made. The dashboard has closed.',
             }).catch(() => {});
         }
     });
@@ -404,12 +404,10 @@ function setupCollectors(interaction, settings, roles, guildId, client, selected
                 await safeDeferInteraction(selectInteraction);
             }
 
-            await selectInteraction
-                .followUp({
-                    embeds: [errorEmbed('Configuration Error', errorMessage)],
-                    flags: MessageFlags.Ephemeral,
-                })
-                .catch(() => {});
+            await replyUserError(selectInteraction, {
+                type: ErrorTypes.CONFIGURATION,
+                message: errorMessage,
+            }).catch(() => {});
         }
     });
 
@@ -464,9 +462,9 @@ function setupCollectors(interaction, settings, roles, guildId, client, selected
 
             } catch (error) {
                 logger.error('Error toggling global application status:', error);
-                await toggleInteraction.followUp({
-                    embeds: [errorEmbed('Error', 'An error occurred while toggling the application status.')],
-                    flags: MessageFlags.Ephemeral,
+                await replyUserError(toggleInteraction, {
+                    type: ErrorTypes.UNKNOWN,
+                    message: 'An error occurred while toggling the application status.',
                 });
             }
         });
@@ -523,9 +521,9 @@ function setupCollectors(interaction, settings, roles, guildId, client, selected
                 await btnInteraction.showModal(confirmModal);
             } catch (error) {
                 logger.error('Error showing delete confirmation modal:', error);
-                await btnInteraction.followUp({
-                    embeds: [errorEmbed('Error', 'Failed to show confirmation modal. Please try again.')],
-                    flags: MessageFlags.Ephemeral,
+                await replyUserError(btnInteraction, {
+                    type: ErrorTypes.UNKNOWN,
+                    message: 'Failed to show confirmation modal. Please try again.',
                 }).catch(() => {});
                 return;
             }
@@ -538,19 +536,16 @@ function setupCollectors(interaction, settings, roles, guildId, client, selected
                 }).catch(() => null);
 
                 if (!confirmSubmit) {
-                    await btnInteraction.followUp({
-                        embeds: [errorEmbed('Cancelled', 'Application deletion was cancelled.')],
-                        flags: MessageFlags.Ephemeral,
+                    await replyUserError(btnInteraction, {
+                        type: ErrorTypes.VALIDATION,
+                        message: 'Application deletion was cancelled.',
                     });
                     return;
                 }
 
                 const confirmed = confirmSubmit.fields.getCheckbox('confirm_delete');
                 if (!confirmed) {
-                    await confirmSubmit.reply({
-                        embeds: [errorEmbed('Not Confirmed', 'You must tick the confirmation checkbox to delete the application.')],
-                        flags: MessageFlags.Ephemeral,
-                    });
+                    await replyUserError(confirmSubmit, { type: ErrorTypes.VALIDATION, message: 'You must tick the confirmation checkbox to delete the application.' });
                     return;
                 }
 
@@ -560,9 +555,9 @@ function setupCollectors(interaction, settings, roles, guildId, client, selected
 
             } catch (error) {
                 logger.error('Error confirming application deletion:', error);
-                await btnInteraction.followUp({
-                    embeds: [errorEmbed('Error', 'An error occurred while deleting the application.')],
-                    flags: MessageFlags.Ephemeral,
+                await replyUserError(btnInteraction, {
+                    type: ErrorTypes.UNKNOWN,
+                    message: 'An error occurred while deleting the application.',
                 });
             }
         });
@@ -597,9 +592,9 @@ function setupCollectors(interaction, settings, roles, guildId, client, selected
                 
                 const roleIndex = roles.findIndex(r => r.roleId === selectedRoleId);
                 if (roleIndex === -1) {
-                    await toggleInteraction.followUp({
-                        embeds: [errorEmbed('Not Found', 'Application role not found.')],
-                        flags: MessageFlags.Ephemeral,
+                    await replyUserError(toggleInteraction, {
+                        type: ErrorTypes.USER_INPUT,
+                        message: 'Application role not found.',
                     });
                     return;
                 }
@@ -627,9 +622,9 @@ function setupCollectors(interaction, settings, roles, guildId, client, selected
 
             } catch (error) {
                 logger.error('Error toggling application status:', error);
-                await toggleInteraction.followUp({
-                    embeds: [errorEmbed('Error', 'An error occurred while toggling the application status.')],
-                    flags: MessageFlags.Ephemeral,
+                await replyUserError(toggleInteraction, {
+                    type: ErrorTypes.UNKNOWN,
+                    message: 'An error occurred while toggling the application status.',
                 });
             }
         });
@@ -734,9 +729,9 @@ async function handleLogChannel(selectInteraction, rootInteraction, settings, ro
     } catch (error) {
         if (error.code === 'INTERACTION_TIMEOUT') return;
         logger.error('Error in log channel modal:', error);
-        await selectInteraction.followUp({
-            embeds: [errorEmbed('An error occurred while updating the log channel.')],
-            flags: MessageFlags.Ephemeral,
+        await replyUserError(selectInteraction, {
+            type: ErrorTypes.UNKNOWN,
+            message: 'An error occurred while updating the log channel.',
         });
     }
 }
@@ -795,9 +790,9 @@ async function handleManagerRole(selectInteraction, rootInteraction, settings, r
     } catch (error) {
         if (error.code === 'INTERACTION_TIMEOUT') return;
         logger.error('Error in manager role modal:', error);
-        await selectInteraction.followUp({
-            embeds: [errorEmbed('An error occurred while updating manager roles.')],
-            flags: MessageFlags.Ephemeral,
+        await replyUserError(selectInteraction, {
+            type: ErrorTypes.UNKNOWN,
+            message: 'An error occurred while updating manager roles.',
         });
     }
 }
@@ -879,10 +874,7 @@ async function handleQuestions(selectInteraction, rootInteraction, settings, rol
         .filter(Boolean);
 
     if (newQuestions.length === 0) {
-        await submitted.reply({
-            embeds: [errorEmbed('No Questions', 'At least one question is required.')],
-            flags: MessageFlags.Ephemeral,
-        });
+        await replyUserError(submitted, { type: ErrorTypes.USER_INPUT, message: 'At least one question is required.' });
         return;
     }
 
@@ -950,10 +942,7 @@ async function handleRoleAdd(selectInteraction, rootInteraction, settings, roles
         const customName = modalSubmission.fields.getTextInputValue('role_name').trim() || role?.name || roleId;
 
         if (roles.some(r => r.roleId === roleId)) {
-            await modalSubmission.reply({
-                embeds: [errorEmbed('Already Added', `${role ?? roleId} is already an application role.`)],
-                flags: MessageFlags.Ephemeral,
-            });
+            await replyUserError(modalSubmission, { type: ErrorTypes.UNKNOWN, message: '${role ?? roleId} is already an application role.' });
             return;
         }
 
@@ -969,18 +958,18 @@ async function handleRoleAdd(selectInteraction, rootInteraction, settings, roles
     } catch (error) {
         if (error.code === 'INTERACTION_TIMEOUT') return;
         logger.error('Error in role add modal:', error);
-        await selectInteraction.followUp({
-            embeds: [errorEmbed('An error occurred while adding the application role.')],
-            flags: MessageFlags.Ephemeral,
+        await replyUserError(selectInteraction, {
+            type: ErrorTypes.UNKNOWN,
+            message: 'An error occurred while adding the application role.',
         });
     }
 }
 
 async function handleRoleRemove(selectInteraction, rootInteraction, settings, roles, guildId, client) {
     if (roles.length === 0) {
-        await selectInteraction.followUp({
-            embeds: [errorEmbed('No Roles', 'There are no application roles configured to remove.')],
-            flags: MessageFlags.Ephemeral,
+        await replyUserError(selectInteraction, {
+            type: ErrorTypes.USER_INPUT,
+            message: 'There are no application roles configured to remove.',
         });
         return;
     }
@@ -1015,10 +1004,7 @@ async function handleRoleRemove(selectInteraction, rootInteraction, settings, ro
         const index = roles.findIndex(r => r.roleId === roleId);
 
         if (index === -1) {
-            await modalSubmission.reply({
-                embeds: [errorEmbed('Not Found', `<@&${roleId}> is not in the application roles list.`)],
-                flags: MessageFlags.Ephemeral,
-            });
+            await replyUserError(modalSubmission, { type: ErrorTypes.USER_INPUT, message: '<@&${roleId}> is not in the application roles list.' });
             return;
         }
 
@@ -1034,9 +1020,9 @@ async function handleRoleRemove(selectInteraction, rootInteraction, settings, ro
     } catch (error) {
         if (error.code === 'INTERACTION_TIMEOUT') return;
         logger.error('Error in role remove modal:', error);
-        await selectInteraction.followUp({
-            embeds: [errorEmbed('An error occurred while removing the application role.')],
-            flags: MessageFlags.Ephemeral,
+        await replyUserError(selectInteraction, {
+            type: ErrorTypes.UNKNOWN,
+            message: 'An error occurred while removing the application role.',
         });
     }
 }
@@ -1097,18 +1083,12 @@ async function handleRetention(selectInteraction, rootInteraction, settings, rol
     const reviewedDays = parseInt(submitted.fields.getTextInputValue('reviewed_days').trim(), 10);
 
     if (isNaN(pendingDays) || pendingDays < 1 || pendingDays > 3650) {
-        await submitted.reply({
-            embeds: [errorEmbed('Invalid Value', 'Pending retention must be a whole number between **1** and **3650** days.')],
-            flags: MessageFlags.Ephemeral,
-        });
+        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: 'Pending retention must be a whole number between **1** and **3650** days.' });
         return;
     }
 
     if (isNaN(reviewedDays) || reviewedDays < 1 || reviewedDays > 3650) {
-        await submitted.reply({
-            embeds: [errorEmbed('Invalid Value', 'Reviewed retention must be a whole number between **1** and **3650** days.')],
-            flags: MessageFlags.Ephemeral,
-        });
+        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: 'Reviewed retention must be a whole number between **1** and **3650** days.' });
         return;
     }
 
@@ -1134,10 +1114,7 @@ async function handleDeleteApplication(confirmSubmit, selectedRoleId, guildId, r
         
         const roleIndex = roles.findIndex(r => r.roleId === selectedRoleId);
         if (roleIndex === -1) {
-            await confirmSubmit.reply({
-                embeds: [errorEmbed('Not Found', 'Application role not found.')],
-                flags: MessageFlags.Ephemeral,
-            });
+            await replyUserError(confirmSubmit, { type: ErrorTypes.USER_INPUT, message: 'Application role not found.' });
             return;
         }
 
@@ -1169,9 +1146,6 @@ async function handleDeleteApplication(confirmSubmit, selectedRoleId, guildId, r
 
     } catch (error) {
         logger.error('Error in handleDeleteApplication:', error);
-        await confirmSubmit.reply({
-            embeds: [errorEmbed('Error', 'An error occurred while deleting the application. Please try again.')],
-            flags: MessageFlags.Ephemeral,
-        });
+        await replyUserError(confirmSubmit, { type: ErrorTypes.UNKNOWN, message: 'An error occurred while deleting the application. Please try again.' });
     }
 }

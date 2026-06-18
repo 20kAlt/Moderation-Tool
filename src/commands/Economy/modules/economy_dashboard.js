@@ -15,9 +15,9 @@ import {
 } from 'discord.js';
 import { getColor, BotConfig } from '../../../config/bot.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
-import { successEmbed, errorEmbed } from '../../../utils/embeds.js';
+import { successEmbed } from '../../../utils/embeds.js';
 import { logger } from '../../../utils/logger.js';
-import { TitanBotError, ErrorTypes } from '../../../utils/errorHandler.js';
+import { TitanBotError, ErrorTypes, replyUserError } from '../../../utils/errorHandler.js';
 import { getEconomyData, addMoney, removeMoney, getMaxBankCapacity } from '../../../utils/economy.js';
 import fs from 'fs/promises';
 import path from 'path';
@@ -191,12 +191,10 @@ export default {
                         await selectInteraction.deferUpdate().catch(() => {});
                     }
 
-                    await selectInteraction
-                        .followUp({
-                            embeds: [errorEmbed('Error', errorMessage)],
-                            flags: MessageFlags.Ephemeral,
-                        })
-                        .catch(() => {});
+                    await replyUserError(selectInteraction, {
+                        type: ErrorTypes.UNKNOWN,
+                        message: errorMessage,
+                    }).catch(() => {});
                 }
             });
 
@@ -282,45 +280,30 @@ async function handleAddCurrency(selectInteraction, rootInteraction, guild, clie
     const type = submitted.fields.getTextInputValue('type').trim().toLowerCase();
 
     if (isNaN(amount) || amount <= 0) {
-        await submitted.reply({
-            embeds: [errorEmbed('Invalid Amount', 'Amount must be a positive number.')],
-            flags: MessageFlags.Ephemeral,
-        });
+        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: 'Amount must be a positive number.' });
         return;
     }
 
     if (type !== 'wallet' && type !== 'bank') {
-        await submitted.reply({
-            embeds: [errorEmbed('Invalid Type', 'Type must be either "wallet" or "bank".')],
-            flags: MessageFlags.Ephemeral,
-        });
+        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: 'Type must be either "wallet" or "bank".' });
         return;
     }
 
     const member = await guild.members.fetch(userId).catch(() => null);
     if (!member) {
-        await submitted.reply({
-            embeds: [errorEmbed('User Not Found', 'The specified user is not in this server.')],
-            flags: MessageFlags.Ephemeral,
-        });
+        await replyUserError(submitted, { type: ErrorTypes.USER_INPUT, message: 'The specified user is not in this server.' });
         return;
     }
 
     if (member.user.bot) {
-        await submitted.reply({
-            embeds: [errorEmbed('Cannot Add to Bot', 'Bots do not have economy accounts.')],
-            flags: MessageFlags.Ephemeral,
-        });
+        await replyUserError(submitted, { type: ErrorTypes.UNKNOWN, message: 'Bots do not have economy accounts.' });
         return;
     }
 
     const result = await addMoney(client, guild.id, userId, amount, type);
 
     if (!result.success) {
-        await submitted.reply({
-            embeds: [errorEmbed('Failed to Add Currency', result.error || 'An error occurred.')],
-            flags: MessageFlags.Ephemeral,
-        });
+        await replyUserError(submitted, { type: ErrorTypes.UNKNOWN, message: 'result.error || \'An error occurred.\'' });
         return;
     }
 
@@ -399,45 +382,30 @@ async function handleRemoveCurrency(selectInteraction, rootInteraction, guild, c
     const type = submitted.fields.getTextInputValue('type').trim().toLowerCase();
 
     if (isNaN(amount) || amount <= 0) {
-        await submitted.reply({
-            embeds: [errorEmbed('Invalid Amount', 'Amount must be a positive number.')],
-            flags: MessageFlags.Ephemeral,
-        });
+        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: 'Amount must be a positive number.' });
         return;
     }
 
     if (type !== 'wallet' && type !== 'bank') {
-        await submitted.reply({
-            embeds: [errorEmbed('Invalid Type', 'Type must be either "wallet" or "bank".')],
-            flags: MessageFlags.Ephemeral,
-        });
+        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: 'Type must be either "wallet" or "bank".' });
         return;
     }
 
     const member = await guild.members.fetch(userId).catch(() => null);
     if (!member) {
-        await submitted.reply({
-            embeds: [errorEmbed('User Not Found', 'The specified user is not in this server.')],
-            flags: MessageFlags.Ephemeral,
-        });
+        await replyUserError(submitted, { type: ErrorTypes.USER_INPUT, message: 'The specified user is not in this server.' });
         return;
     }
 
     if (member.user.bot) {
-        await submitted.reply({
-            embeds: [errorEmbed('Cannot Remove from Bot', 'Bots do not have economy accounts.')],
-            flags: MessageFlags.Ephemeral,
-        });
+        await replyUserError(submitted, { type: ErrorTypes.UNKNOWN, message: 'Bots do not have economy accounts.' });
         return;
     }
 
     const result = await removeMoney(client, guild.id, userId, amount, type);
 
     if (!result.success) {
-        await submitted.reply({
-            embeds: [errorEmbed('Failed to Remove Currency', result.error || 'An error occurred.')],
-            flags: MessageFlags.Ephemeral,
-        });
+        await replyUserError(submitted, { type: ErrorTypes.UNKNOWN, message: 'result.error || \'An error occurred.\'' });
         return;
     }
 
@@ -490,20 +458,14 @@ async function handleChangeCurrency(selectInteraction, rootInteraction, guild) {
     const newSymbol = submitted.fields.getTextInputValue('currency_symbol').trim();
 
     if (newSymbol.length === 0 || newSymbol.length > 3) {
-        await submitted.reply({
-            embeds: [errorEmbed('Invalid Symbol', 'Currency symbol must be 1-3 characters long.')],
-            flags: MessageFlags.Ephemeral,
-        });
+        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: 'Currency symbol must be 1-3 characters long.' });
         return;
     }
 
     const success = await updateConfigFile(newSymbol, BotConfig.economy.currency.name);
 
     if (!success) {
-        await submitted.reply({
-            embeds: [errorEmbed('Failed to Update', 'Could not update the config file. Please check the logs.')],
-            flags: MessageFlags.Ephemeral,
-        });
+        await replyUserError(submitted, { type: ErrorTypes.UNKNOWN, message: 'Could not update the config file. Please check the logs.' });
         return;
     }
 
@@ -550,20 +512,14 @@ async function handleChangeName(selectInteraction, rootInteraction, guild) {
     const newName = submitted.fields.getTextInputValue('currency_name').trim();
 
     if (newName.length === 0 || newName.length > 20) {
-        await submitted.reply({
-            embeds: [errorEmbed('Invalid Name', 'Currency name must be 1-20 characters long.')],
-            flags: MessageFlags.Ephemeral,
-        });
+        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: 'Currency name must be 1-20 characters long.' });
         return;
     }
 
     const success = await updateConfigFile(BotConfig.economy.currency.symbol, newName);
 
     if (!success) {
-        await submitted.reply({
-            embeds: [errorEmbed('Failed to Update', 'Could not update the config file. Please check the logs.')],
-            flags: MessageFlags.Ephemeral,
-        });
+        await replyUserError(submitted, { type: ErrorTypes.UNKNOWN, message: 'Could not update the config file. Please check the logs.' });
         return;
     }
 

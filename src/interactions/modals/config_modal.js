@@ -1,4 +1,5 @@
-import { successEmbed, errorEmbed } from '../../utils/embeds.js';
+import { successEmbed } from '../../utils/embeds.js';
+
 import ConfigService from '../../services/configService.js';
 import { MessageFlags } from 'discord.js';
 import { logger } from '../../utils/logger.js';
@@ -102,10 +103,7 @@ export default {
             });
         } catch (error) {
             logger.error('Config modal handler error:', error);
-            await interaction.reply({
-                embeds: [errorEmbed('Unable to update configuration', error.message || 'Please try again.')],
-                flags: MessageFlags.Ephemeral,
-            });
+            await replyUserError(interaction, { type: ErrorTypes.CONFIGURATION, message: 'error.message || \'Please try again.\'' });
         }
     },
 };

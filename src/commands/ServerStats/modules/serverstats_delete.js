@@ -1,6 +1,6 @@
 import { getColor } from '../../../config/bot.js';
 import { PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { createEmbed, errorEmbed } from '../../../utils/embeds.js';
+import { createEmbed } from '../../../utils/embeds.js';
 import { getServerCounters, saveServerCounters, getCounterEmoji, getCounterTypeLabel } from '../../../services/serverstatsService.js';
 import { logger } from '../../../utils/logger.js';
 
@@ -17,9 +17,7 @@ export async function handleDelete(interaction, client) {
     }
 
     if (!interaction.member.permissions.has(PermissionFlagsBits.ManageChannels)) {
-        await InteractionHelper.safeEditReply(interaction, { 
-            embeds: [errorEmbed('You need **Manage Channels** permission to delete counters.')]
-        }).catch(logger.error);
+        await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need **Manage Channels** permission to delete counters.' }).catch(logger.error);
         return;
     }
 
@@ -27,17 +25,13 @@ export async function handleDelete(interaction, client) {
         const counters = await getServerCounters(client, guild.id);
 
         if (counters.length === 0) {
-            await InteractionHelper.safeEditReply(interaction, {
-                embeds: [errorEmbed('No counters found to delete.')]
-            }).catch(logger.error);
+            await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: 'No counters found to delete.' }).catch(logger.error);
             return;
         }
 
         const counterToDelete = counters.find(c => c.id === counterId);
         if (!counterToDelete) {
-            await InteractionHelper.safeEditReply(interaction, {
-                embeds: [errorEmbed(`Counter with ID \`${counterId}\` not found. Use \`/counter list\` to see all counters.`)]
-            }).catch(logger.error);
+            await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: 'Counter with ID \\`${counterId}\\` not found. Use \\`/counter list\\` to see all counters.' }).catch(logger.error);
             return;
         }
 
@@ -64,9 +58,7 @@ export async function handleDelete(interaction, client) {
 
     } catch (error) {
         logger.error("Error in handleDelete:", error);
-        await InteractionHelper.safeEditReply(interaction, {
-            embeds: [errorEmbed('An error occurred while fetching counters. Please try again.')]
-        }).catch(logger.error);
+        await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'An error occurred while fetching counters. Please try again.' }).catch(logger.error);
     }
 }
 

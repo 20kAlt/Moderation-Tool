@@ -1,8 +1,8 @@
 import { getColor } from '../../config/bot.js';
 import { SlashCommandBuilder, PermissionFlagsBits, MessageFlags, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, StringSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, EmbedBuilder, LabelBuilder } from 'discord.js';
-import { errorEmbed, successEmbed } from '../../utils/embeds.js';
+import { successEmbed, warningEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
-import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
+import { TitanBotError, ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import {
     initializeJoinToCreate,
@@ -108,13 +108,7 @@ export default {
                     errorMessage = 'An unexpected error occurred. Please try again or contact support.';
                 }
 
-                const errorEmbedObj = errorEmbed('Error', errorMessage);
-
-                if (interaction.deferred) {
-                    return await InteractionHelper.safeEditReply(interaction, { embeds: [errorEmbedObj] });
-                } else {
-                    return await InteractionHelper.safeReply(interaction, { embeds: [errorEmbedObj], flags: MessageFlags.Ephemeral });
-                }
+                return replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: errorMessage });
             } catch (replyError) {
                 logger.error('Failed to send error message:', replyError);
             }
@@ -606,7 +600,7 @@ async function handleChannelDeletion(interaction, triggerChannel, currentConfig,
         );
 
         await InteractionHelper.safeReply(interaction, {
-            embeds: [errorEmbed('Confirm Deletion', `Are you sure you want to remove **${triggerChannel.name}** from the Join to Create system?\n\nThis action cannot be undone.`)],
+            embeds: [warningEmbed('Confirm Deletion', `Are you sure you want to remove **${triggerChannel.name}** from the Join to Create system?\n\nThis action cannot be undone.`)],
             components: [confirmRow],
             flags: MessageFlags.Ephemeral
         });

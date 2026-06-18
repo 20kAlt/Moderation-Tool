@@ -16,9 +16,9 @@ import {
     EmbedBuilder,
 } from 'discord.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
-import { successEmbed, errorEmbed } from '../../../utils/embeds.js';
+import { successEmbed } from '../../../utils/embeds.js';
 import { logger } from '../../../utils/logger.js';
-import { TitanBotError, ErrorTypes } from '../../../utils/errorHandler.js';
+import { TitanBotError, ErrorTypes, replyUserError } from '../../../utils/errorHandler.js';
 import { getGuildConfig, setGuildConfig } from '../../../services/guildConfig.js';
 import { getWelcomeConfig } from '../../../utils/database.js';
 import { botHasPermission } from '../../../utils/permissionGuard.js';
@@ -257,12 +257,10 @@ export default {
                         await selectInteraction.deferUpdate().catch(() => {});
                     }
 
-                    await selectInteraction
-                        .followUp({
-                            embeds: [errorEmbed('Configuration Error', errorMessage)],
-                            flags: MessageFlags.Ephemeral,
-                        })
-                        .catch(() => {});
+                    await replyUserError(selectInteraction, {
+                        type: ErrorTypes.CONFIGURATION,
+                        message: errorMessage,
+                    }).catch(() => {});
                 }
             });
 
@@ -286,12 +284,9 @@ export default {
                 const autoVerifyEnabled = Boolean(guildConfig.verification?.autoVerify?.enabled);
 
                 if (!wasEnabled && autoVerifyEnabled) {
-                    await btnInteraction.followUp({
-                        embeds: [errorEmbed(
-                            '❌ Cannot Enable Verification',
-                            'AutoVerify is currently enabled. Please disable AutoVerify first before enabling the manual Verification system.\n\nRun `/autoverify` to access the AutoVerify dashboard.'
-                        )],
-                        flags: MessageFlags.Ephemeral,
+                    await replyUserError(btnInteraction, {
+                        type: ErrorTypes.CONFIGURATION,
+                        message: 'AutoVerify is currently enabled. Please disable AutoVerify first before enabling the manual Verification system.\n\nRun `/autoverify` to access the AutoVerify dashboard.',
                     });
                     return;
                 }
@@ -418,14 +413,9 @@ async function handleChannel(selectInteraction, rootInteraction, cfg, guildId, c
         const newChannel = chanInteraction.channels.first();
 
         if (!botHasPermission(newChannel, ['ViewChannel', 'SendMessages', 'EmbedLinks'])) {
-            await chanInteraction.followUp({
-                embeds: [
-                    errorEmbed(
-                        'Missing Permissions',
-                        `I need **View Channel**, **Send Messages**, and **Embed Links** permissions in ${newChannel}.`,
-                    ),
-                ],
-                flags: MessageFlags.Ephemeral,
+            await replyUserError(chanInteraction, {
+                type: ErrorTypes.PERMISSION,
+                message: `I need **View Channel**, **Send Messages**, and **Embed Links** permissions in ${newChannel}.`,
             });
             return;
         }
@@ -479,12 +469,10 @@ async function handleChannel(selectInteraction, rootInteraction, cfg, guildId, c
 
     chanCollector.on('end', (collected, reason) => {
         if (reason === 'time' && collected.size === 0) {
-            selectInteraction
-                .followUp({
-                    embeds: [errorEmbed('Timed Out', 'No channel was selected. The setting was not changed.')],
-                    flags: MessageFlags.Ephemeral,
-                })
-                .catch(() => {});
+            replyUserError(selectInteraction, {
+                type: ErrorTypes.RATE_LIMIT,
+                message: 'No channel was selected. The setting was not changed.',
+            }).catch(() => {});
         }
     });
 }
@@ -525,27 +513,17 @@ async function handleRole(selectInteraction, rootInteraction, cfg, guildId, clie
         const botMember = guild.members.me;
 
         if (role.id === guild.id || role.managed) {
-            await roleInteraction.followUp({
-                embeds: [
-                    errorEmbed(
-                        'Invalid Role',
-                        'Please choose a normal assignable role (not @everyone or a bot-managed role).',
-                    ),
-                ],
-                flags: MessageFlags.Ephemeral,
+            await replyUserError(roleInteraction, {
+                type: ErrorTypes.VALIDATION,
+                message: 'Please choose a normal assignable role (not @everyone or a bot-managed role).',
             });
             return;
         }
 
         if (role.position >= botMember.roles.highest.position) {
-            await roleInteraction.followUp({
-                embeds: [
-                    errorEmbed(
-                        'Role Too High',
-                        'The verified role must be below my highest role in the server role hierarchy.',
-                    ),
-                ],
-                flags: MessageFlags.Ephemeral,
+            await replyUserError(roleInteraction, {
+                type: ErrorTypes.PERMISSION,
+                message: 'The verified role must be below my highest role in the server role hierarchy.',
             });
             return;
         }
@@ -565,12 +543,10 @@ async function handleRole(selectInteraction, rootInteraction, cfg, guildId, clie
 
     roleCollector.on('end', (collected, reason) => {
         if (reason === 'time' && collected.size === 0) {
-            selectInteraction
-                .followUp({
-                    embeds: [errorEmbed('Timed Out', 'No role was selected. The setting was not changed.')],
-                    flags: MessageFlags.Ephemeral,
-                })
-                .catch(() => {});
+            replyUserError(selectInteraction, {
+                type: ErrorTypes.RATE_LIMIT,
+                message: 'No role was selected. The setting was not changed.',
+            }).catch(() => {});
         }
     });
 }

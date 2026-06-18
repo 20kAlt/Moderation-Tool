@@ -1,8 +1,7 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
+import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
-import { MessageTemplates } from '../../utils/messageTemplates.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 const BASE_WIN_CHANCE = 0.4;
@@ -93,7 +92,7 @@ cashChange = amountWon;
             } else {
 cashChange = -betAmount;
 
-                resultEmbed = errorEmbed(
+                resultEmbed = warningEmbed(
                     "💔 You Lost...",
                     `The dice rolled against you. You lost your **$${betAmount.toLocaleString()}** bet.`,
                 );

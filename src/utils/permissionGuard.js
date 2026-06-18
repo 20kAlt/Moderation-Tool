@@ -1,8 +1,8 @@
 // permissionGuard.js
 
-import { PermissionFlagsBits, MessageFlags } from 'discord.js';
+import { PermissionFlagsBits } from 'discord.js';
 import { logger } from './logger.js';
-import { errorEmbed } from './embeds.js';
+import { replyUserError, ErrorTypes } from './errorHandler.js';
 
 export function isAdmin(member) {
   if (!member) return false;
@@ -35,19 +35,20 @@ export async function checkUserPermissions(
   errorMessage = 'You do not have permission to use this command.'
 ) {
   const member = interaction.member;
-  
+
   if (!member.permissions.has(requiredPermissions)) {
-    await interaction.reply({
-      embeds: [errorEmbed('Permission Denied', errorMessage)],
-      flags: MessageFlags.Ephemeral
+    await replyUserError(interaction, {
+      type: ErrorTypes.PERMISSION,
+      message: errorMessage,
+      context: { source: 'permissionGuard.checkUserPermissions' }
     });
-    
+
     logger.warn(
       `[PERMISSION_DENIED] User ${member.id} attempted command ${interaction.commandName} in guild ${interaction.guildId}`
     );
     return false;
   }
-  
+
   return true;
 }
 
@@ -57,65 +58,65 @@ export async function checkBotPermissions(
   channel = null
 ) {
   const targetChannel = channel || interaction.channel;
-  
+
   if (!targetChannel || !targetChannel.guild) {
-    await interaction.reply({
-      embeds: [errorEmbed('Error', 'Could not determine channel.')],
-      flags: MessageFlags.Ephemeral
+    await replyUserError(interaction, {
+      type: ErrorTypes.UNKNOWN,
+      message: 'Could not determine channel.',
+      context: { source: 'permissionGuard.checkBotPermissions' }
     });
     return false;
   }
-  
+
   const botMember = targetChannel.guild.members.me;
   if (!botMember) {
-    await interaction.reply({
-      embeds: [errorEmbed('Error', 'Could not find bot member in this guild.')],
-      flags: MessageFlags.Ephemeral
+    await replyUserError(interaction, {
+      type: ErrorTypes.UNKNOWN,
+      message: 'Could not find bot member in this guild.',
+      context: { source: 'permissionGuard.checkBotPermissions' }
     });
     return false;
   }
-  
+
   const permissions = targetChannel.permissionsFor(botMember);
   const missingPerms = [];
-  
+
   const permArray = Array.isArray(requiredPermissions) ? requiredPermissions : [requiredPermissions];
   for (const perm of permArray) {
     if (!permissions.has(perm)) {
       missingPerms.push(perm);
     }
   }
-  
+
   if (missingPerms.length > 0) {
-    await interaction.reply({
-      embeds: [errorEmbed(
-        'Missing Permissions',
-        `I need the following permissions in ${targetChannel}: ${missingPerms.join(', ')}`
-      )],
-      flags: MessageFlags.Ephemeral
+    await replyUserError(interaction, {
+      type: ErrorTypes.PERMISSION,
+      message: `I need the following permissions in ${targetChannel}: ${missingPerms.join(', ')}`,
+      context: { source: 'permissionGuard.checkBotPermissions', subtype: 'bot_permission' }
     });
-    
+
     logger.warn(
       `[BOT_PERMISSION_DENIED] Bot missing permissions [${missingPerms.join(', ')}] in channel ${targetChannel.id}`
     );
     return false;
   }
-  
+
   return true;
 }
 
 function hashUserId(userId) {
-  
+
   let hash = 0;
   for (let i = 0; i < userId.length; i++) {
     const char = userId.charCodeAt(i);
     hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; 
+    hash = hash & hash;
   }
   return Math.abs(hash).toString(16).substring(0, 8);
 }
 
 export function auditPermissionCheck(userId, action, allowed, reason = null) {
-  
+
   const userHash = hashUserId(userId);
 
   if (allowed) {

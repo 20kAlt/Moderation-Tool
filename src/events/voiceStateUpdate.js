@@ -6,7 +6,7 @@ import {
     getTemporaryChannelInfo,
     formatChannelName
 } from '../utils/database.js';
-import { sanitizeInput } from '../utils/sanitization.js';
+import { sanitizeInput } from '../utils/validation.js';
 import { logger } from '../utils/logger.js';
 
 const channelCreationCooldown = new Map();

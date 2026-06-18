@@ -16,7 +16,8 @@ import {
     ChannelType,
 } from 'discord.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
-import { createEmbed, successEmbed, errorEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
+import { createEmbed, successEmbed, infoEmbed, warningEmbed, buildUserErrorEmbed } from '../../utils/embeds.js';
+import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
 import { getGuildConfig, setConfigValue } from '../../services/guildConfig.js';
 import ConfigService from '../../services/configService.js';
 import { logger } from '../../utils/logger.js';
@@ -44,12 +45,9 @@ async function notifyWizardStarted(buttonInteraction) {
 }
 
 async function notifyWizardDmBlocked(buttonInteraction) {
-    await buttonInteraction.followUp({
-        embeds: [errorEmbed(
-            'Unable to Start Setup Wizard',
-            `I couldn't send you a DM. Enable DMs from this server, then try again.\n\n${DM_DISABLED_HELP}`,
-        )],
-        flags: MessageFlags.Ephemeral,
+    await replyUserError(buttonInteraction, {
+        type: ErrorTypes.USER_INPUT,
+        message: `I couldn't send you a DM. Enable DMs from this server, then try again.\n\n${DM_DISABLED_HELP}`,
     }).catch(() => {});
 }
 
@@ -209,7 +207,7 @@ async function askQuestion(dmChannel, userId, prompt, stepNumber, totalSteps) {
 
     if (!collected || !collected.size) {
         await dmChannel.send({
-            embeds: [errorEmbed('Setup Timed Out', 'You did not answer in time. Run the setup wizard again when ready.')],
+            embeds: [buildUserErrorEmbed(ErrorTypes.RATE_LIMIT, 'You did not answer in time. Run the setup wizard again when ready.')],
         });
         return null;
     }
@@ -412,7 +410,7 @@ async function runSetupWizard(buttonInteraction, config, guild, client, rootInte
                 } catch (error) {
                     errors.push(`• ${prompt.key}: ${error.message}`);
                     await dmChannel.send({
-                        embeds: [errorEmbed('Invalid Answer', `${error.message}\n\nPlease reply again with a valid answer, \`skip\`, or \`cancel\`.`)],
+                        embeds: [buildUserErrorEmbed(ErrorTypes.VALIDATION, `${error.message}\n\nPlease reply again with a valid answer, \`skip\`, or \`cancel\`.`)],
                     });
                 }
             }
@@ -597,9 +595,9 @@ async function handleSettingModalSubmit(selectInteraction, rootInteraction, sett
         await refreshDashboard(rootInteraction, updatedConfig, submitted.guild);
     } catch (error) {
         logger.error('Config wizard modal submit error:', error);
-        await submitted.reply({
-            embeds: [errorEmbed('Unable to update configuration', error.message || 'Please try again.')],
-            flags: MessageFlags.Ephemeral,
+        await replyUserError(submitted, {
+            type: ErrorTypes.CONFIGURATION,
+            message: error.message || 'Please try again.',
         }).catch(() => {});
     }
 }
@@ -621,8 +619,9 @@ export default {
             }
 
             if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-                return InteractionHelper.safeEditReply(interaction, {
-                    embeds: [errorEmbed('Missing Permissions', 'You need the **Manage Server** permission to use this command.')],
+                return replyUserError(interaction, {
+                    type: ErrorTypes.PERMISSION,
+                    message: 'You need the **Manage Server** permission to use this command.',
                 });
             }
 
@@ -671,16 +670,17 @@ export default {
                     }
                 } catch (error) {
                     logger.error('Config dashboard interaction error:', error);
-                    await componentInteraction.followUp({
-                        embeds: [errorEmbed('Failed to process your selection. Please try again.')],
-                        flags: MessageFlags.Ephemeral,
+                    await replyUserError(componentInteraction, {
+                        type: ErrorTypes.UNKNOWN,
+                        message: 'Failed to process your selection. Please try again.',
                     }).catch(() => {});
                 }
             });
         } catch (error) {
             logger.error('Config command error:', error);
-            await InteractionHelper.safeEditReply(interaction, {
-                embeds: [errorEmbed('Failed to open configuration dashboard. Please try again.')],
+            await replyUserError(interaction, {
+                type: ErrorTypes.CONFIGURATION,
+                message: 'Failed to open configuration dashboard. Please try again.',
             });
         }
     },

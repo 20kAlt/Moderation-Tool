@@ -14,9 +14,9 @@ import {
     EmbedBuilder,
 } from 'discord.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
-import { successEmbed, errorEmbed } from '../../../utils/embeds.js';
+import { successEmbed } from '../../../utils/embeds.js';
 import { logger } from '../../../utils/logger.js';
-import { TitanBotError, ErrorTypes } from '../../../utils/errorHandler.js';
+import { TitanBotError, ErrorTypes, replyUserError } from '../../../utils/errorHandler.js';
 import { getGuildConfig, setGuildConfig } from '../../../services/guildConfig.js';
 import { getWelcomeConfig } from '../../../utils/database.js';
 import { validateAutoVerifyCriteria } from '../../../services/verificationService.js';
@@ -235,12 +235,10 @@ export default {
                         await selectInteraction.deferUpdate().catch(() => {});
                     }
 
-                    await selectInteraction
-                        .followUp({
-                            embeds: [errorEmbed('Configuration Error', errorMessage)],
-                            flags: MessageFlags.Ephemeral,
-                        })
-                        .catch(() => {});
+                    await replyUserError(selectInteraction, {
+                        type: ErrorTypes.CONFIGURATION,
+                        message: errorMessage,
+                    }).catch(() => {});
                 }
             });
 
@@ -381,12 +379,10 @@ async function handleCriteria(selectInteraction, rootInteraction, guildConfig, g
 
     criteriaCollector.on('end', (collected, reason) => {
         if (reason === 'time' && collected.size === 0) {
-            selectInteraction
-                .followUp({
-                    embeds: [errorEmbed('Timed Out', 'No criteria selected. The setting was not changed.')],
-                    flags: MessageFlags.Ephemeral,
-                })
-                .catch(() => {});
+            replyUserError(selectInteraction, {
+                type: ErrorTypes.RATE_LIMIT,
+                message: 'No criteria selected. The setting was not changed.',
+            }).catch(() => {});
         }
     });
 }
@@ -423,28 +419,18 @@ async function handleRole(selectInteraction, rootInteraction, guildConfig, guild
         const role = roleInteraction.roles.first();
 
         if (role.id === rootInteraction.guild.id || role.managed) {
-            await roleInteraction.followUp({
-                embeds: [
-                    errorEmbed(
-                        'Invalid Role',
-                        'Please choose a normal assignable role (not @everyone or a bot-managed role).',
-                    ),
-                ],
-                flags: MessageFlags.Ephemeral,
+            await replyUserError(roleInteraction, {
+                type: ErrorTypes.VALIDATION,
+                message: 'Please choose a normal assignable role (not @everyone or a bot-managed role).',
             });
             return;
         }
 
         const botMember = rootInteraction.guild.members.me;
         if (role.position >= botMember.roles.highest.position) {
-            await roleInteraction.followUp({
-                embeds: [
-                    errorEmbed(
-                        'Role Too High',
-                        'The selected role must be below my highest role in the server role hierarchy.',
-                    ),
-                ],
-                flags: MessageFlags.Ephemeral,
+            await replyUserError(roleInteraction, {
+                type: ErrorTypes.PERMISSION,
+                message: 'The selected role must be below my highest role in the server role hierarchy.',
             });
             return;
         }
@@ -462,12 +448,10 @@ async function handleRole(selectInteraction, rootInteraction, guildConfig, guild
 
     roleCollector.on('end', (collected, reason) => {
         if (reason === 'time' && collected.size === 0) {
-            selectInteraction
-                .followUp({
-                    embeds: [errorEmbed('Timed Out', 'No role was selected. The setting was not changed.')],
-                    flags: MessageFlags.Ephemeral,
-                })
-                .catch(() => {});
+            replyUserError(selectInteraction, {
+                type: ErrorTypes.RATE_LIMIT,
+                message: 'No role was selected. The setting was not changed.',
+            }).catch(() => {});
         }
     });
 }
@@ -504,10 +488,7 @@ async function handleAccountAge(selectInteraction, rootInteraction, guildConfig,
     const days = parseInt(inputValue, 10);
 
     if (isNaN(days) || days < minAccountAgeDays || days > maxAccountAgeDays) {
-        await submitted.reply({
-            embeds: [errorEmbed('Invalid Input', `Please enter a number between ${minAccountAgeDays} and ${maxAccountAgeDays}.`)],
-            flags: MessageFlags.Ephemeral,
-        });
+        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: 'Please enter a number between ${minAccountAgeDays} and ${maxAccountAgeDays}.' });
         return;
     }
 

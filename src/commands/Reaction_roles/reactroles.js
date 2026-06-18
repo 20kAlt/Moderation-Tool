@@ -1,8 +1,8 @@
 import { getColor } from '../../config/bot.js';
 import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, RoleSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ButtonBuilder, ButtonStyle, MessageFlags, ComponentType, EmbedBuilder, LabelBuilder, CheckboxBuilder, TextDisplayBuilder } from 'discord.js';
-import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
+import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
-import { handleInteractionError, createError, TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
+import { handleInteractionError, createError, TitanBotError, ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { createReactionRoleMessage, hasDangerousPermissions, getAllReactionRoleMessages, deleteReactionRoleMessage } from '../../services/reactionRoleService.js';
 import { logEvent, EVENT_TYPES } from '../../services/loggingService.js';
@@ -362,154 +362,6 @@ async function handleSetup(interaction) {
     });
 }
 
-async function handleDashboard(interaction, selectedPanelId) {
-    const deferSuccess = await InteractionHelper.safeDefer(interaction, { flags: ['Ephemeral'] });
-    if (!deferSuccess) return;
-
-    const guildId = interaction.guild.id;
-    const guild = interaction.guild;
-    const client = interaction.client;
-
-    let panels = await getAllReactionRoleMessages(client, guildId);
-
-    if (!panels || panels.length === 0) {
-        return await InteractionHelper.safeEditReply(interaction, {
-            embeds: [
-                errorEmbed(
-                    'No Panels Found',
-                    'No reaction role panels exist yet. Use `/reactroles setup` to create one.',
-                ),
-            ],
-        });
-    }
-
-    const validPanels = [];
-    for (const panel of panels) {
-        const channel = guild.channels.cache.get(panel.channelId);
-        if (!channel) {
-            await deleteReactionRoleMessage(client, guildId, panel.messageId).catch(() => {});
-            continue;
-        }
-        
-        const msg = await channel.messages.fetch(panel.messageId).catch(() => null);
-        if (!msg) {
-            await deleteReactionRoleMessage(client, guildId, panel.messageId).catch(() => {});
-            continue;
-        }
-        validPanels.push(panel);
-    }
-
-    if (validPanels.length === 0) {
-        return await InteractionHelper.safeEditReply(interaction, {
-            embeds: [
-                errorEmbed(
-                    'No Valid Panels Found',
-                    'No reaction role panels exist yet. Use `/reactroles setup` to create one.',
-                ),
-            ],
-        });
-    }
-
-    let activePanelData = null;
-    if (selectedPanelId) {
-        activePanelData = validPanels.find(p => p.messageId === selectedPanelId);
-        if (!activePanelData) {
-            return await InteractionHelper.safeEditReply(interaction, {
-                embeds: [
-                    errorEmbed(
-                        'Panel Not Found',
-                        'That panel no longer exists or has been deleted.',
-                    ),
-                ],
-            });
-        }
-    } else {
-        
-        activePanelData = validPanels[Math.floor(Math.random() * validPanels.length)];
-    }
-
-    const discordMsg = await fetchPanelDiscordMessage(guild, activePanelData);
-    await showPanelDashboard(interaction, activePanelData, discordMsg, guildId, guild);
-
-    let rootInteraction = interaction;
-    const collector = interaction.channel.createMessageComponentCollector({
-        filter: i =>
-            i.user.id === interaction.user.id &&
-            (i.customId === `rr_opts_${guildId}`),
-        time: 600_000,
-    });
-
-    const buttonCollector = interaction.channel.createMessageComponentCollector({
-        componentType: ComponentType.Button,
-        filter: i =>
-            i.user.id === interaction.user.id &&
-            (i.customId === `rr_edit_text_${guildId}` ||
-                i.customId === `rr_delete_${guildId}`),
-        time: 600_000,
-    });
-
-    collector.on('collect', async ci => {
-        try {
-            if (ci.customId === `rr_opts_${guildId}`) {
-                const option = ci.values[0];
-                switch (option) {
-                    case 'add_role':
-                        await handleAddRole(ci, rootInteraction, activePanelData, guildId, guild, client);
-                        break;
-                    case 'remove_role':
-                        await handleRemoveRole(ci, rootInteraction, activePanelData, validPanels, guildId, guild, client);
-                        break;
-                }
-            }
-        } catch (error) {
-            logger.error('Error in reactroles dashboard collector:', error);
-            const msg =
-                error instanceof TitanBotError
-                    ? error.userMessage || 'An error occurred.'
-                    : 'An unexpected error occurred.';
-            if (!ci.replied && !ci.deferred) await ci.deferUpdate().catch(() => {});
-            await ci
-                .followUp({ embeds: [errorEmbed('Error', msg)], flags: MessageFlags.Ephemeral })
-                .catch(() => {});
-        }
-    });
-
-    buttonCollector.on('collect', async btnInteraction => {
-        try {
-            if (btnInteraction.customId === `rr_edit_text_${guildId}`) {
-                await handleEditText(btnInteraction, rootInteraction, activePanelData, guildId, guild, client);
-            } else if (btnInteraction.customId === `rr_delete_${guildId}`) {
-                await handleDeletePanel(btnInteraction, rootInteraction, activePanelData, validPanels, guildId, guild, client, collector, buttonCollector);
-            }
-        } catch (error) {
-            logger.error('Error in reactroles button collector:', error);
-            const msg =
-                error instanceof TitanBotError
-                    ? error.userMessage || 'An error occurred.'
-                    : 'An unexpected error occurred.';
-            if (!btnInteraction.replied && !btnInteraction.deferred) await btnInteraction.deferUpdate().catch(() => {});
-            await btnInteraction
-                .followUp({ embeds: [errorEmbed('Error', msg)], flags: MessageFlags.Ephemeral })
-                .catch(() => {});
-        }
-    });
-
-    collector.on('end', async (_, reason) => {
-        buttonCollector.stop();
-        if (reason === 'time') {
-            const timeoutEmbed = new EmbedBuilder()
-                .setTitle('Dashboard Timeout')
-                .setDescription('This dashboard session has timed out due to inactivity (10 minutes).\n\nTo continue managing your reaction roles, please run `/reactroles dashboard` again.')
-                .setColor(getColor('warning'));
-            
-            await InteractionHelper.safeEditReply(interaction, {
-                embeds: [timeoutEmbed],
-                components: []
-            }).catch(() => {});
-        }
-    });
-}
-
 async function fetchPanelDiscordMessage(guild, panelData) {
     try {
         const channel = guild.channels.cache.get(panelData.channelId);
@@ -668,29 +520,7 @@ async function handleEditText(buttonInteraction, rootInteraction, panelData, gui
         await buttonInteraction.showModal(modal);
     } catch (error) {
         logger.error('Error showing edit text modal:', error);
-        await buttonInteraction.followUp({
-            embeds: [errorEmbed('Error', 'Failed to show the edit panel text modal. Please try again.')],
-            flags: MessageFlags.Ephemeral,
-        }).catch(() => {});
-        return;
-    }
-
-    const submitted = await buttonInteraction
-        .awaitModalSubmit({
-            filter: i =>
-                i.customId === 'rr_edit_text' && i.user.id === buttonInteraction.user.id,
-            time: 120_000,
-        })
-        .catch(() => null);
-
-    if (!submitted) return;
-
-    const newTitle = submitted.fields.getTextInputValue('panel_title').trim();
-    const newDesc = submitted.fields.getTextInputValue('panel_description').trim();
-
-    if (discordMsg) {
-        const updatedEmbed = EmbedBuilder.from(discordMsg.embeds[0]).setTitle(newTitle).setDescription(newDesc);
-        await discordMsg.edit({ embeds: [updatedEmbed] }).catch(err => {
+        await replyUserError(buttonInteraction, { type: ErrorTypes.UNKNOWN, message: 'Failed to show the edit panel text modal. Please try again.' }).catch(err => {
             logger.warn('Could not edit live panel message:', err.message);
         });
     }
@@ -710,9 +540,9 @@ async function handleAddRole(selectInteraction, rootInteraction, panelData, guil
     await selectInteraction.deferUpdate();
 
     if (panelData.roles.length >= 25) {
-        await selectInteraction.followUp({
-            embeds: [errorEmbed('Panel Full', 'This panel already has the maximum of 25 roles.')],
-            flags: MessageFlags.Ephemeral,
+        await replyUserError(selectInteraction, {
+            type: ErrorTypes.VALIDATION,
+            message: 'This panel already has the maximum of 25 roles.',
         });
         return;
     }
@@ -748,47 +578,37 @@ async function handleAddRole(selectInteraction, rootInteraction, panelData, guil
         const role = roleInteraction.roles.first();
 
         if (panelData.roles.includes(role.id)) {
-            await roleInteraction.followUp({
-                embeds: [errorEmbed('Already Added', `${role} is already in this panel.`)],
-                flags: MessageFlags.Ephemeral,
+            await replyUserError(roleInteraction, {
+                type: ErrorTypes.VALIDATION,
+                message: `${role} is already in this panel.`,
             });
             return;
         }
         if (role.id === guild.id) {
-            await roleInteraction.followUp({
-                embeds: [errorEmbed('Invalid Role', 'You cannot use @everyone.')],
-                flags: MessageFlags.Ephemeral,
+            await replyUserError(roleInteraction, {
+                type: ErrorTypes.VALIDATION,
+                message: 'You cannot use @everyone.',
             });
             return;
         }
         if (role.managed) {
-            await roleInteraction.followUp({
-                embeds: [errorEmbed('Invalid Role', 'Managed/bot roles cannot be used.')],
-                flags: MessageFlags.Ephemeral,
+            await replyUserError(roleInteraction, {
+                type: ErrorTypes.VALIDATION,
+                message: 'Managed/bot roles cannot be used.',
             });
             return;
         }
         if (hasDangerousPermissions(role)) {
-            await roleInteraction.followUp({
-                embeds: [
-                    errorEmbed(
-                        'Dangerous Permissions',
-                        'That role has sensitive permissions (Administrator, Manage Server, etc.) and cannot be used.',
-                    ),
-                ],
-                flags: MessageFlags.Ephemeral,
+            await replyUserError(roleInteraction, {
+                type: ErrorTypes.PERMISSION,
+                message: 'That role has sensitive permissions (Administrator, Manage Server, etc.) and cannot be used.',
             });
             return;
         }
         if (role.position >= guild.members.me.roles.highest.position) {
-            await roleInteraction.followUp({
-                embeds: [
-                    errorEmbed(
-                        'Role Too High',
-                        "That role is above my highest role in the hierarchy. Move my role above it first.",
-                    ),
-                ],
-                flags: MessageFlags.Ephemeral,
+            await replyUserError(roleInteraction, {
+                type: ErrorTypes.PERMISSION,
+                message: "That role is above my highest role in the hierarchy. Move my role above it first.",
             });
             return;
         }
@@ -813,12 +633,10 @@ async function handleAddRole(selectInteraction, rootInteraction, panelData, guil
 
     roleCollector.on('end', (collected, reason) => {
         if (reason === 'time' && collected.size === 0) {
-            selectInteraction
-                .followUp({
-                    embeds: [errorEmbed('Timed Out', 'No role selected. Nothing was changed.')],
-                    flags: MessageFlags.Ephemeral,
-                })
-                .catch(() => {});
+            replyUserError(selectInteraction, {
+                type: ErrorTypes.RATE_LIMIT,
+                message: 'No role selected. Nothing was changed.',
+            }).catch(() => {});
         }
     });
 }
@@ -834,9 +652,9 @@ async function handleRemoveRole(selectInteraction, rootInteraction, panelData, p
         .filter(Boolean);
 
     if (roleOptions.length === 0) {
-        await selectInteraction.followUp({
-            embeds: [errorEmbed('No Valid Roles', 'The roles on this panel no longer exist in the server.')],
-            flags: MessageFlags.Ephemeral,
+        await replyUserError(selectInteraction, {
+            type: ErrorTypes.USER_INPUT,
+            message: 'The roles on this panel no longer exist in the server.',
         });
         return;
     }
@@ -947,12 +765,10 @@ async function handleRemoveRole(selectInteraction, rootInteraction, panelData, p
 
     removeCollector.on('end', (collected, reason) => {
         if (reason === 'time' && collected.size === 0) {
-            selectInteraction
-                .followUp({
-                    embeds: [errorEmbed('Timed Out', 'No role selected. Nothing was changed.')],
-                    flags: MessageFlags.Ephemeral,
-                })
-                .catch(() => {});
+            replyUserError(selectInteraction, {
+                type: ErrorTypes.RATE_LIMIT,
+                message: 'No role selected. Nothing was changed.',
+            }).catch(() => {});
         }
     });
 }
@@ -1000,10 +816,7 @@ async function handleDeletePanel(btnInteraction, rootInteraction, panelData, pan
     const confirmed = submitted.fields.getCheckbox('delete_confirmation');
 
     if (!confirmed) {
-        await submitted.reply({
-            embeds: [errorEmbed('Not Confirmed', 'You must tick the confirmation checkbox to delete the panel.')],
-            flags: MessageFlags.Ephemeral,
-        });
+        await replyUserError(submitted, { type: ErrorTypes.VALIDATION, message: 'You must tick the confirmation checkbox to delete the panel.' });
         await showPanelDashboard(rootInteraction, panelData, discordMsg, guildId, guild);
         return;
     }
