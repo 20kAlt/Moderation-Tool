@@ -184,7 +184,7 @@ docker pull ghcr.io/codebymitch/titanbot:main
 
 ### Running in multiple servers (optional)
 
-Most users run TitanBot on a **single server** with `GUILD_ID` set (default tutorial setup). If you want slash commands to work in **every server** the bot is invited to, opt in with:
+Most users run TitanBot on a **single server** with `GUILD_ID` set (default tutorial setup). If you want commands to work in **every server** the bot is invited to, opt in with:
 
 ```env
 MULTI_GUILD=true
@@ -206,9 +206,9 @@ Notes for multi-server mode:
    psql -c "GRANT ALL PRIVILEGES ON DATABASE titanbot TO titanbot;"
    ```
 
-5. **Test Database Connection**
+5. **Verify Database Setup**
    ```bash
-   npm run test-postgres
+   npm run migrate:check
    ```
 
 6. **Start the Bot**
