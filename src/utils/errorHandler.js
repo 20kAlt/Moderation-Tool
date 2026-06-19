@@ -193,7 +193,7 @@ function logInteractionError(error, errorType, logData) {
 
     if (isUserError || isExpectedError) {
         if (errorType !== ErrorTypes.RATE_LIMIT) {
-            logger.debug(`User Error [${errorType.toUpperCase()}]: ${error.message}`, logData);
+            logger.debug(`User Error [${errorType.toUpperCase()}]: ${error.userMessage || error.message}`, logData);
         }
     } else {
         logger.error(`System Error [${errorType.toUpperCase()}]`, {

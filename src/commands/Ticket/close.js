@@ -2,7 +2,7 @@ import { getColor } from '../../config/bot.js';
 import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags } from 'discord.js';
 import { successEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
-import { handleInteractionError } from '../../utils/errorHandler.js';
+import { handleInteractionError, replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { getTicketPermissionContext } from '../../utils/ticketPermissions.js';
 import { closeTicket } from '../../services/ticket.js';
@@ -49,7 +49,7 @@ export default {
                     guildId: interaction.guildId,
                     error: result.error
                 });
-                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'result.error || "This command can only be used in a valid ticket channel."' });
+                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: result.error || 'This command can only be used in a valid ticket channel.' });
             }
 
             await InteractionHelper.safeEditReply(interaction, {
