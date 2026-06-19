@@ -7,6 +7,7 @@ import { logger } from '../utils/logger.js';
 import { InteractionHelper } from '../utils/interactionHelper.js';
 import { checkRateLimit } from '../utils/rateLimiter.js';
 import { replyUserError, ErrorTypes } from '../utils/errorHandler.js';
+import { getTicketPermissionContext } from '../utils/ticketPermissions.js';
 
 function escapeHtml(text) {
   if (!text) return '';
@@ -28,6 +29,17 @@ async function ensureGuildContext(interaction) {
   }
 
   return false;
+}
+
+async function replyPermissionCheckFailure(interaction, permissionCheck) {
+  let type = ErrorTypes.UNKNOWN;
+  if (permissionCheck.error === 'Permission Denied') {
+    type = ErrorTypes.PERMISSION;
+  } else if (permissionCheck.error === 'Request Timeout') {
+    type = ErrorTypes.RATE_LIMIT;
+  }
+
+  await replyUserError(interaction, { type, message: permissionCheck.details });
 }
 
 async function checkTicketPermissionWithTimeout(interaction, client, actionLabel, options = {}, timeoutMs = 2500) {
@@ -185,9 +197,7 @@ const closeTicketHandler = {
       );
 
       if (!permissionCheck.success) {
-        if (!interaction.replied && !interaction.deferred) {
-          await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: permissionCheck.details });
-        }
+        await replyPermissionCheckFailure(interaction, permissionCheck);
         return;
       }
 
@@ -232,9 +242,7 @@ const closeTicketModalHandler = {
       );
 
       if (!permissionCheck.success) {
-        if (!interaction.replied && !interaction.deferred) {
-          await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: permissionCheck.details });
-        }
+        await replyPermissionCheckFailure(interaction, permissionCheck);
         return;
       }
 
@@ -280,9 +288,7 @@ const claimTicketHandler = {
       );
 
       if (!permissionCheck.success) {
-        if (!interaction.replied && !interaction.deferred) {
-          await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: permissionCheck.details });
-        }
+        await replyPermissionCheckFailure(interaction, permissionCheck);
         return;
       }
 
@@ -325,9 +331,7 @@ const priorityTicketHandler = {
       );
 
       if (!permissionCheck.success) {
-        if (!interaction.replied && !interaction.deferred) {
-          await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: permissionCheck.details });
-        }
+        await replyPermissionCheckFailure(interaction, permissionCheck);
         return;
       }
 
@@ -376,9 +380,7 @@ const pinTicketHandler = {
       );
 
       if (!permissionCheck.success) {
-        if (!interaction.replied && !interaction.deferred) {
-          await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: permissionCheck.details });
-        }
+        await replyPermissionCheckFailure(interaction, permissionCheck);
         return;
       }
 
@@ -485,9 +487,7 @@ const unclaimTicketHandler = {
       );
 
       if (!permissionCheck.success) {
-        if (!interaction.replied && !interaction.deferred) {
-          await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: permissionCheck.details });
-        }
+        await replyPermissionCheckFailure(interaction, permissionCheck);
         return;
       }
 
@@ -531,9 +531,7 @@ const reopenTicketHandler = {
       );
 
       if (!permissionCheck.success) {
-        if (!interaction.replied && !interaction.deferred) {
-          await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: permissionCheck.details });
-        }
+        await replyPermissionCheckFailure(interaction, permissionCheck);
         return;
       }
 
@@ -582,9 +580,7 @@ const deleteTicketHandler = {
       );
 
       if (!permissionCheck.success) {
-        if (!interaction.replied && !interaction.deferred) {
-          await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: permissionCheck.details });
-        }
+        await replyPermissionCheckFailure(interaction, permissionCheck);
         return;
       }
 
