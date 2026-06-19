@@ -22,6 +22,11 @@ import { TitanBotError, ErrorTypes, replyUserError } from '../../../utils/errorH
 import { getGuildConfig, setGuildConfig } from '../../../services/guildConfig.js';
 import { getWelcomeConfig } from '../../../utils/database.js';
 import { botHasPermission } from '../../../utils/permissionGuard.js';
+import {
+    getVerificationPanelStatus,
+    formatPanelStatusField,
+} from '../../../utils/panelStatus.js';
+import { startDashboardSession } from '../../../utils/dashboardSession.js';
 
 async function updateLivePanel(guild, cfg) {
     if (!cfg.channelId || !cfg.messageId) return;
@@ -50,18 +55,20 @@ async function updateLivePanel(guild, cfg) {
     }
 }
 
-function buildDashboardEmbed(cfg, guild, verifiedUserCount = 0, conflictSummary = '') {
+function buildDashboardEmbed(cfg, guild, verifiedUserCount = 0, conflictSummary = '', panelStatus = null) {
     const channel = cfg.channelId ? `<#${cfg.channelId}>` : '`Not set`';
     const role = cfg.roleId ? `<@&${cfg.roleId}>` : '`Not set`';
     const rawMsg = cfg.message || botConfig.verification.defaultMessage;
     const msgPreview = `\`${rawMsg.length > 60 ? rawMsg.substring(0, 60) + '…' : rawMsg}\``;
     const buttonText = cfg.buttonText || botConfig.verification.defaultButtonText;
+    const panelStatusValue = cfg.channelId ? formatPanelStatusField(panelStatus) : '`Not configured`';
 
     const embed = new EmbedBuilder()
         .setTitle('✅ Verification System Dashboard')
         .setDescription(`Manage verification settings for **${guild.name}**.\nSelect an option below to modify a setting.`)
         .setColor(getColor('info'))
         .addFields(
+            { name: 'Panel Status', value: panelStatusValue, inline: false },
             { name: 'Verification Channel', value: channel, inline: true },
             { name: 'Verified Role', value: role, inline: true },
             { name: 'System Status', value: cfg.enabled !== false ? 'Enabled' : 'Disabled', inline: true },
@@ -108,9 +115,25 @@ function buildSelectMenu(guildId) {
         );
 }
 
-function buildButtonRow(cfg, guildId, disabled = false) {
+function buildButtonRow(cfg, guildId, disabled = false, panelStatus = null) {
     const systemOn = cfg.enabled !== false;
-    return new ActionRowBuilder().addComponents(
+    const showRepost =
+        systemOn && panelStatus?.exists === false && panelStatus?.reason === 'panel_deleted';
+
+    const buttons = [];
+
+    if (showRepost) {
+        buttons.push(
+            new ButtonBuilder()
+                .setCustomId(`verif_cfg_repost_${guildId}`)
+                .setLabel('Repost Panel')
+                .setStyle(ButtonStyle.Primary)
+                .setEmoji('📌')
+                .setDisabled(disabled),
+        );
+    }
+
+    buttons.push(
         new ButtonBuilder()
             .setCustomId(`verif_cfg_toggle_${guildId}`)
             .setLabel('Verification')
@@ -118,6 +141,34 @@ function buildButtonRow(cfg, guildId, disabled = false) {
             .setEmoji('🔒')
             .setDisabled(disabled),
     );
+
+    return new ActionRowBuilder().addComponents(buttons);
+}
+
+async function repostVerificationPanel(guild, cfg) {
+    const channel = await guild.channels.fetch(cfg.channelId).catch(() => null);
+    if (!channel) {
+        throw new TitanBotError(
+            'Panel channel missing',
+            ErrorTypes.CONFIGURATION,
+            'The configured verification channel no longer exists. Set a new channel from the dashboard.',
+        );
+    }
+
+    const verifyEmbed = new EmbedBuilder()
+        .setTitle('Server Verification')
+        .setDescription(cfg.message || botConfig.verification.defaultMessage)
+        .setColor(getColor('success'));
+
+    const verifyButton = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId('verify_user')
+            .setLabel(cfg.buttonText || botConfig.verification.defaultButtonText)
+            .setStyle(ButtonStyle.Success)
+            .setEmoji('✅'),
+    );
+
+    return channel.send({ embeds: [verifyEmbed], components: [verifyButton] });
 }
 
 async function refreshDashboard(rootInteraction, cfg, guildId, client) {
@@ -126,6 +177,17 @@ async function refreshDashboard(rootInteraction, cfg, guildId, client) {
 
         let verifiedUserCount = 0;
         let conflictSummary = '';
+        let panelStatus = null;
+
+        if (cfg.channelId && cfg.enabled !== false) {
+            panelStatus = await getVerificationPanelStatus(client, rootInteraction.guild, cfg);
+            if (panelStatus.recoveredId) {
+                cfg.messageId = panelStatus.recoveredId;
+                const latestConfig = await getGuildConfig(client, guildId);
+                latestConfig.verification = cfg;
+                await setGuildConfig(client, guildId, latestConfig);
+            }
+        }
         
         try {
             const verifiedRole = rootInteraction.guild.roles.cache.get(cfg.roleId);
@@ -151,9 +213,9 @@ async function refreshDashboard(rootInteraction, cfg, guildId, client) {
         }
         
         await InteractionHelper.safeEditReply(rootInteraction, {
-            embeds: [buildDashboardEmbed(cfg, rootInteraction.guild, verifiedUserCount, conflictSummary)],
+            embeds: [buildDashboardEmbed(cfg, rootInteraction.guild, verifiedUserCount, conflictSummary, panelStatus)],
             components: [
-                buildButtonRow(cfg, guildId),
+                buildButtonRow(cfg, guildId, false, panelStatus),
                 new ActionRowBuilder().addComponents(selectMenu),
             ],
             flags: MessageFlags.Ephemeral,
@@ -181,10 +243,18 @@ export default {
 
             await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
 
-            const selectMenu = buildSelectMenu(guildId);
-
             let verifiedUserCount = 0;
             let conflictSummary = '';
+            let panelStatus = null;
+
+            if (cfg.channelId && cfg.enabled !== false) {
+                panelStatus = await getVerificationPanelStatus(client, interaction.guild, cfg);
+                if (panelStatus.recoveredId) {
+                    cfg.messageId = panelStatus.recoveredId;
+                    guildConfig.verification = cfg;
+                    await setGuildConfig(client, guildId, guildConfig);
+                }
+            }
             
             try {
                 const verifiedRole = interaction.guild.roles.cache.get(cfg.roleId);
@@ -208,25 +278,19 @@ export default {
                 logger.warn('Could not fetch verification dashboard details:', error.message);
             }
 
-            await InteractionHelper.safeEditReply(interaction, {
-                embeds: [buildDashboardEmbed(cfg, interaction.guild, verifiedUserCount, conflictSummary)],
+            await startDashboardSession({
+                interaction,
+                embeds: [buildDashboardEmbed(cfg, interaction.guild, verifiedUserCount, conflictSummary, panelStatus)],
                 components: [
-                    buildButtonRow(cfg, guildId),
-                    new ActionRowBuilder().addComponents(selectMenu),
+                    buildButtonRow(cfg, guildId, false, panelStatus),
+                    new ActionRowBuilder().addComponents(buildSelectMenu(guildId)),
                 ],
                 flags: MessageFlags.Ephemeral,
-            });
-
-            const collector = interaction.channel.createMessageComponentCollector({
-                componentType: ComponentType.StringSelect,
-                filter: i =>
-                    i.user.id === interaction.user.id && i.customId === `verif_cfg_${guildId}`,
-                time: 600_000,
-            });
-
-            collector.on('collect', async selectInteraction => {
-                const selectedOption = selectInteraction.values[0];
-                try {
+                selectMenuId: `verif_cfg_${guildId}`,
+                buttonMatcher: (customId) =>
+                    customId === `verif_cfg_toggle_${guildId}` || customId === `verif_cfg_repost_${guildId}`,
+                onSelect: async (selectInteraction) => {
+                    const selectedOption = selectInteraction.values[0];
                     switch (selectedOption) {
                         case 'channel':
                             await handleChannel(selectInteraction, interaction, cfg, guildId, client);
@@ -241,130 +305,83 @@ export default {
                             await handleButtonText(selectInteraction, interaction, cfg, guildId, client);
                             break;
                     }
-                } catch (error) {
-                    if (error instanceof TitanBotError) {
-                        logger.debug(`Verification config validation error: ${error.message}`);
-                    } else {
-                        logger.error('Unexpected verification dashboard error:', error);
+                },
+                onButton: async (btnInteraction) => {
+                    if (btnInteraction.customId === `verif_cfg_repost_${guildId}`) {
+                        await btnInteraction.deferUpdate();
+                        const newMsg = await repostVerificationPanel(interaction.guild, cfg);
+                        cfg.messageId = newMsg.id;
+                        const latestConfig = await getGuildConfig(client, guildId);
+                        latestConfig.verification = cfg;
+                        await setGuildConfig(client, guildId, latestConfig);
+                        await btnInteraction.followUp({
+                            embeds: [successEmbed('Panel Reposted', `Verification panel restored in ${newMsg.channel}.`)],
+                            flags: MessageFlags.Ephemeral,
+                        });
+                        await refreshDashboard(interaction, cfg, guildId, client);
+                        return;
                     }
 
-                    const errorMessage =
-                        error instanceof TitanBotError
-                            ? error.userMessage || 'An error occurred while processing your selection.'
-                            : 'An unexpected error occurred while updating the configuration.';
-
-                    if (!selectInteraction.replied && !selectInteraction.deferred) {
-                        await selectInteraction.deferUpdate().catch(() => {});
-                    }
-
-                    await replyUserError(selectInteraction, {
-                        type: ErrorTypes.CONFIGURATION,
-                        message: errorMessage,
-                    }).catch(() => {});
-                }
-            });
-
-            const btnCollector = interaction.channel.createMessageComponentCollector({
-                componentType: ComponentType.Button,
-                filter: i =>
-                    i.user.id === interaction.user.id &&
-                    i.customId === `verif_cfg_toggle_${guildId}`,
-                time: 600_000,
-            });
-
-            btnCollector.on('collect', async btnInteraction => {
-                try {
                     await btnInteraction.deferUpdate().catch(() => null);
-                } catch (err) {
-                    logger.debug('Button interaction already expired:', err.message);
-                    return;
-                }
-                
-                const wasEnabled = cfg.enabled !== false;
-                const autoVerifyEnabled = Boolean(guildConfig.verification?.autoVerify?.enabled);
 
-                if (!wasEnabled && autoVerifyEnabled) {
-                    await replyUserError(btnInteraction, {
-                        type: ErrorTypes.CONFIGURATION,
-                        message: 'AutoVerify is currently enabled. Please disable AutoVerify first before enabling the manual Verification system.\n\nRun `/autoverify` to access the AutoVerify dashboard.',
-                    });
-                    return;
-                }
+                    const wasEnabled = cfg.enabled !== false;
+                    const autoVerifyEnabled = Boolean(guildConfig.verification?.autoVerify?.enabled);
 
-                cfg.enabled = !wasEnabled;
+                    if (!wasEnabled && autoVerifyEnabled) {
+                        await replyUserError(btnInteraction, {
+                            type: ErrorTypes.CONFIGURATION,
+                            message: 'AutoVerify is currently enabled. Please disable AutoVerify first before enabling the manual Verification system.\n\nRun `/autoverify` to access the AutoVerify dashboard.',
+                        });
+                        return;
+                    }
 
-                if (!cfg.enabled && cfg.channelId && cfg.messageId) {
-                    const channel = interaction.guild.channels.cache.get(cfg.channelId);
-                    if (channel) {
-                        try {
+                    cfg.enabled = !wasEnabled;
+
+                    if (!cfg.enabled && cfg.channelId && cfg.messageId) {
+                        const channel = interaction.guild.channels.cache.get(cfg.channelId);
+                        if (channel) {
                             const msg = await channel.messages.fetch(cfg.messageId).catch(() => null);
-                            if (msg) await msg.delete();
-                        } catch {
-                            
+                            if (msg) await msg.delete().catch(() => {});
                         }
                     }
-                }
 
-                if (cfg.enabled && cfg.channelId) {
-                    const channel = interaction.guild.channels.cache.get(cfg.channelId);
-                    if (channel) {
+                    if (cfg.enabled && cfg.channelId) {
                         try {
-                            const verifyEmbed = new EmbedBuilder()
-                                .setTitle('Server Verification')
-                                .setDescription(cfg.message || botConfig.verification.defaultMessage)
-                                .setColor(getColor('success'));
-
-                            const verifyButton = new ActionRowBuilder().addComponents(
-                                new ButtonBuilder()
-                                    .setCustomId('verify_user')
-                                    .setLabel(cfg.buttonText || botConfig.verification.defaultButtonText)
-                                    .setStyle(ButtonStyle.Success)
-                                    .setEmoji('✅'),
-                            );
-
-                            const newMsg = await channel.send({ embeds: [verifyEmbed], components: [verifyButton] });
+                            const newMsg = await repostVerificationPanel(interaction.guild, cfg);
                             cfg.messageId = newMsg.id;
                         } catch (error) {
                             logger.warn('Could not re-post verification panel on re-enable:', error.message);
                         }
                     }
-                }
 
-                const latestConfig = await getGuildConfig(client, guildId);
-                latestConfig.verification = cfg;
-                await setGuildConfig(client, guildId, latestConfig);
+                    const latestConfig = await getGuildConfig(client, guildId);
+                    latestConfig.verification = cfg;
+                    await setGuildConfig(client, guildId, latestConfig);
 
-                await btnInteraction.followUp({
-                    embeds: [
-                        successEmbed(
-                            '✅ System Updated',
-                            `The verification system is now **${cfg.enabled ? 'enabled' : 'disabled'}**.`,
-                        ),
-                    ],
-                    flags: MessageFlags.Ephemeral,
-                });
+                    await btnInteraction.followUp({
+                        embeds: [
+                            successEmbed(
+                                '✅ System Updated',
+                                `The verification system is now **${cfg.enabled ? 'enabled' : 'disabled'}**.`,
+                            ),
+                        ],
+                        flags: MessageFlags.Ephemeral,
+                    });
 
-                await refreshDashboard(interaction, cfg, guildId, client);
-            });
-
-            collector.on('end', async (collected, reason) => {
-                if (reason === 'time') {
-                    btnCollector.stop();
-                    try {
-                        await InteractionHelper.safeEditReply(interaction, {
-                            embeds: [
-                                new EmbedBuilder()
-                                    .setTitle('Dashboard Timed Out')
-                                    .setDescription('This dashboard has been closed due to inactivity. Please run the command again to continue.')
-                                    .setColor(getColor('error'))
-                            ],
-                            components: [],
-                            flags: MessageFlags.Ephemeral,
-                        });
-                    } catch (error) {
-                        logger.debug('Could not update dashboard on timeout:', error.message);
-                    }
-                }
+                    await refreshDashboard(interaction, cfg, guildId, client);
+                },
+                onTimeout: async (rootInteraction) => {
+                    await InteractionHelper.safeEditReply(rootInteraction, {
+                        embeds: [
+                            new EmbedBuilder()
+                                .setTitle('Dashboard Timed Out')
+                                .setDescription('This dashboard has been closed due to inactivity. Please run the command again to continue.')
+                                .setColor(getColor('error')),
+                        ],
+                        components: [],
+                        flags: MessageFlags.Ephemeral,
+                    });
+                },
             });
         } catch (error) {
             if (error instanceof TitanBotError) throw error;
