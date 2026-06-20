@@ -32,9 +32,6 @@ export default {
       return;
     }
 
-    if (!interaction.member.permissions.has(PermissionFlagsBits.ManageMessages))
-      return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need the `Manage Messages` permission to purge messages.' });
-
     const amount = interaction.options.getInteger("amount");
     const channel = interaction.channel;
 

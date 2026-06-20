@@ -6,6 +6,7 @@ import { logger } from './logger.js';
 import { InteractionHelper } from './interactionHelper.js';
 import { SLASH_ONLY_COMMANDS } from '../config/prefixRestrictions.js';
 import { ResponseCoordinator, buildPrefixUsage } from './responseCoordinator.js';
+import { enforceDefaultCommandPermissions } from './permissionGuard.js';
 
 export { buildPrefixUsage };
 
@@ -185,12 +186,20 @@ export function supportsPrefixExecution(command) {
   return !!command.execute;
 }
 
-export async function executePrefixCommand(command, message, args, client, prefixOverride = null) {
+export async function executePrefixCommand(command, message, args, client, prefixOverride = null, guildConfig = null) {
   const mockInteraction = createMockInteraction(message, command.data, args);
   const coordinator = mockInteraction._responseCoordinator;
   const prefix = prefixOverride || message.client?.config?.bot?.prefix || '!';
 
   try {
+    const permissionAllowed = await enforceDefaultCommandPermissions(mockInteraction, command, {
+      source: 'messageAdapter.executePrefixCommand',
+      guildConfig,
+    });
+    if (!permissionAllowed) {
+      return;
+    }
+
     const validation = mockInteraction.options.validateRequired();
     if (!validation.valid) {
       await coordinator.respondUsageFromCommand(prefix, command.data, validation);
@@ -198,9 +207,9 @@ export async function executePrefixCommand(command, message, args, client, prefi
     }
 
     if (command.prefixExecute) {
-      await command.prefixExecute(mockInteraction, client.config, client);
+      await command.prefixExecute(mockInteraction, guildConfig, client);
     } else {
-      await command.execute(mockInteraction, client.config, client);
+      await command.execute(mockInteraction, guildConfig, client);
     }
   } catch (error) {
     logger.error('Prefix command execution error:', {

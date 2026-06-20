@@ -36,10 +36,6 @@ export default {
             return;
         }
 
-        if (!interaction.member.permissions.has(PermissionFlagsBits.KickMembers)) {
-            return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You do not have permission to kick members.' });
-        }
-
         const usersInput = interaction.options.getString("users");
         const reason = interaction.options.getString("reason") || "Mass kick - No reason provided";
 

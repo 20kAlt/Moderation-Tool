@@ -51,14 +51,6 @@ export default {
         }
 
         try {
-            if (!interaction.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
-                throw new TitanBotError(
-                    "User lacks permission",
-                    ErrorTypes.PERMISSION,
-                    "You need the `Moderate Members` permission to set a timeout."
-                );
-            }
-
             const targetUser = interaction.options.getUser("target");
             const member = interaction.options.getMember("target");
             const durationMinutes = interaction.options.getInteger("duration");

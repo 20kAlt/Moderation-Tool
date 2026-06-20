@@ -4,13 +4,194 @@ import { PermissionFlagsBits } from 'discord.js';
 import { logger } from './logger.js';
 import { replyUserError, ErrorTypes } from './errorHandler.js';
 
+/**
+ * Read default_member_permissions from a SlashCommandBuilder (or its JSON).
+ * @param {import('discord.js').SlashCommandBuilder | object} commandData
+ * @returns {bigint | null}
+ */
+export function getCommandDefaultPermissions(commandData) {
+  const json = commandData?.toJSON?.() ?? commandData;
+  const value = json?.default_member_permissions;
+
+  if (value == null || value === '0') {
+    return null;
+  }
+
+  return BigInt(value);
+}
+
+function normalizeRoleId(role) {
+  if (!role) {
+    return null;
+  }
+
+  if (typeof role === 'string') {
+    return role;
+  }
+
+  if (typeof role === 'object' && role.id) {
+    return role.id;
+  }
+
+  return null;
+}
+
+function isModerationCategory(category) {
+  return category?.toLowerCase?.() === 'moderation';
+}
+
+/**
+ * Whether a member holds the guild-configured moderator role (config wizard modRole).
+ * @param {import('discord.js').GuildMember | null | undefined} member
+ * @param {object | null | undefined} guildConfig
+ * @returns {boolean}
+ */
+export function memberHasConfiguredModeratorRole(member, guildConfig) {
+  if (!member || !guildConfig) {
+    return false;
+  }
+
+  const modRoleId = normalizeRoleId(guildConfig.modRole);
+
+  return Boolean(modRoleId && member.roles.cache.has(modRoleId));
+}
+
+/**
+ * Whether a member may run a moderation command (native Discord perm or configured modRole).
+ * @param {import('discord.js').GuildMember | null | undefined} member
+ * @param {object | null | undefined} guildConfig
+ * @param {bigint | bigint[] | null} [requiredPermissions]
+ * @returns {boolean}
+ */
+export function memberHasModerationCommandAccess(member, guildConfig, requiredPermissions = null) {
+  if (!member) {
+    return false;
+  }
+
+  if (member.guild?.ownerId === member.id) {
+    return true;
+  }
+
+  if (member.permissions.has(PermissionFlagsBits.Administrator)) {
+    return true;
+  }
+
+  if (requiredPermissions != null && member.permissions.has(requiredPermissions)) {
+    return true;
+  }
+
+  return memberHasConfiguredModeratorRole(member, guildConfig);
+}
+
+/**
+ * Whether a guild member satisfies a command's default_member_permissions bitfield.
+ * Guild owners always pass. Moderation commands also accept the configured modRole.
+ * @param {import('discord.js').GuildMember | null | undefined} member
+ * @param {bigint | null} permissionBitfield
+ * @param {{ guildConfig?: object | null, commandCategory?: string | null }} [options]
+ * @returns {boolean}
+ */
+export function memberMeetsCommandPermissions(member, permissionBitfield, options = {}) {
+  if (permissionBitfield == null) {
+    return true;
+  }
+
+  if (!member) {
+    return false;
+  }
+
+  const { guildConfig = null, commandCategory = null } = options;
+
+  if (isModerationCategory(commandCategory)) {
+    return memberHasModerationCommandAccess(member, guildConfig, permissionBitfield);
+  }
+
+  if (member.guild?.ownerId === member.id) {
+    return true;
+  }
+
+  return member.permissions.has(permissionBitfield);
+}
+
+/**
+ * Check moderation command access and reply when denied.
+ * @returns {Promise<boolean>}
+ */
+export async function checkModerationPermissions(
+  interaction,
+  guildConfig,
+  requiredPermissions,
+  errorMessage = 'You do not have permission to use this command.'
+) {
+  if (memberHasModerationCommandAccess(interaction.member, guildConfig, requiredPermissions)) {
+    return true;
+  }
+
+  await replyUserError(interaction, {
+    type: ErrorTypes.PERMISSION,
+    message: errorMessage,
+    context: { source: 'permissionGuard.checkModerationPermissions' },
+  });
+
+  logger.warn('[PERMISSION_DENIED] Moderation command blocked', {
+    userId: interaction.user?.id,
+    guildId: interaction.guildId,
+    command: interaction.commandName,
+  });
+
+  return false;
+}
+
+/**
+ * Enforce a command's default_member_permissions for prefix (and other non-Discord-gated) invocations.
+ * Slash commands are gated by Discord, but prefix commands must mirror the same requirement in code.
+ * @returns {Promise<boolean>} true when the member may proceed
+ */
+export async function enforceDefaultCommandPermissions(interaction, command, context = {}) {
+  const requiredPermissions = getCommandDefaultPermissions(command?.data);
+  if (requiredPermissions == null) {
+    return true;
+  }
+
+  const member = interaction.member;
+  if (memberMeetsCommandPermissions(member, requiredPermissions, {
+    guildConfig: context.guildConfig ?? null,
+    commandCategory: command?.category ?? null,
+  })) {
+    return true;
+  }
+
+  const commandName = command?.data?.name ?? interaction.commandName ?? 'command';
+  await replyUserError(interaction, {
+    type: ErrorTypes.PERMISSION,
+    message: 'You do not have permission to use this command.',
+    context: {
+      source: context.source ?? 'permissionGuard.enforceDefaultCommandPermissions',
+      commandName,
+      requiredPermissions: requiredPermissions.toString(),
+    },
+  });
+
+  logger.warn('[PERMISSION_DENIED] Prefix command blocked by default_member_permissions', {
+    userId: interaction.user?.id,
+    guildId: interaction.guildId,
+    command: commandName,
+    requiredPermissions: requiredPermissions.toString(),
+  });
+
+  return false;
+}
+
 export function isAdmin(member) {
   if (!member) return false;
   return member.permissions.has(PermissionFlagsBits.Administrator);
 }
 
-export function isModerator(member) {
+export function isModerator(member, guildConfig = null) {
   if (!member) return false;
+  if (memberHasConfiguredModeratorRole(member, guildConfig)) {
+    return true;
+  }
   return member.permissions.has([
     PermissionFlagsBits.Administrator,
     PermissionFlagsBits.ManageGuild
@@ -132,6 +313,12 @@ export default {
   isModerator,
   hasPermission,
   botHasPermission,
+  getCommandDefaultPermissions,
+  memberHasConfiguredModeratorRole,
+  memberHasModerationCommandAccess,
+  memberMeetsCommandPermissions,
+  checkModerationPermissions,
+  enforceDefaultCommandPermissions,
   checkUserPermissions,
   checkBotPermissions,
   auditPermissionCheck

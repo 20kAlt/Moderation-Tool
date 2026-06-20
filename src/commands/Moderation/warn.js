@@ -37,10 +37,6 @@ export default {
         }
 
         try {
-                if (!interaction.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
-                    throw new Error("You need the `Moderate Members` permission to issue warnings.");
-                }
-
                 const target = interaction.options.getUser("target");
                 const member = interaction.options.getMember("target");
                 const reason = interaction.options.getString("reason");

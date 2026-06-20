@@ -23,14 +23,6 @@ export default {
 
   async execute(interaction, config, client) {
     try {
-      if (!interaction.member.permissions.has(PermissionFlagsBits.KickMembers)) {
-        throw new TitanBotError(
-          "User lacks permission",
-          ErrorTypes.PERMISSION,
-          "You do not have permission to kick members."
-        );
-      }
-
       const targetUser = interaction.options.getUser("target");
       const member = interaction.options.getMember("target");
       const reason = interaction.options.getString("reason") || "No reason provided";

@@ -12,6 +12,7 @@ import { isCommandEnabled } from '../services/commandAccessService.js';
 import { resolveSlashAccessKey } from '../utils/messageAdapter.js';
 import { isCollectorManagedComponent } from '../utils/collectorComponents.js';
 import { ResponseCoordinator } from '../utils/responseCoordinator.js';
+import { enforceDefaultCommandPermissions } from '../utils/permissionGuard.js';
 
 function withTraceContext(context = {}, traceContext = {}) {
   return {
@@ -91,6 +92,14 @@ export default {
                   withTraceContext({ commandName: accessKey, guildId: interaction.guild.id }, interactionTraceContext)
                 );
               }
+            }
+
+            const permissionAllowed = await enforceDefaultCommandPermissions(interaction, command, {
+              source: 'interactionCreate',
+              guildConfig,
+            });
+            if (!permissionAllowed) {
+              return;
             }
 
             await command.execute(interaction, guildConfig, client);

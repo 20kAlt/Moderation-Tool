@@ -90,10 +90,6 @@ export default {
     category: "moderation",
 
     async execute(interaction, config, client) {
-        if (!interaction.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
-            return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You do not have permission to manage user notes.' });
-        }
-
         const subcommand = interaction.options.getSubcommand();
         const targetUser = interaction.options.getUser("target");
         const guildId = interaction.guild.id;

@@ -25,13 +25,6 @@ export default {
             return;
         }
 
-        if (
-            !interaction.member.permissions.has(
-                PermissionFlagsBits.ManageChannels,
-            )
-        )
-            return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need the `Manage Channels` permission to unlock channels.' });
-
         const channel = interaction.channel;
         const everyoneRole = interaction.guild.roles.everyone;
 

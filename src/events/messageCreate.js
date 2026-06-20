@@ -110,7 +110,7 @@ async function handlePrefixCommand(message, client) {
 
     logger.info(`Executing prefix command: ${prefix}${commandName} (resolved to ${resolvedCommandName}) by ${message.author.tag}`);
     
-    await executePrefixCommand(command, message, args, client, prefix);
+    await executePrefixCommand(command, message, args, client, prefix, guildConfig);
   } catch (error) {
     logger.error('Error handling prefix command:', error);
   }

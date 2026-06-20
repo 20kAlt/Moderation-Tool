@@ -29,7 +29,7 @@ export default {
         )
         .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
         .setDMPermission(false),
-    category: "Moderation",
+    category: "moderation",
 
     async execute(interaction, config, client) {
         const deferSuccess = await InteractionHelper.safeDefer(interaction);

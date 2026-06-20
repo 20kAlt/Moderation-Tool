@@ -31,6 +31,8 @@ export default {
                 .setMaxValue(50)
         ),
 
+    category: 'moderation',
+
     async execute(interaction, config, client) {
         const deferSuccess = await InteractionHelper.safeDefer(interaction);
         if (!deferSuccess) {

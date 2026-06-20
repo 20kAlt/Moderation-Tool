@@ -44,10 +44,6 @@ export default {
             return;
         }
 
-        if (!interaction.member.permissions.has(PermissionFlagsBits.BanMembers)) {
-            return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You do not have permission to ban members.' });
-        }
-
         const usersInput = interaction.options.getString("users");
         const reason = interaction.options.getString("reason") || "Mass ban - No reason provided";
         const deleteDays = interaction.options.getInteger("delete_days") || 0;
