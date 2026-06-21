@@ -13,7 +13,7 @@
 - [Manual Installation Steps](#manual-installation-steps)
 - [Support Server](https://discord.gg/QnWNz2dKCE)
 - [Required Bot Intents](#bot-intents)
-- [Contributing](#contributing)
+- [Contributing](CONTRIBUTING.md)
 
 <a name="features-overview"></a>
 ## Features Overview
@@ -243,23 +243,6 @@ TitanBot requires the following Discord intents:
 - **Ban Members**
 - **Moderate Members**
 - **Connect**
-
-<a name="contributing"></a>
-## Contributing
-
-We welcome contributions to TitanBot! Here's how you can help:
-
-1. **Fork the repository**
-2. **Create a feature branch**
-3. **Make your changes**
-4. **Test thoroughly**
-5. **Submit a pull request**
-
-### Development Guidelines
-- Follow existing code style
-- Add proper error handling
-- Include documentation for new features
-- Test with PostgreSQL and memory storage
 
 ## License
 

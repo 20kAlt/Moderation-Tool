@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
     messageHasButtonCustomId,
+    messageHasButtonCustomIdPrefix,
     getBotPanelStatus,
     getTicketPanelStatus,
 } from '../src/utils/panelStatus.js';
@@ -113,6 +114,63 @@ test('getBotPanelStatus scans channel when messageId missing or stale', async ()
 
     assert.equal(status.exists, true);
     assert.equal(status.recoveredId, 'recovered');
+});
+
+test('messageHasButtonCustomIdPrefix matches suffixed ticket buttons', () => {
+    const message = {
+        components: [
+            {
+                type: 1,
+                components: [
+                    { type: 2, custom_id: 'create_ticket:0' },
+                    { type: 2, custom_id: 'create_ticket:1' },
+                ],
+            },
+        ],
+    };
+
+    assert.equal(messageHasButtonCustomIdPrefix(message, 'create_ticket'), true);
+    assert.equal(messageHasButtonCustomIdPrefix(message, 'verify_user'), false);
+});
+
+test('getBotPanelStatus finds multi-button ticket panels via prefix', async () => {
+    const panelMessage = {
+        id: 'msg-multi',
+        author: { id: 'bot' },
+        components: [
+            {
+                type: 1,
+                components: [
+                    { type: 2, custom_id: 'create_ticket:0' },
+                    { type: 2, custom_id: 'create_ticket:1' },
+                ],
+            },
+        ],
+    };
+
+    const client = { user: { id: 'bot' } };
+    const guild = {
+        id: 'g1',
+        channels: {
+            fetch: async () => ({
+                messages: {
+                    fetch: async (idOrOpts) => {
+                        if (idOrOpts === 'msg-multi') return panelMessage;
+                        return null;
+                    },
+                },
+            }),
+        },
+    };
+
+    const status = await getBotPanelStatus(client, guild, {
+        channelId: 'ch1',
+        messageId: 'msg-multi',
+        buttonCustomIdPrefix: 'create_ticket',
+    });
+
+    assert.equal(status.exists, true);
+    assert.equal(status.message.id, 'msg-multi');
 });
 
 test('getTicketPanelStatus delegates to ticket config fields', async () => {
