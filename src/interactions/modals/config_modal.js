@@ -3,6 +3,7 @@ import { successEmbed } from '../../utils/embeds.js';
 import ConfigService from '../../services/configService.js';
 import { MessageFlags } from 'discord.js';
 import { logger } from '../../utils/logger.js';
+import { ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
 
 function extractId(value) {
     if (!value || typeof value !== 'string') return null;
@@ -103,7 +104,7 @@ export default {
             });
         } catch (error) {
             logger.error('Config modal handler error:', error);
-            await replyUserError(interaction, { type: ErrorTypes.CONFIGURATION, message: 'error.message || \'Please try again.\'' });
+            await replyUserError(interaction, { type: ErrorTypes.CONFIGURATION, message: error.message || 'Please try again.' });
         }
     },
 };

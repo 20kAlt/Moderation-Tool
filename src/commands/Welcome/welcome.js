@@ -1,9 +1,10 @@
 import { getColor } from '../../config/bot.js';
 import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, EmbedBuilder, MessageFlags } from 'discord.js';
 import { getWelcomeConfig, updateWelcomeConfig } from '../../utils/database.js';
-import { formatWelcomeMessage } from '../../utils/welcome.js';
+import { formatWelcomeMessage, truncateForEmbedField } from '../../utils/welcome.js';
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
+import { ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -65,7 +66,7 @@ export default {
             const existingConfig = await getWelcomeConfig(client, guild.id);
             if (existingConfig?.channelId) {
                 logger.info(`[Welcome] Setup blocked because config already exists in channel ${existingConfig.channelId} for guild ${guild.id}`);
-                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Welcome is already configured for <#${existingConfig.channelId}>. Use **/welcome config** to customize channel, message, ping, or image.' });
+                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `Welcome is already configured for <#${existingConfig.channelId}>. Use **/welcome config** to customize channel, message, ping, or image.` });
             }
             
             if (!message || message.trim().length === 0) {
@@ -103,7 +104,7 @@ export default {
                     .setTitle('Welcome System Configured')
                     .setDescription(`Welcome messages will now be sent to ${channel}`)
                     .addFields(
-                        { name: 'Message Preview', value: previewMessage },
+                        { name: 'Message Preview', value: truncateForEmbedField(previewMessage) },
                         { name: 'Ping User', value: ping ? 'Yes' : 'No' },
                         { name: 'Status', value: 'Enabled' }
                     )

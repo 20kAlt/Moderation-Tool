@@ -4,6 +4,7 @@ import { getWelcomeConfig, updateWelcomeConfig } from '../../utils/database.js';
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { getGuildConfig } from '../../services/guildConfig.js';
+import { ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
 
 function createAutoroleInfoEmbed(description) {
     return new EmbedBuilder()
@@ -79,7 +80,7 @@ export default {
 
                 if (currentRoleId === role.id) {
                     logger.info(`[Autorole] User ${interaction.user.tag} tried to add duplicate role ${role.name} (${role.id}) in ${guild.name}`);
-                    return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'The role ${role} is already set to be auto-assigned.' });
+                    return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `The role ${role} is already set to be auto-assigned.` });
                 }
 
                 await updateWelcomeConfig(client, guild.id, {
@@ -110,7 +111,7 @@ export default {
                 
                 if (!existingRoles.includes(role.id)) {
                     logger.info(`[Autorole] User ${interaction.user.tag} tried to remove non-existent role ${role.name} (${role.id}) in ${guild.name}`);
-                    return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: 'The role ${role} is not set to be auto-assigned.' });
+                    return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: `The role ${role} is not set to be auto-assigned.` });
                 }
 
                 const updatedRoles = existingRoles.filter(id => id !== role.id);

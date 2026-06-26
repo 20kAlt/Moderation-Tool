@@ -126,9 +126,16 @@ export async function updateCounter(client, guild, counter) {
     }
     
     const { type, channelId } = counter;
-    const channel = guild.channels.cache.get(channelId);
+    let channel = guild.channels.cache.get(channelId);
     if (!channel) {
-      logger.error('Channel not found for counter:', channelId);
+      try {
+        channel = await guild.channels.fetch(channelId);
+      } catch {
+        channel = null;
+      }
+    }
+    if (!channel) {
+      logger.warn(`Counter channel ${channelId} not found in guild ${guild.id}, skipping update`);
       return false;
     }
 

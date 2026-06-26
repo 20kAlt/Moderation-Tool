@@ -2,6 +2,7 @@ import { MessageFlags } from 'discord.js';
 import { createEmbed, successEmbed } from '../utils/embeds.js';
 import { performDeletionByCounterId } from '../commands/ServerStats/modules/serverstats_delete.js';
 import { logger } from '../utils/logger.js';
+import { ErrorTypes, replyUserError } from '../utils/errorHandler.js';
 
 export const counterDeleteActionHandler = {
   name: 'counter-delete',
@@ -52,7 +53,7 @@ export const counterDeleteActionHandler = {
       const result = await performDeletionByCounterId(client, interaction.guild, counterId);
 
       if (!result.success) {
-        await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'result.message' }).catch(logger.error);
+        await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: result.message }).catch(logger.error);
         return;
       }
 

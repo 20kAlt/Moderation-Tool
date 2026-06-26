@@ -14,6 +14,14 @@ function replaceAll(message, token, value) {
     return message.split(token).join(String(value));
 }
 
+export function truncateForEmbedField(value, maxLength = 1024) {
+    const text = String(value ?? '').trim();
+    if (!text) {
+        return '—';
+    }
+    return text.length <= maxLength ? text : `${text.slice(0, maxLength - 1)}…`;
+}
+
 export function formatWelcomeMessage(message, data) {
     
     if (typeof message !== 'string') return '';
