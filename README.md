@@ -111,7 +111,22 @@ TitanBot is fully containerized for easy deployment.
    docker-compose up -d
    ```
 
-This will start both the bot and a persistent PostgreSQL database.
+This will start the bot, PostgreSQL, and Lavalink (when music is enabled).
+
+### Music
+
+Music uses [Lavalink v4](https://github.com/lavalink-devs/Lavalink) via [Riffy](https://github.com/riffy-rb/riffy), similar to [Musicify](https://github.com/codebymitch/Musicify).
+
+1. Set in `.env`:
+   ```env
+   LAVALINK_HOST=lavalink
+   LAVALINK_PORT=2333
+   LAVALINK_PASSWORD=youshallnotpass
+   LAVALINK_SECURE=false
+   ```
+2. With Docker Compose, Lavalink is included automatically when you `docker compose up`.
+3. On Railway, deploy Lavalink separately or as another service and point `LAVALINK_HOST` at the private hostname.
+4. Use `/play <song>` from a voice channel, or `/join` to connect without playing. Prefix shortcuts: `join`, `np`, `leave`, `pause`, `resume`, `skip`, `stop`, `volume <0-100>`, or `music <subcommand>`. Use `/nowplaying` and `/queue` for status; `/music` for loop, shuffle, seek, and other controls.
 
 ### Using GitHub Container Registry
 

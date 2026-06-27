@@ -24,7 +24,15 @@ export const GLOBAL_BLOCKED_SUBCOMMAND_GROUPS = new Set([
 
 /** Per-command subcommands that stay slash-only (beyond the global block list). */
 export const COMMAND_BLOCKED_SUBCOMMANDS = {
-  serverstats: new Set(['create', 'update', 'delete']),
+  music: new Set([
+    'shuffle',
+    'loop',
+    'seek',
+    'remove',
+    'move',
+    'clear',
+    '247',
+  ]),
   birthday: new Set(['setchannel']),
   report: new Set(['setchannel']),
 };

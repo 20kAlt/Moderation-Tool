@@ -3,7 +3,6 @@ import path from "path";
 import botConfig, { validateConfig } from "./bot.js";
 import { shopConfig as shop } from "./shop/index.js";
 import { pgConfig } from "./postgres.js";
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -97,7 +96,7 @@ const appConfig = {
     community: true,                
     fun: true,                      
 
-    music: false,                   
+    music: true,
   },
 
   env: process.env.NODE_ENV || "development",
