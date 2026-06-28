@@ -54,11 +54,6 @@ TitanBot offers a complete suite of tools for Discord server management and comm
 - **Emoji Selection** - Reaction-based system
 - **Multi-role Support** - Multiple role options
 
-### Music
-- **24/7 Mode** - Play music 24/7
-- **Interative Button System** - Manage music through buttons
-- **Supports EVERY platform** - Supports spotify, deezer, youtube, apple music
-
 </td>
 <td width="50%" valign="top">
 
@@ -86,7 +81,12 @@ TitanBot offers a complete suite of tools for Discord server management and comm
 - **Welcome Messages** - Greet new members
 - **Auto Roles** - Assign roles on join
 - **Custom Embeds** - Personalized messages
-
+  
+### Music
+- **24/7 Mode** - Play music 24/7
+- **Interative Button System** - Manage music through buttons
+- **Supports EVERY platform** - Supports spotify, deezer, youtube, apple music
+  
 </td>
 </tr>
 </table>
