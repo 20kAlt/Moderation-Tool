@@ -1,7 +1,11 @@
 import { MessageFlags } from 'discord.js';
 import { successEmbed } from '../utils/embeds.js';
 import { verifyUser } from '../services/verificationService.js';
+<<<<<<< HEAD
 import { handleInteractionError } from '../utils/errorHandler.js';
+=======
+import { handleInteractionError, replyUserError, ErrorTypes } from '../utils/errorHandler.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 import { logger } from '../utils/logger.js';
 import { InteractionHelper } from '../utils/interactionHelper.js';
 
@@ -27,12 +31,17 @@ export async function handleVerificationButton(interaction, client) {
             moderatorId: null
         });
 
+<<<<<<< HEAD
         if (!result.success) {
             if (result.alreadyVerified) {
                 return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'You are already verified and have access to all server channels.' });
             }
 
             return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'An error occurred during verification. Please try again or contact an administrator.' });
+=======
+        if (result.status === 'already_verified') {
+            return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: 'You are already verified and have access to all server channels.' });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         }
 
         logger.info('User verified via button', {

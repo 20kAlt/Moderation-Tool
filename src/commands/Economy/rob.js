@@ -3,9 +3,16 @@ import { successEmbed, warningEmbed, buildUserErrorEmbed } from '../../utils/emb
 import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
+<<<<<<< HEAD
 
 const ROB_COOLDOWN = 4 * 60 * 60 * 1000;
 const BASE_ROB_SUCCESS_CHANCE = 0.25;
+=======
+import { BotConfig } from '../../config/bot.js';
+
+const ROB_COOLDOWN = BotConfig.economy?.cooldowns?.rob ?? 4 * 60 * 60 * 1000;
+const BASE_ROB_SUCCESS_CHANCE = BotConfig.economy?.robSuccessRate ?? 0.4;
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 const ROB_PERCENTAGE = 0.15;
 const FINE_PERCENTAGE = 0.1;
 
@@ -146,7 +153,11 @@ export default {
                         inline: true,
                     },
                 )
+<<<<<<< HEAD
                 .setFooter({ text: `Next robbery available in 4 hours.` });
+=======
+                .setFooter({ text: `Next robbery available in ${Math.ceil(ROB_COOLDOWN / (60 * 60 * 1000))} hours.` });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
             await InteractionHelper.safeEditReply(interaction, { embeds: [resultEmbed] });
     }, { command: 'rob' })

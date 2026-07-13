@@ -81,11 +81,18 @@ export async function verifyUser(client, guildId, userId, options = {}) {
 
         if (member.roles.cache.has(verifiedRole.id)) {
             return {
+<<<<<<< HEAD
                 success: false,
                 alreadyVerified: true,
                 message: "User already verified",
                 userId,
                 roleId: verifiedRole.id
+=======
+                status: 'already_verified',
+                userId,
+                roleId: verifiedRole.id,
+                roleName: verifiedRole.name,
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             };
         }
 
@@ -110,11 +117,18 @@ export async function verifyUser(client, guildId, userId, options = {}) {
         });
 
         return {
+<<<<<<< HEAD
             success: true,
             userId,
             roleId: verifiedRole.id,
             roleName: verifiedRole.name,
             message: "User verified successfully"
+=======
+            status: 'verified',
+            userId,
+            roleId: verifiedRole.id,
+            roleName: verifiedRole.name,
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         };
 
     } catch (error) {
@@ -350,10 +364,15 @@ export async function removeVerification(client, guildId, userId, options = {}) 
 
         if (!member.roles.cache.has(verifiedRole.id)) {
             return {
+<<<<<<< HEAD
                 success: false,
                 notVerified: true,
                 message: "User doesn't have the verified role",
                 userId
+=======
+                status: 'not_verified',
+                userId,
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             };
         }
 
@@ -377,10 +396,16 @@ export async function removeVerification(client, guildId, userId, options = {}) 
         });
 
         return {
+<<<<<<< HEAD
             success: true,
             userId,
             roleId: verifiedRole.id,
             message: "Verification removed successfully"
+=======
+            status: 'removed',
+            userId,
+            roleId: verifiedRole.id,
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         };
 
     } catch (error) {

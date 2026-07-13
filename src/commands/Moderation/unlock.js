@@ -5,6 +5,10 @@ import { logger } from '../../utils/logger.js';
 import { getColor } from '../../config/bot.js';
 
 import { InteractionHelper } from '../../utils/interactionHelper.js';
+<<<<<<< HEAD
+=======
+import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 export default {
     data: new SlashCommandBuilder()
         .setName("unlock")
@@ -36,7 +40,11 @@ export default {
                 currentPermissions.has(PermissionFlagsBits.SendMessages) ===
                     null
             ) {
+<<<<<<< HEAD
                 return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: '${channel} is not explicitly locked (everyone can already send messages).' });
+=======
+                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `${channel} is not explicitly locked (everyone can already send messages).` });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             }
 
             await channel.permissionOverwrites.edit(
@@ -48,6 +56,7 @@ export default {
 },
             );
 
+<<<<<<< HEAD
             const unlockEmbed = createEmbed(
                 "🔓 Channel Unlocked (Action Log)",
                 `${channel} has been unlocked by ${interaction.user}.`,
@@ -66,6 +75,8 @@ export default {
                     },
                 );
 
+=======
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             await logEvent({
                 client,
                 guild: interaction.guild,

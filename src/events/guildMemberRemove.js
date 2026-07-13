@@ -1,11 +1,19 @@
 import { Events, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
+<<<<<<< HEAD
 import { getColor } from '../config/bot.js';
+=======
+import { getColor, botConfig } from '../config/bot.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 import { getWelcomeConfig, getUserApplications, deleteApplication } from '../utils/database.js';
 import { formatWelcomeMessage } from '../utils/welcome.js';
 import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 import { getServerCounters, updateCounter } from '../services/serverstatsService.js';
 import { getGuildBirthdays, deleteBirthday } from '../utils/database.js';
+<<<<<<< HEAD
 import { deleteUserLevelData } from '../services/leveling.js';
+=======
+import { deleteUserLevelData } from '../services/leveling/leveling.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 import { logger } from '../utils/logger.js';
 
 export default {
@@ -31,7 +39,11 @@ export default {
 
                 const formatData = { user, guild, member };
                 const goodbyeMessage = formatWelcomeMessage(
+<<<<<<< HEAD
                     welcomeConfig.leaveMessage || welcomeConfig.leaveEmbed?.description || '{user.tag} has left the server.',
+=======
+                    welcomeConfig.leaveMessage || welcomeConfig.leaveEmbed?.description || botConfig.welcome?.defaultGoodbyeMessage || '{user} has left the server.',
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
                     formatData
                 );
 

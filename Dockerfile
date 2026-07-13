@@ -1,5 +1,6 @@
 FROM node:20-alpine
 
+<<<<<<< HEAD
 # Create app directory
 WORKDIR /usr/src/app
 
@@ -18,3 +19,17 @@ EXPOSE 3000
 
 # Start the bot
 CMD [ "npm", "start" ]
+=======
+WORKDIR /usr/src/app
+
+ENV NODE_ENV=production
+
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+COPY . .
+
+EXPOSE 3000
+
+CMD ["npm", "start"]
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)

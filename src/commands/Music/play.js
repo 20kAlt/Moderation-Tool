@@ -1,6 +1,9 @@
 import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
+<<<<<<< HEAD
 import { handleInteractionError } from '../../utils/errorHandler.js';
+=======
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 import { playQuery, replyMusicSuccess } from '../../services/music/musicActions.js';
 
 export default {
@@ -14,6 +17,7 @@ export default {
         ),
 
     async execute(interaction, config, client) {
+<<<<<<< HEAD
         try {
             await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
             const result = await playQuery(client, interaction, interaction.options.getString('query'));
@@ -21,5 +25,10 @@ export default {
         } catch (error) {
             await handleInteractionError(interaction, error, { command: 'play' });
         }
+=======
+        await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
+        const result = await playQuery(client, interaction, interaction.options.getString('query'));
+        await replyMusicSuccess(interaction, result.embed);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     },
 };

@@ -14,7 +14,11 @@ import {
   enableCommand,
   resetCategoryCommands,
 } from '../../../services/commandAccessService.js';
+<<<<<<< HEAD
 import { getGuildConfig } from '../../../services/guildConfig.js';
+=======
+import { getGuildConfig } from '../../../services/config/guildConfig.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
 export const DASHBOARD_CATEGORY_SELECT = 'cmdaccess_category';
 export const DASHBOARD_COMMAND_SELECT = 'cmdaccess_command';

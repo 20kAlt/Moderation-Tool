@@ -3,11 +3,19 @@
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
 import { logger } from '../utils/logger.js';
 import { TitanBotError, ErrorTypes } from '../utils/errorHandler.js';
+<<<<<<< HEAD
 import { getColor } from '../config/bot.js';
+=======
+import { getColor, botConfig } from '../config/bot.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 import { getEndedGiveaways, markGiveawayEnded } from '../utils/database.js';
 import { checkRateLimit, getRateLimitStatus } from '../utils/rateLimiter.js';
 import { logEvent, EVENT_TYPES } from './loggingService.js';
 
+<<<<<<< HEAD
+=======
+const GIVEAWAY_CONFIG = botConfig.giveaways || {};
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 const GIVEAWAY_INTERACTION_COOLDOWN = 1000;
 
 function getGiveawayInteractionKey(userId, giveawayId) {
@@ -71,22 +79,38 @@ export function parseDuration(durationString) {
             );
     }
 
+<<<<<<< HEAD
     const maxDuration = 30 * 24 * 60 * 60 * 1000; 
+=======
+    const maxDuration = GIVEAWAY_CONFIG.maximumDuration ?? 30 * 24 * 60 * 60 * 1000;
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     if (ms > maxDuration) {
         throw new TitanBotError(
             `Duration exceeds maximum: ${ms}ms > ${maxDuration}ms`,
             ErrorTypes.VALIDATION,
+<<<<<<< HEAD
             'Maximum duration is 30 days.',
+=======
+            `Maximum duration is ${Math.floor(maxDuration / (24 * 60 * 60 * 1000))} days.`,
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             { requestedMs: ms, maxMs: maxDuration }
         );
     }
 
+<<<<<<< HEAD
     const minDuration = 10 * 1000; 
+=======
+    const minDuration = GIVEAWAY_CONFIG.minimumDuration ?? 10 * 1000;
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     if (ms < minDuration) {
         throw new TitanBotError(
             `Duration below minimum: ${ms}ms < ${minDuration}ms`,
             ErrorTypes.VALIDATION,
+<<<<<<< HEAD
             'Minimum duration is 10 seconds.',
+=======
+            `Minimum duration is ${Math.ceil(minDuration / 1000)} seconds.`,
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             { requestedMs: ms, minMs: minDuration }
         );
     }
@@ -118,12 +142,24 @@ export function validatePrize(prize) {
 }
 
 export function validateWinnerCount(winnerCount) {
+<<<<<<< HEAD
     if (!Number.isInteger(winnerCount) || winnerCount < 1 || winnerCount > 10) {
         throw new TitanBotError(
             `Invalid winner count: ${winnerCount}`,
             ErrorTypes.VALIDATION,
             'Winner count must be between 1 and 10.',
             { winnerCount }
+=======
+    const minimumWinners = GIVEAWAY_CONFIG.minimumWinners ?? 1;
+    const maximumWinners = GIVEAWAY_CONFIG.maximumWinners ?? 10;
+
+    if (!Number.isInteger(winnerCount) || winnerCount < minimumWinners || winnerCount > maximumWinners) {
+        throw new TitanBotError(
+            `Invalid winner count: ${winnerCount}`,
+            ErrorTypes.VALIDATION,
+            `Winner count must be between ${minimumWinners} and ${maximumWinners}.`,
+            { winnerCount, minimumWinners, maximumWinners }
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         );
     }
 }
@@ -301,7 +337,10 @@ export async function endGiveaway(client, giveaway, guildId, endedBy) {
         logger.info(`Ending giveaway ${giveaway.messageId}: selected ${winners.length} winners from ${participants.length} entries`);
 
         return {
+<<<<<<< HEAD
             success: true,
+=======
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             giveaway: updatedGiveaway,
             winners: winners,
             participantCount: participants.length

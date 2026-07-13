@@ -1,6 +1,10 @@
 import { Events } from 'discord.js';
 import { logger } from '../utils/logger.js';
+<<<<<<< HEAD
 import { getGuildConfig, setGuildConfig } from '../services/guildConfig.js';
+=======
+import { getGuildConfig, setGuildConfig } from '../services/config/guildConfig.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
 export default {
   name: Events.GuildCreate,

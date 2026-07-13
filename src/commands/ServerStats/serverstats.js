@@ -9,6 +9,10 @@ import { handleUpdate } from './modules/serverstats_update.js';
 import { handleDelete } from './modules/serverstats_delete.js';
 
 import { InteractionHelper } from '../../utils/interactionHelper.js';
+<<<<<<< HEAD
+=======
+import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 export default {
     data: new SlashCommandBuilder()
         .setName("serverstats")
@@ -89,6 +93,7 @@ export default {
     async execute(interaction, guildConfig, client) {
         const subcommand = interaction.options.getSubcommand();
 
+<<<<<<< HEAD
         try {
             switch (subcommand) {
                 case "create":
@@ -120,6 +125,23 @@ export default {
             } else {
                 await interaction.followUp({ embeds: [errorEmbedMsg], flags: MessageFlags.Ephemeral }).catch(logger.error);
             }
+=======
+        switch (subcommand) {
+            case "create":
+                await handleCreate(interaction, client);
+                break;
+            case "list":
+                await handleList(interaction, client);
+                break;
+            case "update":
+                await handleUpdate(interaction, client);
+                break;
+            case "delete":
+                await handleDelete(interaction, client);
+                break;
+            default:
+                await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: 'Unknown subcommand.' });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         }
     }
 };

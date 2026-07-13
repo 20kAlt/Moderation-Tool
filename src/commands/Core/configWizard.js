@@ -18,10 +18,17 @@ import {
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { createEmbed, successEmbed, infoEmbed, warningEmbed, buildUserErrorEmbed } from '../../utils/embeds.js';
 import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
+<<<<<<< HEAD
 import { getGuildConfig, setConfigValue } from '../../services/guildConfig.js';
 import ConfigService from '../../services/configService.js';
 import { logger } from '../../utils/logger.js';
 import { botConfig } from '../../config/bot.js';
+=======
+import { getGuildConfig, setConfigValue } from '../../services/config/guildConfig.js';
+import ConfigService from '../../services/config/configService.js';
+import { logger } from '../../utils/logger.js';
+import { botConfig, getCommandPrefix } from '../../config/bot.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
 const DASHBOARD_CUSTOM_ID = 'config_select';
 const WIZARD_BUTTON_ID = 'config_wizard';
@@ -100,7 +107,11 @@ function buildDashboardEmbed(config, guild) {
         fields: [
             {
                 name: '⌨️ Server Prefix',
+<<<<<<< HEAD
                 value: `\`${config.prefix || guild.client.config.bot.prefix || '!'}\``,
+=======
+                value: `\`${config.prefix || getCommandPrefix()}\``,
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
                 inline: true,
             },
             {
@@ -300,7 +311,11 @@ async function runSetupWizard(buttonInteraction, config, guild, client, rootInte
         {
             key: 'prefix',
             skipMessage: 'Keeping the current server prefix.',
+<<<<<<< HEAD
             question: 'What command prefix should this server use?\nCurrent: `' + (config.prefix || guild.client.config.bot.prefix || '!') + '`\nReply `skip` to keep it, or `cancel` to stop.',
+=======
+            question: 'What command prefix should this server use?\nCurrent: `' + (config.prefix || getCommandPrefix()) + '`\nReply `skip` to keep it, or `cancel` to stop.',
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             parse: async (answer) => {
                 const normalized = answer.trim();
                 if (normalized.toLowerCase() === 'skip') return undefined;

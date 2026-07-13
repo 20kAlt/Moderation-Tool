@@ -1,7 +1,11 @@
 import { getColor } from '../../config/bot.js';
 import { SlashCommandBuilder, PermissionFlagsBits, PermissionsBitField, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
 import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
+<<<<<<< HEAD
 import { getGuildConfig } from '../../services/guildConfig.js';
+=======
+import { getGuildConfig, setGuildConfig } from '../../services/config/guildConfig.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { logger } from '../../utils/logger.js';
 import { handleInteractionError, replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
@@ -94,6 +98,7 @@ export default {
     category: "ticket",
 
     async execute(interaction, config, client) {
+<<<<<<< HEAD
         try {
             
             const deferred = await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
@@ -115,6 +120,27 @@ export default {
             }
 
             const subcommand = interaction.options.getSubcommand();
+=======
+        const deferred = await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
+        if (!deferred) {
+            return;
+        }
+
+        if (
+            !interaction.member.permissions.has(
+                PermissionFlagsBits.ManageChannels,
+            )
+        ) {
+            logger.warn('Ticket command permission denied', {
+                userId: interaction.user.id,
+                guildId: interaction.guildId,
+                commandName: 'ticket'
+            });
+            return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need the `Manage Channels` permission for this action.' });
+        }
+
+        const subcommand = interaction.options.getSubcommand();
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
         if (subcommand === "dashboard") {
             return ticketConfig.execute(interaction, config, client);
@@ -170,6 +196,7 @@ description: panelMessage,
                     currentConfig.maxTicketsPerUser = maxTicketsPerUser;
                     currentConfig.dmOnClose = dmOnClose;
 
+<<<<<<< HEAD
                 const { getGuildConfigKey } = await import('../../utils/database.js');
                 const configKey = getGuildConfigKey(interaction.guildId);
                 await client.db.set(configKey, currentConfig);
@@ -182,6 +209,22 @@ description: panelMessage,
                     dmOnClose: dmOnClose
                 });
             }
+=======
+                    await setGuildConfig(client, interaction.guildId, currentConfig);
+                    logger.info('Ticket configuration saved', {
+                        guildId: interaction.guildId,
+                        categoryId: categoryChannel?.id,
+                        closedCategoryId: closedCategoryChannel?.id,
+                        staffRoleId: staffRole?.id,
+                        maxTickets: maxTicketsPerUser,
+                        dmOnClose: dmOnClose,
+                    });
+                } else {
+                    logger.error('Ticket setup: database unavailable, panel sent but configuration was NOT saved', {
+                        guildId: interaction.guildId,
+                    });
+                }
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
                 let successMessage = `The ticket creation panel has been sent to ${panelChannel}.`;
                 
@@ -295,6 +338,7 @@ description: panelMessage,
                 }
             }
         }
+<<<<<<< HEAD
         } catch (error) {
             logger.error('Error executing ticket command', {
                 error: error.message,
@@ -308,5 +352,7 @@ description: panelMessage,
                 source: 'ticket_command_main'
             });
         }
+=======
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     }
 };

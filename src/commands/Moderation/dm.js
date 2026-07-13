@@ -5,6 +5,10 @@ import { logger } from '../../utils/logger.js';
 import { sanitizeMarkdown } from '../../utils/validation.js';
 
 import { InteractionHelper } from '../../utils/interactionHelper.js';
+<<<<<<< HEAD
+=======
+import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 export default {
     data: new SlashCommandBuilder()
         .setName("dm")
@@ -100,10 +104,17 @@ export default {
             logger.error('DM command error:', error);
             
 if (error.code === 50007) {
+<<<<<<< HEAD
                 return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Could not send a DM to ${targetUser.tag}. They may have DMs disabled.' });
             }
             
             return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Failed to send DM: ${error.message}' });
+=======
+                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `Could not send a DM to ${targetUser.tag}. They may have DMs disabled.` });
+            }
+            
+            return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `Failed to send DM: ${error.message}` });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         }
     }
 };

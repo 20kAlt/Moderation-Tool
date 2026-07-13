@@ -3,6 +3,10 @@
 import { PermissionFlagsBits } from 'discord.js';
 import { logger } from './logger.js';
 import { replyUserError, ErrorTypes } from './errorHandler.js';
+<<<<<<< HEAD
+=======
+import { isBotOwner, getBotMessage } from '../config/bot.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
 /**
  * Read default_member_permissions from a SlashCommandBuilder (or its JSON).
@@ -148,6 +152,13 @@ export async function checkModerationPermissions(
  * @returns {Promise<boolean>} true when the member may proceed
  */
 export async function enforceDefaultCommandPermissions(interaction, command, context = {}) {
+<<<<<<< HEAD
+=======
+  if (isBotOwner(interaction.user?.id)) {
+    return true;
+  }
+
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
   const requiredPermissions = getCommandDefaultPermissions(command?.data);
   if (requiredPermissions == null) {
     return true;
@@ -164,7 +175,11 @@ export async function enforceDefaultCommandPermissions(interaction, command, con
   const commandName = command?.data?.name ?? interaction.commandName ?? 'command';
   await replyUserError(interaction, {
     type: ErrorTypes.PERMISSION,
+<<<<<<< HEAD
     message: 'You do not have permission to use this command.',
+=======
+    message: getBotMessage('noPermission'),
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     context: {
       source: context.source ?? 'permissionGuard.enforceDefaultCommandPermissions',
       commandName,

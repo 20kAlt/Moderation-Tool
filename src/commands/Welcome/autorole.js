@@ -3,7 +3,11 @@ import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, EmbedBuilder, Me
 import { getWelcomeConfig, updateWelcomeConfig } from '../../utils/database.js';
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
+<<<<<<< HEAD
 import { getGuildConfig } from '../../services/guildConfig.js';
+=======
+import { getGuildConfig } from '../../services/config/guildConfig.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 import { ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
 
 function createAutoroleInfoEmbed(description) {

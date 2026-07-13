@@ -1,7 +1,11 @@
 // embeds.js
 
 import { EmbedBuilder } from 'discord.js';
+<<<<<<< HEAD
 import { getColor } from '../config/bot.js';
+=======
+import { getColor, botConfig } from '../config/bot.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
 const EMOJI_REGEX = /[\p{Extended_Pictographic}\uFE0F]/gu;
 const EMBED_FOOTER_SYMBOL = Symbol('titanbotFooterText');
@@ -157,6 +161,15 @@ export function createEmbed({
     } catch (error) {
       
     }
+<<<<<<< HEAD
+=======
+  } else if (botConfig.embeds?.author?.name) {
+    embed.setAuthor({
+      name: botConfig.embeds.author.name,
+      ...(botConfig.embeds.author.icon ? { iconURL: botConfig.embeds.author.icon } : {}),
+      ...(botConfig.embeds.author.url ? { url: botConfig.embeds.author.url } : {}),
+    });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
   }
 
   if (footer) {
@@ -169,6 +182,15 @@ export function createEmbed({
     } catch (error) {
       
     }
+<<<<<<< HEAD
+=======
+  } else if (botConfig.embeds?.footer?.text) {
+    const defaultFooter = {
+      text: botConfig.embeds.footer.text,
+      ...(botConfig.embeds.footer.icon ? { iconURL: botConfig.embeds.footer.icon } : {}),
+    };
+    embed.setFooter(defaultFooter);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
   }
 
   if (thumbnail) {
@@ -181,6 +203,11 @@ export function createEmbed({
     } catch (error) {
       
     }
+<<<<<<< HEAD
+=======
+  } else if (botConfig.embeds?.thumbnail) {
+    embed.setThumbnail(botConfig.embeds.thumbnail);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
   }
 
   if (image) {

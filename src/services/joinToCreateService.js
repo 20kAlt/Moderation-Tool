@@ -10,7 +10,11 @@ import {
 import { logger } from '../utils/logger.js';
 import { TitanBotError, ErrorTypes } from '../utils/errorHandler.js';
 import { logEvent, EVENT_TYPES } from './loggingService.js';
+<<<<<<< HEAD
 import { formatLogLine } from '../utils/logEmbeds.js';
+=======
+import { formatLogLine } from '../utils/logging/logEmbeds.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 import { ChannelType, PermissionFlagsBits } from 'discord.js';
 
 const CHANNEL_NAME_MAX_LENGTH = 100;

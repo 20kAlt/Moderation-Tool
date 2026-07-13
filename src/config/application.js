@@ -2,7 +2,11 @@ import { fileURLToPath } from "url";
 import path from "path";
 import botConfig, { validateConfig } from "./bot.js";
 import { shopConfig as shop } from "./shop/index.js";
+<<<<<<< HEAD
 import { pgConfig } from "./postgres.js";
+=======
+import { pgConfig } from "./database/postgres.js";
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -22,8 +26,13 @@ const appConfig = {
     ...botConfig,
     token: process.env.DISCORD_TOKEN || process.env.TOKEN,
     clientId: process.env.CLIENT_ID,
+<<<<<<< HEAD
     guildId: process.env.GUILD_ID,
     multiGuild: process.env.MULTI_GUILD === 'true',
+=======
+    // Retained for tutorial/setup compatibility; not used for command registration.
+    guildId: process.env.GUILD_ID,
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
     shop: {
       ...botConfig.shop,
@@ -73,6 +82,7 @@ const appConfig = {
   shop,
 
   features: {
+<<<<<<< HEAD
     
     economy: true,                  
     leveling: true,                 
@@ -97,6 +107,10 @@ const appConfig = {
     fun: true,                      
 
     music: true,
+=======
+    ...botConfig.features,
+    music: botConfig.features?.music ?? true,
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
   },
 
   env: process.env.NODE_ENV || "development",

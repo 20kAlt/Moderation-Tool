@@ -1,7 +1,10 @@
 import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { createEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
+<<<<<<< HEAD
 import { handleInteractionError } from '../../utils/errorHandler.js';
+=======
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 export default {
@@ -17,6 +20,7 @@ export default {
     ),
 
   async execute(interaction) {
+<<<<<<< HEAD
     try {
       const user = interaction.options.getUser("target") || interaction.user;
       const avatarUrl = user.displayAvatarURL({ size: 2048, dynamic: true });
@@ -46,5 +50,22 @@ export default {
         source: 'avatar_command'
       });
     }
+=======
+    const user = interaction.options.getUser("target") || interaction.user;
+    const avatarUrl = user.displayAvatarURL({ size: 2048, dynamic: true });
+
+    const embed = createEmbed({ 
+      title: `${user.username}'s Avatar`, 
+      description: `[Download Link](${avatarUrl})` 
+    })
+      .setImage(avatarUrl);
+
+    await InteractionHelper.safeReply(interaction, { embeds: [embed] });
+    logger.info(`Avatar command executed`, {
+      userId: interaction.user.id,
+      targetUserId: user.id,
+      guildId: interaction.guildId
+    });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
   }
 };

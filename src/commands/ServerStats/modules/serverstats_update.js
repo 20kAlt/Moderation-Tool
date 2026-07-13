@@ -4,6 +4,10 @@ import { getServerCounters, saveServerCounters, updateCounter, getCounterEmoji, 
 import { logger } from '../../../utils/logger.js';
 
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
+<<<<<<< HEAD
+=======
+import { replyUserError, ErrorTypes } from '../../../utils/errorHandler.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 export async function handleUpdate(interaction, client) {
     const guild = interaction.guild;
     const counterId = interaction.options.getString("counter-id");
@@ -31,7 +35,11 @@ export async function handleUpdate(interaction, client) {
 
         const counterIndex = counters.findIndex(c => c.id === counterId);
         if (counterIndex === -1) {
+<<<<<<< HEAD
             await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: 'Counter with ID \\`${counterId}\\` not found. Use \\`/counter list\\` to see all counters.' }).catch(logger.error);
+=======
+            await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: `Counter with ID \`${counterId}\` not found. Use \`/serverstats list\` to see all counters.` }).catch(logger.error);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             return;
         }
 
@@ -47,7 +55,11 @@ export async function handleUpdate(interaction, client) {
             const existingTypeCounter = counters.find(c => c.type === newType && c.id !== counter.id);
             if (existingTypeCounter) {
                 const existingChannel = guild.channels.cache.get(existingTypeCounter.channelId);
+<<<<<<< HEAD
                 await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: '`A **${getCounterTypeLabel(newType)}** counter already exists for this server${existingChannel ? ` in ${existingChannel}` : \'\'}. Delete it first before reusing that type.`' }).catch(logger.error);
+=======
+                await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `A **${getCounterTypeLabel(newType)}** counter already exists for this server${existingChannel ? ` in ${existingChannel}` : ''}. Delete it first before reusing that type.` }).catch(logger.error);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
                 return;
             }
         }

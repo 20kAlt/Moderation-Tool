@@ -2,7 +2,13 @@
 
 import { logger } from '../utils/logger.js';
 import { logEvent, EVENT_TYPES } from './loggingService.js';
+<<<<<<< HEAD
 import { formatLogLine } from '../utils/logEmbeds.js';
+=======
+import { formatLogLine } from '../utils/logging/logEmbeds.js';
+import { getServerCountersKey } from '../utils/database/keys.js';
+import botConfig from '../config/bot.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
 export const COUNTER_TYPE_CONFIG = {
   members: {
@@ -42,6 +48,29 @@ export function getCounterEmoji(type) {
   return getCounterConfig(type).emoji;
 }
 
+<<<<<<< HEAD
+=======
+export function formatCounterChannelName(type, count) {
+  const template = botConfig.counters?.defaults?.channelName || '{name}-{count}';
+  const baseName = getCounterBaseName(type);
+  return template
+    .replaceAll('{name}', baseName)
+    .replaceAll('{count}', String(count));
+}
+
+export function getCounterActionMessage(action, values = {}) {
+  const template = botConfig.counters?.messages?.[action];
+  if (!template) {
+    return null;
+  }
+
+  return Object.entries(values).reduce(
+    (message, [key, value]) => message.replaceAll(`{${key}}`, String(value)),
+    template,
+  );
+}
+
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 export async function getGuildCounterStats(guild) {
   let memberCollection = guild.members.cache;
 
@@ -150,7 +179,11 @@ export async function updateCounter(client, guild, counter) {
       logger.debug(`Base name: "${baseName}", Current name: "${channel.name}"`);
     }
     
+<<<<<<< HEAD
     const newName = `${baseName}: ${count}`;
+=======
+    const newName = formatCounterChannelName(type, count);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     if (process.env.NODE_ENV !== 'production') {
       logger.debug(`New name would be: "${newName}"`);
     }
@@ -204,7 +237,11 @@ export async function getServerCounters(client, guildId) {
       return [];
     }
     
+<<<<<<< HEAD
     const data = await client.db.get(`counters:${guildId}`);
+=======
+    const data = await client.db.get(getServerCountersKey(guildId));
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     
     let counters = [];
     
@@ -248,7 +285,11 @@ export async function saveServerCounters(client, guildId, counters) {
       logger.debug(`Saving ${sanitizedCounters.length} counters for guild ${guildId}:`, sanitizedCounters);
     }
 
+<<<<<<< HEAD
     await client.db.set(`counters:${guildId}`, sanitizedCounters);
+=======
+    await client.db.set(getServerCountersKey(guildId), sanitizedCounters);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     if (process.env.NODE_ENV !== 'production') {
       logger.debug('Counters saved successfully');
     }

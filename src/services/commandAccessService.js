@@ -6,7 +6,11 @@ import {
   formatCategoryName,
   getCategoryIcon,
   PROTECTED_COMMANDS,
+<<<<<<< HEAD
 } from '../config/commandCategories.js';
+=======
+} from '../config/commands/commandCategories.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
 function normalizeToggleRecord(raw) {
   if (!raw) {

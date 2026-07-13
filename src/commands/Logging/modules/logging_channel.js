@@ -4,6 +4,10 @@ import { successEmbed } from '../../../utils/embeds.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
 import { logger } from '../../../utils/logger.js';
 
+<<<<<<< HEAD
+=======
+import { replyUserError, ErrorTypes } from '../../../utils/errorHandler.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 const DESTINATION_LABELS = {
   audit: 'Audit Log',
   applications: 'Applications',
@@ -40,7 +44,11 @@ export default {
 
       const botPerms = channel.permissionsFor(interaction.guild.members.me);
       if (!botPerms?.has(['ViewChannel', 'SendMessages', 'EmbedLinks'])) {
+<<<<<<< HEAD
         return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'I need **View Channel**, **Send Messages**, and **Embed Links** in ${channel}.' });
+=======
+        return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: `I need **View Channel**, **Send Messages**, and **Embed Links** in ${channel}.` });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
       }
 
       await setLogChannel(client, interaction.guildId, destination, channel.id);

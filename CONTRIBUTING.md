@@ -7,7 +7,10 @@ Thank you for your interest in contributing to TitanBot! This guide covers local
 - Bug fixes and reliability improvements
 - New commands or enhancements to existing features
 - Documentation updates
+<<<<<<< HEAD
 - Test coverage for behavior that is easy to regress
+=======
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
 Before starting large features, open an issue or discuss in the [support server](https://discord.gg/8kJBYhTGW9) so we can align on scope and avoid duplicate work.
 
@@ -15,7 +18,11 @@ Before starting large features, open an issue or discuss in the [support server]
 
 ### Prerequisites
 
+<<<<<<< HEAD
 - **Node.js 18+** (CI uses Node 20)
+=======
+- **Node.js 20+** (Docker and CI use Node 20)
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 - **PostgreSQL** (recommended for development; the bot can fall back to in-memory storage if PostgreSQL is unavailable)
 - A **Discord bot application** with the intents listed in [README.md](README.md#required-bot-intents)
 
@@ -46,8 +53,12 @@ For Docker-based setup, see [README.md](README.md#docker-deployment-recommended)
 
 1. **Fork the repository** and create a branch from `main`.
 2. **Make focused changes** — one logical change per pull request when possible.
+<<<<<<< HEAD
 3. **Run tests** before opening a PR (see below).
 4. **Open a pull request** with a clear description of what changed and why.
+=======
+3. **Open a pull request** with a clear description of what changed and why.
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
 Use descriptive branch names, for example:
 
@@ -55,6 +66,7 @@ Use descriptive branch names, for example:
 - `feat/economy-shop-filter`
 - `docs/contributing-guide`
 
+<<<<<<< HEAD
 ## Running Tests
 
 Tests use Node's built-in test runner:
@@ -71,6 +83,8 @@ Test files live in `tests/` and follow the `*.test.js` naming pattern. When addi
 
 CI runs `npm test` on every pull request and on pushes to `main` and `master`. A separate workflow also validates database migrations against PostgreSQL when migration-related code changes.
 
+=======
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 ## Database & Migrations
 
 TitanBot uses PostgreSQL as its primary store. If PostgreSQL is unreachable at startup, the bot can operate in a **degraded in-memory mode** — but that mode is not suitable for production and should not be the only way you test persistence-related changes.
@@ -91,7 +105,11 @@ Test features that read or write guild data with **both** PostgreSQL and the mem
 
 - **Match existing style** — ES modules (`import`/`export`), async/await, and the conventions used in neighboring files.
 - **Handle errors gracefully** — catch failures, log with context, and send user-friendly embed replies where appropriate.
+<<<<<<< HEAD
 - **Avoid breaking guild isolation** — guild-specific config and data must stay scoped per server, especially when `MULTI_GUILD=true`.
+=======
+- **Avoid breaking guild isolation** — guild-specific config and data must stay scoped per server (`guild:{guildId}:...` keys, `interaction.guildId`).
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 - **Keep changes minimal** — prefer extending existing utilities and services over duplicating logic.
 - **Document user-facing behavior** — update README.md when setup steps or configuration change; mention new env vars in `.env.example`.
 

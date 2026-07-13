@@ -1,7 +1,11 @@
 import { createRequire } from 'module';
 import { GatewayDispatchEvents } from 'discord.js';
 import { logger } from '../../utils/logger.js';
+<<<<<<< HEAD
 import lavalinkConfig from '../../config/lavalink.js';
+=======
+import lavalinkConfig from '../../config/music/lavalink.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 import { setupPlayerHandler } from './playerHandler.js';
 
 const require = createRequire(import.meta.url);
@@ -9,7 +13,11 @@ const { Riffy } = require('riffy');
 
 export function initializeMusic(client) {
     if (!lavalinkConfig.nodes?.length) {
+<<<<<<< HEAD
         logger.error('No Lavalink nodes configured. Set LAVALINK_HOST (or LAVALINK_NODES) in your environment.');
+=======
+        logger.error('No Lavalink nodes configured. Add lavalink/nodes.json, set LAVALINK_NODES, or set LAVALINK_HOST in your environment.');
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         return;
     }
 

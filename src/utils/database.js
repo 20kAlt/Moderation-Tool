@@ -2,9 +2,13 @@
 
 import { pgDb } from './postgresDatabase.js';
 import { logger } from './logger.js';
+<<<<<<< HEAD
 import { BotConfig } from '../config/bot.js';
 import { normalizeGuildConfig, validateGuildConfigOrThrow } from './schemas.js';
 import { DEFAULT_GUILD_CONFIG } from './constants.js';
+=======
+import { BotConfig, getDefaultApplicationQuestions } from '../config/bot.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
 export {
     db,
@@ -17,6 +21,11 @@ export {
 export {
     getGuildConfigKey,
     getGuildBirthdaysKey,
+<<<<<<< HEAD
+=======
+    getBirthdayLeftBackupKey,
+    getBirthdayTrackingKey,
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     getTicketKey,
     getTicketCounterKey,
     getInviteTrackingKey,
@@ -24,16 +33,41 @@ export {
     getInviteUsesKey,
     getFakeAccountKey,
     getEconomyKey,
+<<<<<<< HEAD
+=======
+    getEconomyPrefix,
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     getAFKKey,
     getWelcomeConfigKey,
     getLevelingKey,
     getUserLevelKey,
+<<<<<<< HEAD
+=======
+    getUserLevelPrefix,
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     getApplicationRolesKey,
     getApplicationSettingsKey,
     getUserApplicationsKey,
     getApplicationKey,
+<<<<<<< HEAD
     getJoinToCreateConfigKey,
     getJoinToCreateChannelsKey,
+=======
+    getApplicationsPrefix,
+    getJoinToCreateConfigKey,
+    getJoinToCreateChannelsKey,
+    getWarningsKey,
+    getWarningsPrefix,
+    getUserNotesKey,
+    getUserNotesListKey,
+    getReactionRoleKey,
+    getReactionRolesPrefix,
+    getServerCountersKey,
+    getGiveawayEntryKey,
+    getGiveawayLockKey,
+    canonicalizeKey,
+    getLegacyVariantsForCanonical,
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 } from './database/keys.js';
 
 export {
@@ -61,6 +95,10 @@ import {
     getWelcomeConfigKey,
     getEconomyKey,
     getAFKKey,
+<<<<<<< HEAD
+=======
+    getUserLevelPrefix,
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 } from './database/keys.js';
 
 export async function insertVerificationAudit(record) {
@@ -107,6 +145,7 @@ export function unwrapReplitData(data) {
     return data;
 }
 
+<<<<<<< HEAD
 export async function getGuildConfig(client, guildId, context = {}) {
     try {
         if (!client.db || typeof client.db.get !== "function") {
@@ -152,6 +191,10 @@ export async function setGuildConfig(client, guildId, config, context = {}) {
         return false;
     }
 }
+=======
+// Guild config access: import from services/config/guildConfig.js only.
+// Low-level storage lives in ./database/guildConfigStorage.js
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
 export { pgDb };
 
@@ -304,7 +347,11 @@ export async function getEndedGiveaways(client) {
         }
 
         if (isPostgresSqlReady(wrapper)) {
+<<<<<<< HEAD
             const { pgConfig } = await import('../config/postgres.js');
+=======
+            const { pgConfig } = await import('../config/database/postgres.js');
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
             const result = await wrapper.db.pool.query(
                 `SELECT id, guild_id, message_id, data, ends_at 
@@ -340,7 +387,11 @@ export async function markGiveawayEnded(client, giveawayId, endedData) {
         }
 
         if (isPostgresSqlReady(wrapper)) {
+<<<<<<< HEAD
             const { pgConfig } = await import('../config/postgres.js');
+=======
+            const { pgConfig } = await import('../config/database/postgres.js');
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
             await wrapper.db.pool.query(
                 `UPDATE ${pgConfig.tables.giveaways} 
@@ -433,6 +484,14 @@ export async function getWelcomeConfig(client, guildId) {
 export async function saveWelcomeConfig(client, guildId, config) {
     const key = getWelcomeConfigKey(guildId);
     try {
+<<<<<<< HEAD
+=======
+        if (!client.db || typeof client.db.set !== 'function') {
+            logger.error('Database client is not available for saveWelcomeConfig.');
+            return false;
+        }
+
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         const existingConfig = await getWelcomeConfig(client, guildId);
         const mergedConfig = { ...existingConfig, ...config };
         
@@ -570,7 +629,11 @@ export async function getLeaderboard(client, guildId, limit = 10) {
             return [];
         }
 
+<<<<<<< HEAD
         const prefix = `guild:${guildId}:leveling:users:`;
+=======
+        const prefix = getUserLevelPrefix(guildId);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         let keys = await client.db.list(prefix);
         
         if (!Array.isArray(keys)) {
@@ -654,6 +717,7 @@ export async function saveApplicationRoles(client, guildId, roles) {
     }
 }
 
+<<<<<<< HEAD
 export async function getApplicationSettings(client, guildId) {
     if (!client.db) {
         logger.warn('Database not available for getApplicationSettings');
@@ -667,6 +731,37 @@ export async function getApplicationSettings(client, guildId) {
                 "How much time can you dedicate to this role?"
             ]
         };
+=======
+function buildApplicationSettingsDefaults() {
+    return {
+        enabled: false,
+        applicationChannelId: null,
+        logChannelId: null,
+        questions: getDefaultApplicationQuestions(),
+        roles: {
+            admin: null,
+            reviewer: null,
+            accepted: null,
+            denied: null
+        },
+        requiredRoles: [],
+        deniedRoles: [],
+        minAccountAge: 0,
+        maxApplications: 1,
+        cooldown: BotConfig.applications?.applicationCooldown ?? 7,
+        allowMultipleApplications: false,
+        requireVerification: false,
+        customWelcomeMessage: "",
+        pendingApplicationRetentionDays: 30,
+        reviewedApplicationRetentionDays: BotConfig.applications?.deleteApprovedAfter ?? 14,
+    };
+}
+
+export async function getApplicationSettings(client, guildId) {
+    if (!client.db) {
+        logger.warn('Database not available for getApplicationSettings');
+        return buildApplicationSettingsDefaults();
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     }
     
     const key = getApplicationSettingsKey(guildId);
@@ -674,6 +769,7 @@ export async function getApplicationSettings(client, guildId) {
         const settings = await client.db.get(key, {});
         const unwrapped = unwrapReplitData(settings);
         
+<<<<<<< HEAD
         const defaultSettings = {
             enabled: false,
             applicationChannelId: null,
@@ -700,10 +796,14 @@ cooldown: 7,
             pendingApplicationRetentionDays: 30,
             reviewedApplicationRetentionDays: 14
         };
+=======
+        const defaultSettings = buildApplicationSettingsDefaults();
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         
         return { ...defaultSettings, ...unwrapped };
     } catch (error) {
         logger.error(`Error getting application settings for guild ${guildId}:`, error);
+<<<<<<< HEAD
         return {
             enabled: false,
             applicationChannelId: null,
@@ -730,6 +830,9 @@ cooldown: 7,
             pendingApplicationRetentionDays: 30,
             reviewedApplicationRetentionDays: 14
         };
+=======
+        return buildApplicationSettingsDefaults();
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     }
 }
 

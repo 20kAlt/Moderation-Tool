@@ -1,11 +1,15 @@
 import { EmbedBuilder } from 'discord.js';
 import { setBirthday } from '../../../services/birthdayService.js';
+<<<<<<< HEAD
 import { logger } from '../../../utils/logger.js';
 import { handleInteractionError } from '../../../utils/errorHandler.js';
+=======
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
 export default {
     async execute(interaction, config, client) {
+<<<<<<< HEAD
         try {
             await InteractionHelper.safeDefer(interaction);
 
@@ -37,5 +41,24 @@ export default {
                 source: 'birthday_set_module'
             });
         }
+=======
+        await InteractionHelper.safeDefer(interaction);
+
+        const month = interaction.options.getInteger("month");
+        const day = interaction.options.getInteger("day");
+        const userId = interaction.user.id;
+        const guildId = interaction.guildId;
+
+        const result = await setBirthday(client, guildId, userId, month, day);
+
+        const embed = new EmbedBuilder()
+            .setColor(0x00FF00)
+            .setTitle('Birthday Set!')
+            .setDescription(`Your birthday has been set to **${result.data.monthName} ${result.data.day}**!`);
+
+        await InteractionHelper.safeEditReply(interaction, {
+            embeds: [embed]
+        });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     }
 };

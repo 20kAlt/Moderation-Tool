@@ -1,7 +1,11 @@
 import { MessageFlags, PermissionFlagsBits } from 'discord.js';
 import { successEmbed } from '../utils/embeds.js';
 import { logger } from '../utils/logger.js';
+<<<<<<< HEAD
 import { TitanBotError, ErrorTypes, handleInteractionError } from '../utils/errorHandler.js';
+=======
+import { TitanBotError, ErrorTypes, handleInteractionError, replyUserError } from '../utils/errorHandler.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 import { 
     getGuildGiveaways, 
     saveGiveaway, 

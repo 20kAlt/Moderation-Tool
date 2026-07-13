@@ -1,7 +1,11 @@
 // birthdayService.js
 
 import { getGuildConfig } from './guildConfig.js';
+<<<<<<< HEAD
 import { getGuildBirthdays, setBirthday as dbSetBirthday, deleteBirthday as dbDeleteBirthday, getMonthName } from '../utils/database.js';
+=======
+import { getGuildBirthdays, setBirthday as dbSetBirthday, deleteBirthday as dbDeleteBirthday, getMonthName, getBirthdayTrackingKey } from '../utils/database.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 import { logger } from '../utils/logger.js';
 import { TitanBotError, ErrorTypes } from '../utils/errorHandler.js';
 
@@ -82,7 +86,10 @@ export async function setBirthday(client, guildId, userId, month, day) {
     });
 
     return {
+<<<<<<< HEAD
       success: true,
+=======
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
       data: {
         month,
         day,
@@ -164,9 +171,13 @@ export async function deleteBirthday(client, guildId, userId) {
     
     if (!birthday) {
       return {
+<<<<<<< HEAD
         success: false,
         notFound: true,
         message: 'No birthday found to remove'
+=======
+        status: 'not_found',
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
       };
     }
 
@@ -187,8 +198,12 @@ export async function deleteBirthday(client, guildId, userId) {
     });
 
     return {
+<<<<<<< HEAD
       success: true,
       message: 'Birthday removed successfully'
+=======
+      status: 'removed',
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     };
   } catch (error) {
     logger.error('Error in deleteBirthday service', {
@@ -289,9 +304,16 @@ export async function checkBirthdays(client) {
       const config = await getGuildConfig(client, guildId);
       const { birthdayChannelId, birthdayRoleId } = config;
 
+<<<<<<< HEAD
       if (!birthdayChannelId || !birthdayRoleId) {
         if (process.env.NODE_ENV !== 'production') {
           logger.debug(`Skipping birthday check for ${guild.name}: Missing channel or role config.`);
+=======
+      // A channel is required for announcements; the birthday role is optional.
+      if (!birthdayChannelId) {
+        if (process.env.NODE_ENV !== 'production') {
+          logger.debug(`Skipping birthday check for ${guild.name}: Missing channel config.`);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         }
         continue;
       }
@@ -299,15 +321,27 @@ export async function checkBirthdays(client) {
       const channel = await guild.channels.fetch(birthdayChannelId).catch(() => null);
       if (!channel) continue;
 
+<<<<<<< HEAD
       const trackingKey = `bday-role-tracking-${guildId}`;
+=======
+      const trackingKey = getBirthdayTrackingKey(guildId);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
       const trackingData = (await client.db.get(trackingKey)) || {};
       const updatedTrackingData = { ...trackingData };
       
       for (const userId of Object.keys(trackingData)) {
         try {
+<<<<<<< HEAD
           const member = await guild.members.fetch(userId).catch(() => null);
           if (member && member.roles.cache.has(birthdayRoleId)) {
             await member.roles.remove(birthdayRoleId, "Birthday role expired");
+=======
+          if (birthdayRoleId) {
+            const member = await guild.members.fetch(userId).catch(() => null);
+            if (member && member.roles.cache.has(birthdayRoleId)) {
+              await member.roles.remove(birthdayRoleId, "Birthday role expired");
+            }
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
           }
           delete updatedTrackingData[userId];
         } catch (error) {
@@ -319,19 +353,34 @@ export async function checkBirthdays(client) {
         await client.db.set(trackingKey, updatedTrackingData);
       }
 
+<<<<<<< HEAD
       const birthdaysKey = `birthdays:${guildId}`;
       const birthdays = (await client.db.get(birthdaysKey)) || {};
+=======
+      // Use the canonical birthday storage (guild:<id>:birthdays) that set/remove commands write to.
+      const birthdays = (await getGuildBirthdays(client, guildId)) || {};
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
       const birthdayMembers = [];
       for (const [userId, userData] of Object.entries(birthdays)) {
         if (userData.month === currentMonth && userData.day === currentDay) {
           const member = await guild.members.fetch(userId).catch(() => null);
           if (member) {
             birthdayMembers.push(member);
+<<<<<<< HEAD
             try {
               await member.roles.add(birthdayRoleId, "Happy Birthday! 🎉");
               updatedTrackingData[userId] = true;
             } catch (error) {
                 logger.error(`Error adding birthday role to ${member.user.tag}:`, error);
+=======
+            if (birthdayRoleId) {
+              try {
+                await member.roles.add(birthdayRoleId, "Happy Birthday! 🎉");
+                updatedTrackingData[userId] = true;
+              } catch (error) {
+                  logger.error(`Error adding birthday role to ${member.user.tag}:`, error);
+              }
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             }
           }
         }

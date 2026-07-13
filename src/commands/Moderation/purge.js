@@ -5,6 +5,10 @@ import { logger } from '../../utils/logger.js';
 import { getColor } from '../../config/bot.js';
 
 import { InteractionHelper } from '../../utils/interactionHelper.js';
+<<<<<<< HEAD
+=======
+import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 export default {
     data: new SlashCommandBuilder()
     .setName("purge")
@@ -43,6 +47,7 @@ export default {
       const deleted = await channel.bulkDelete(fetched, true);
       const deletedCount = deleted.size;
 
+<<<<<<< HEAD
       const purgeEmbed = createEmbed(
         "🗑️ Messages Purged (Action Log)",
         `${deletedCount} messages were deleted by ${interaction.user}.`,
@@ -58,6 +63,8 @@ export default {
           { name: "Count", value: `${deletedCount} messages`, inline: false },
         );
 
+=======
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
       await logEvent({
         client,
         guild: interaction.guild,

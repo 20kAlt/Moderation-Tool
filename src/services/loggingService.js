@@ -9,7 +9,11 @@ import {
   buildStandardLogEmbed,
   fieldsToLines,
   splitComparisonFields,
+<<<<<<< HEAD
 } from '../utils/logEmbeds.js';
+=======
+} from '../utils/logging/logEmbeds.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
 const LOG_DESTINATIONS = ['audit', 'applications', 'reports'];
 

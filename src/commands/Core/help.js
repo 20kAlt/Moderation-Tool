@@ -174,7 +174,11 @@ export default {
                     components: [],
                 });
             } catch (error) {
+<<<<<<< HEAD
                 
+=======
+                logger.debug('Help menu close edit failed (interaction may have expired):', error?.message);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             }
         }, HELP_MENU_TIMEOUT_MS);
     },

@@ -2,9 +2,17 @@
 
 import { mapArgumentsToOptions } from './prefixParser.js';
 import { createEmbed } from './embeds.js';
+<<<<<<< HEAD
 import { logger } from './logger.js';
 import { InteractionHelper } from './interactionHelper.js';
 import { SLASH_ONLY_COMMANDS } from '../config/prefixRestrictions.js';
+=======
+import { handleInteractionError } from './errorHandler.js';
+import { logger } from './logger.js';
+import { InteractionHelper } from './interactionHelper.js';
+import { SLASH_ONLY_COMMANDS } from '../config/commands/prefixRestrictions.js';
+import { getCommandPrefix } from '../config/bot.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 import { ResponseCoordinator, buildPrefixUsage } from './responseCoordinator.js';
 import { enforceDefaultCommandPermissions } from './permissionGuard.js';
 
@@ -189,7 +197,11 @@ export function supportsPrefixExecution(command) {
 export async function executePrefixCommand(command, message, args, client, prefixOverride = null, guildConfig = null) {
   const mockInteraction = createMockInteraction(message, command.data, args);
   const coordinator = mockInteraction._responseCoordinator;
+<<<<<<< HEAD
   const prefix = prefixOverride || message.client?.config?.bot?.prefix || '!';
+=======
+  const prefix = prefixOverride || getCommandPrefix();
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
   try {
     const permissionAllowed = await enforceDefaultCommandPermissions(mockInteraction, command, {
@@ -212,6 +224,7 @@ export async function executePrefixCommand(command, message, args, client, prefi
       await command.execute(mockInteraction, guildConfig, client);
     }
   } catch (error) {
+<<<<<<< HEAD
     logger.error('Prefix command execution error:', {
       command: command.data.name,
       args,
@@ -229,5 +242,12 @@ export async function executePrefixCommand(command, message, args, client, prefi
     }
 
     throw error;
+=======
+    await handleInteractionError(mockInteraction, error, {
+      type: 'prefix_command',
+      command: command.data?.name,
+      source: 'messageAdapter.executePrefixCommand',
+    });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
   }
 }

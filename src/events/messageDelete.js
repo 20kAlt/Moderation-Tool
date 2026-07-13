@@ -2,7 +2,11 @@ import { Events } from 'discord.js';
 import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 import { logger } from '../utils/logger.js';
 import { getReactionRoleMessage, deleteReactionRoleMessage } from '../services/reactionRoleService.js';
+<<<<<<< HEAD
 import { formatLogLine } from '../utils/logEmbeds.js';
+=======
+import { formatLogLine } from '../utils/logging/logEmbeds.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
 const MAX_LOGGED_MESSAGE_CONTENT_LENGTH = 1024;
 

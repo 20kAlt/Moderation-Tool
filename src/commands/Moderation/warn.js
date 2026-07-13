@@ -2,9 +2,15 @@ import { SlashCommandBuilder, PermissionFlagsBits, PermissionsBitField, ChannelT
 import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
 import { logModerationAction } from '../../utils/moderation.js';
 import { logger } from '../../utils/logger.js';
+<<<<<<< HEAD
 import { WarningService } from '../../services/warningService.js';
 import { ModerationService } from '../../services/moderationService.js';
 import { handleInteractionError, TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
+=======
+import { WarningService } from '../../services/moderation/warningService.js';
+import { ModerationService } from '../../services/moderation/moderationService.js';
+import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 export default {
     data: new SlashCommandBuilder()
@@ -36,6 +42,7 @@ export default {
             return;
         }
 
+<<<<<<< HEAD
         try {
                 const target = interaction.options.getUser("target");
                 const member = interaction.options.getMember("target");
@@ -122,5 +129,75 @@ export default {
             logger.error('Warn command error:', error);
             await handleInteractionError(interaction, error, { subtype: 'warn_failed' });
         }
+=======
+        const target = interaction.options.getUser("target");
+        const member = interaction.options.getMember("target");
+        const reason = interaction.options.getString("reason");
+        const moderator = interaction.user;
+        const guildId = interaction.guildId;
+
+        if (!target) {
+            throw new TitanBotError(
+                'Missing target user',
+                ErrorTypes.USER_INPUT,
+                'You must specify a user to warn.',
+                { subtype: 'invalid_user' },
+            );
+        }
+
+        if (!reason) {
+            throw new TitanBotError(
+                'Missing warning reason',
+                ErrorTypes.VALIDATION,
+                'You must provide a reason for the warning.',
+                { subtype: 'missing_required' },
+            );
+        }
+
+        if (!member) {
+            throw new TitanBotError(
+                "Target not found",
+                ErrorTypes.USER_INPUT,
+                "The target user is not currently in this server."
+            );
+        }
+
+        ModerationService.assertModerationHierarchy(interaction.member, member, 'warn');
+
+        const { id, totalCount } = await WarningService.addWarning({
+            guildId,
+            userId: target.id,
+            moderatorId: moderator.id,
+            reason,
+            timestamp: Date.now()
+        });
+
+        await logModerationAction({
+            client,
+            guild: interaction.guild,
+            event: {
+                action: "User Warned",
+                target: `${target.tag} (${target.id})`,
+                executor: `${moderator.tag} (${moderator.id})`,
+                reason,
+                metadata: {
+                    userId: target.id,
+                    moderatorId: moderator.id,
+                    totalWarns: totalCount,
+                    warningNumber: totalCount,
+                    warningId: id
+                }
+            }
+        });
+
+        await InteractionHelper.safeEditReply(interaction, {
+            embeds: [
+                successEmbed(
+                    `⚠️ **Warned** ${target.tag}`,
+                    `**Reason:** ${reason}\n**Total Warns:** ${totalCount}`,
+                ),
+            ],
+        });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     }
 };

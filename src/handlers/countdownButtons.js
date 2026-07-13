@@ -1,7 +1,15 @@
+<<<<<<< HEAD
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { successEmbed } from '../utils/embeds.js';
 import { logger } from '../utils/logger.js';
 
+=======
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits } from 'discord.js';
+import { successEmbed } from '../utils/embeds.js';
+import { logger } from '../utils/logger.js';
+
+import { replyUserError, ErrorTypes } from '../utils/errorHandler.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 function createControlButtons(countdownId, isPaused = false) {
     return new ActionRowBuilder().addComponents(
         new ButtonBuilder()
@@ -112,7 +120,11 @@ async function countdownButtonHandler(interaction, client, args) {
             });
         }
 
+<<<<<<< HEAD
         if (!interaction.member.permissions.has("MANAGE_MESSAGES")) {
+=======
+        if (!interaction.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             return await interaction.reply({
                 content: 'You need the "Manage Messages" permission to control countdowns.',
                 flags: ["Ephemeral"],

@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import { getColor } from '../../../config/bot.js';
+=======
+import { getColor, getDefaultApplicationQuestions, botConfig } from '../../../config/bot.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 import {
     ActionRowBuilder,
     StringSelectMenuBuilder,
@@ -34,7 +38,11 @@ import {
     getApplications,
     deleteApplication,
 } from '../../../utils/database.js';
+<<<<<<< HEAD
 import { getGuildConfig } from '../../../services/guildConfig.js';
+=======
+import { getGuildConfig } from '../../../services/config/guildConfig.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 import { setLogChannel, resolveApplicationLogChannel, resolveLogChannel } from '../../../services/loggingService.js';
 
 async function buildDashboardEmbed(settings, roles, guild, client) {
@@ -942,12 +950,22 @@ async function handleRoleAdd(selectInteraction, rootInteraction, settings, roles
         const customName = modalSubmission.fields.getTextInputValue('role_name').trim() || role?.name || roleId;
 
         if (roles.some(r => r.roleId === roleId)) {
+<<<<<<< HEAD
             await replyUserError(modalSubmission, { type: ErrorTypes.UNKNOWN, message: '${role ?? roleId} is already an application role.' });
+=======
+            await replyUserError(modalSubmission, { type: ErrorTypes.UNKNOWN, message: `${role ?? roleId} is already an application role.` });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             return;
         }
 
         roles.push({ roleId, name: customName });
         await saveApplicationRoles(client, guildId, roles);
+<<<<<<< HEAD
+=======
+        await saveApplicationRoleSettings(client, guildId, roleId, {
+            questions: getDefaultApplicationQuestions(),
+        });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
         await modalSubmission.reply({
             embeds: [successEmbed('Role Added', `${role ?? roleId} added as **${customName}**.`)],
@@ -1004,7 +1022,11 @@ async function handleRoleRemove(selectInteraction, rootInteraction, settings, ro
         const index = roles.findIndex(r => r.roleId === roleId);
 
         if (index === -1) {
+<<<<<<< HEAD
             await replyUserError(modalSubmission, { type: ErrorTypes.USER_INPUT, message: '<@&${roleId}> is not in the application roles list.' });
+=======
+            await replyUserError(modalSubmission, { type: ErrorTypes.USER_INPUT, message: `<@&${roleId}> is not in the application roles list.` });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             return;
         }
 

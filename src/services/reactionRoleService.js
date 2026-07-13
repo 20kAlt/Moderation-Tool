@@ -2,6 +2,10 @@
 
 import { logger } from '../utils/logger.js';
 import { createError, ErrorTypes } from '../utils/errorHandler.js';
+<<<<<<< HEAD
+=======
+import { getReactionRoleKey, getReactionRolesPrefix } from '../utils/database/keys.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
 const MAX_ROLES_PER_MESSAGE = 25;
 
@@ -105,7 +109,11 @@ export async function getReactionRoleMessage(client, guildId, messageId) {
         validateGuildId(guildId);
         validateMessageId(messageId);
         
+<<<<<<< HEAD
         const key = `reaction_roles:${guildId}:${messageId}`;
+=======
+        const key = getReactionRoleKey(guildId, messageId);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         const data = await client.db.get(key);
         return data || null;
     } catch (error) {
@@ -167,7 +175,11 @@ export async function createReactionRoleMessage(client, guildId, channelId, mess
             createdAt: new Date().toISOString()
         };
         
+<<<<<<< HEAD
         const key = `reaction_roles:${guildId}:${messageId}`;
+=======
+        const key = getReactionRoleKey(guildId, messageId);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         await client.db.set(key, reactionRoleData);
         
         logger.info(`Created reaction role message ${messageId} in guild ${guildId} with ${roleIds.length} roles`);
@@ -193,7 +205,11 @@ export async function addReactionRole(client, guildId, messageId, emoji, roleId)
         validateRoleId(roleId);
         await validateRoleSafety(client, guildId, roleId);
         
+<<<<<<< HEAD
         const key = `reaction_roles:${guildId}:${messageId}`;
+=======
+        const key = getReactionRoleKey(guildId, messageId);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         const data = await getReactionRoleMessage(client, guildId, messageId) || {
             messageId,
             guildId,
@@ -225,7 +241,11 @@ export async function deleteReactionRoleMessage(client, guildId, messageId) {
         validateGuildId(guildId);
         validateMessageId(messageId);
         
+<<<<<<< HEAD
         const key = `reaction_roles:${guildId}:${messageId}`;
+=======
+        const key = getReactionRoleKey(guildId, messageId);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         const data = await getReactionRoleMessage(client, guildId, messageId);
         
         if (!data) {
@@ -256,7 +276,11 @@ export async function removeReactionRole(client, guildId, messageId, emoji) {
         validateGuildId(guildId);
         validateMessageId(messageId);
         
+<<<<<<< HEAD
         const key = `reaction_roles:${guildId}:${messageId}`;
+=======
+        const key = getReactionRoleKey(guildId, messageId);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         const data = await getReactionRoleMessage(client, guildId, messageId);
         
         if (!data || !data.roles[emoji]) {
@@ -292,7 +316,11 @@ export async function getAllReactionRoleMessages(client, guildId) {
     try {
         validateGuildId(guildId);
         
+<<<<<<< HEAD
         const prefix = `reaction_roles:${guildId}:`;
+=======
+        const prefix = getReactionRolesPrefix(guildId);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         
         let keys;
         try {
@@ -388,7 +416,11 @@ export async function setReactionRoleChannel(client, guildId, messageId, channel
             );
         }
         
+<<<<<<< HEAD
         const key = `reaction_roles:${guildId}:${messageId}`;
+=======
+        const key = getReactionRoleKey(guildId, messageId);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         const data = await getReactionRoleMessage(client, guildId, messageId) || {
             messageId,
             guildId,
@@ -447,7 +479,11 @@ export async function reconcileReactionRoleMessages(client, guildId = null) {
             if (!guild) {
                 for (const reactionRoleMessage of reactionRoleMessages) {
                     summary.scannedMessages += 1;
+<<<<<<< HEAD
                     await client.db.delete(`reaction_roles:${targetGuildId}:${reactionRoleMessage.messageId}`);
+=======
+                    await client.db.delete(getReactionRoleKey(targetGuildId, reactionRoleMessage.messageId));
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
                     summary.removedMessages += 1;
                 }
                 logger.info(`Removed ${reactionRoleMessages.length} stale reaction role message(s) for unavailable guild ${targetGuildId}`);
@@ -462,14 +498,22 @@ export async function reconcileReactionRoleMessages(client, guildId = null) {
                         || await guild.channels.fetch(reactionRoleMessage.channelId).catch(() => null);
 
                     if (!channel || !channel.isTextBased?.()) {
+<<<<<<< HEAD
                         await client.db.delete(`reaction_roles:${targetGuildId}:${reactionRoleMessage.messageId}`);
+=======
+                        await client.db.delete(getReactionRoleKey(targetGuildId, reactionRoleMessage.messageId));
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
                         summary.removedMessages += 1;
                         continue;
                     }
 
                     const message = await channel.messages.fetch(reactionRoleMessage.messageId).catch(() => null);
                     if (!message) {
+<<<<<<< HEAD
                         await client.db.delete(`reaction_roles:${targetGuildId}:${reactionRoleMessage.messageId}`);
+=======
+                        await client.db.delete(getReactionRoleKey(targetGuildId, reactionRoleMessage.messageId));
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
                         summary.removedMessages += 1;
                     }
                 } catch (messageCheckError) {

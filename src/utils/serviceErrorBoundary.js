@@ -1,6 +1,10 @@
 // serviceErrorBoundary.js
 
+<<<<<<< HEAD
 import { createError, ErrorTypes, TitanBotError } from './errorHandler.js';
+=======
+import { createError, ErrorTypes, TitanBotError, categorizeError } from './errorHandler.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 import { resolveErrorCode, getErrorMetadata } from './errorRegistry.js';
 
 function normalizeBoundaryContext(context = {}) {
@@ -11,6 +15,7 @@ function normalizeBoundaryContext(context = {}) {
   return context;
 }
 
+<<<<<<< HEAD
 function inferErrorType(error, fallbackType = ErrorTypes.UNKNOWN) {
   const message = error?.message?.toLowerCase?.() || '';
   const code = error?.code;
@@ -44,6 +49,8 @@ function inferErrorType(error, fallbackType = ErrorTypes.UNKNOWN) {
   return fallbackType;
 }
 
+=======
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 export function ensureTypedServiceError(error, options = {}) {
   if (error instanceof TitanBotError) {
     return error;
@@ -51,7 +58,12 @@ export function ensureTypedServiceError(error, options = {}) {
 
   const context = normalizeBoundaryContext(options.context);
   const fallbackType = options.type || ErrorTypes.UNKNOWN;
+<<<<<<< HEAD
   const type = inferErrorType(error, fallbackType);
+=======
+  const categorized = categorizeError(error);
+  const type = categorized === ErrorTypes.UNKNOWN ? fallbackType : categorized;
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
   const service = options.service || 'unknown_service';
   const operation = options.operation || 'unknown_operation';
   const errorCode = resolveErrorCode({
@@ -120,4 +132,8 @@ export function wrapServiceClassMethods(ServiceClass, optionsFactory) {
   }
 
   return ServiceClass;
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)

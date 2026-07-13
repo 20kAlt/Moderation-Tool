@@ -13,7 +13,11 @@ export class GuildMusicData {
         this.queuePages = new Map();
         this.updateInterval = null;
         this.idleTimeout = null;
+<<<<<<< HEAD
         this.wasPaused = false;
+=======
+        this.autoPaused = false;
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         this.stopConfirmPending = null;
     }
 }

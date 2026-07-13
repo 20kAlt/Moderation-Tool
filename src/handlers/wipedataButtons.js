@@ -3,6 +3,19 @@ import { InteractionHelper } from '../utils/interactionHelper.js';
 import { MessageFlags } from 'discord.js';
 import { logger } from '../utils/logger.js';
 
+<<<<<<< HEAD
+=======
+import { replyUserError, ErrorTypes } from '../utils/errorHandler.js';
+import {
+    getEconomyKey,
+    getUserLevelKey,
+    getAFKKey,
+    getWarningsKey,
+    getUserNotesKey,
+    getEconomyPrefix,
+    getUserLevelPrefix,
+} from '../utils/database.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 const wipedataConfirmHandler = {
   name: 'wipedata_yes',
   async execute(interaction, client) {
@@ -14,7 +27,15 @@ const wipedataConfirmHandler = {
       const guildId = interaction.guildId;
 
       const dataKeyPatterns = [
+<<<<<<< HEAD
         `economy:${guildId}:${userId}`,
+=======
+        getEconomyKey(guildId, userId),
+        getUserLevelKey(guildId, userId),
+        getAFKKey(guildId, userId),
+        getWarningsKey(guildId, userId),
+        getUserNotesKey(guildId, userId),
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         `level:${guildId}:${userId}`,
         `xp:${guildId}:${userId}`,
         `inventory:${guildId}:${userId}`,
@@ -36,6 +57,10 @@ const wipedataConfirmHandler = {
         `lastWork:${guildId}:${userId}`,
         `lastCrime:${guildId}:${userId}`,
         `lastRob:${guildId}:${userId}`,
+<<<<<<< HEAD
+=======
+        `${guildId}:leveling:users:${userId}`,
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
       ];
 
       let deletedCount = 0;
@@ -59,7 +84,12 @@ const wipedataConfirmHandler = {
           const searchPrefixes = [
             `${guildId}:${userId}`,
             `${guildId}:`,
+<<<<<<< HEAD
             `economy:${guildId}:`,
+=======
+            getEconomyPrefix(guildId),
+            getUserLevelPrefix(guildId),
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             `level:${guildId}:`,
             `xp:${guildId}:`,
             `user:${guildId}:`

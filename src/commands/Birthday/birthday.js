@@ -1,7 +1,11 @@
 import { SlashCommandBuilder, MessageFlags, ChannelType } from 'discord.js';
 import { createEmbed, successEmbed } from '../../utils/embeds.js';
+<<<<<<< HEAD
 import { logger } from '../../utils/logger.js';
 import { handleInteractionError } from '../../utils/errorHandler.js';
+=======
+import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
 import birthdaySet from './modules/birthday_set.js';
 import birthdayInfo from './modules/birthday_info.js';
@@ -76,6 +80,7 @@ export default {
         ),
 
     async execute(interaction, config, client) {
+<<<<<<< HEAD
         try {
             const subcommand = interaction.options.getSubcommand();
             
@@ -108,6 +113,25 @@ export default {
                 commandName: 'birthday',
                 source: 'birthday_command'
             });
+=======
+        const subcommand = interaction.options.getSubcommand();
+
+        switch (subcommand) {
+            case 'set':
+                return await birthdaySet.execute(interaction, config, client);
+            case 'info':
+                return await birthdayInfo.execute(interaction, config, client);
+            case 'list':
+                return await birthdayList.execute(interaction, config, client);
+            case 'remove':
+                return await birthdayRemove.execute(interaction, config, client);
+            case 'next':
+                return await nextBirthdays.execute(interaction, config, client);
+            case 'setchannel':
+                return await birthdaySetchannel.execute(interaction, config, client);
+            default:
+                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Unknown subcommand' });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         }
     }
 };

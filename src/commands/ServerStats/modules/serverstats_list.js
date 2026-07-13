@@ -5,6 +5,10 @@ import { getServerCounters, saveServerCounters, getCounterEmoji as getCounterTyp
 import { logger } from '../../../utils/logger.js';
 
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
+<<<<<<< HEAD
+=======
+import { replyUserError, ErrorTypes } from '../../../utils/errorHandler.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 export async function handleList(interaction, client) {
     const guild = interaction.guild;
 
@@ -45,7 +49,11 @@ export async function handleList(interaction, client) {
         if (validCounters.length === 0) {
             const embed = createEmbed({
                 title: "Server Counters",
+<<<<<<< HEAD
                 description: "No counters have been set up for this server yet.\n\nUse `/counter create` to set up your first counter!",
+=======
+                description: "No counters have been set up for this server yet.\n\nUse `/serverstats create` to set up your first counter!",
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
                 color: getColor('warning')
             });
 
@@ -57,7 +65,11 @@ export async function handleList(interaction, client) {
 
             embed.addFields({
                 name: "**Usage Examples**",
+<<<<<<< HEAD
                 value: "`/counter create type:members channel_type:voice category:Stats`\n`/counter create type:bots channel_type:text category:Server Info`\n`/counter list`",
+=======
+                value: "`/serverstats create type:members channel_type:voice category:Stats`\n`/serverstats create type:bots channel_type:text category:Server Info`\n`/serverstats list`",
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
                 inline: false
             });
 
@@ -106,7 +118,11 @@ export async function handleList(interaction, client) {
 
         embed.addFields({
             name: "**Management Commands**",
+<<<<<<< HEAD
             value: "`/counter create` - Create new counter\n`/counter update` - Update existing counter\n`/counter delete` - Delete counter",
+=======
+            value: "`/serverstats create` - Create new counter\n`/serverstats update` - Update existing counter\n`/serverstats delete` - Delete counter",
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             inline: false
         });
 

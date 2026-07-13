@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
+<<<<<<< HEAD
 import { getFromDb, setInDb, deleteFromDb } from '../../utils/database.js';
 import { sanitizeInput } from '../../utils/validation.js';
 
@@ -12,6 +13,13 @@ function getUserNotesKey(guildId, userId) {
 function getGuildNotesListKey(guildId) {
     return `moderation_user_notes_list_${guildId}`;
 }
+=======
+import { getFromDb, setInDb, deleteFromDb, getUserNotesKey, getUserNotesListKey } from '../../utils/database.js';
+import { sanitizeInput } from '../../utils/validation.js';
+
+import { InteractionHelper } from '../../utils/interactionHelper.js';
+import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
 export default {
     data: new SlashCommandBuilder()
@@ -206,6 +214,7 @@ async function handleViewNotes(interaction, targetUser, notes) {
 }
 
 async function handleRemoveNote(interaction, targetUser, notes, guildId) {
+<<<<<<< HEAD
 const index = interaction.options.getInteger("index") - 1;
 
     if (index < 0 || index >= notes.length) {
@@ -214,6 +223,20 @@ const index = interaction.options.getInteger("index") - 1;
 
     const removedNote = notes[index];
     notes.splice(index, 1);
+=======
+    const index = interaction.options.getInteger("index") - 1;
+
+    if (index < 0 || index >= notes.length) {
+        return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: `Please provide a valid note index (1-${notes.length}).` });
+    }
+
+    // The view command displays notes sorted newest-first, so resolve the index
+    // against the same ordering to delete the note the user actually sees.
+    const sortedNotes = [...notes].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    const removedNote = sortedNotes[index];
+    const originalIndex = notes.indexOf(removedNote);
+    notes.splice(originalIndex, 1);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
     const notesKey = getUserNotesKey(guildId, targetUser.id);
     await setInDb(notesKey, notes);

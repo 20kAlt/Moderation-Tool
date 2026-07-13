@@ -1,7 +1,11 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
+<<<<<<< HEAD
 import { handleInteractionError, TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
+=======
+import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 export default {
@@ -11,6 +15,7 @@ export default {
   category: 'Fun',
 
   async execute(interaction, config, client) {
+<<<<<<< HEAD
     try {
       const result = Math.random() < 0.5 ? "Heads" : "Tails";
       const emoji = result === "Heads" ? "🪙" : "🔮";
@@ -29,5 +34,17 @@ export default {
         source: 'flip_command'
       });
     }
+=======
+    const result = Math.random() < 0.5 ? "Heads" : "Tails";
+    const emoji = result === "Heads" ? "🪙" : "🔮";
+
+    const embed = successEmbed(
+      "Heads or Tails?",
+      `The coin landed on... **${result}** ${emoji}!`,
+    );
+
+    await InteractionHelper.safeReply(interaction, { embeds: [embed] });
+    logger.debug(`Flip command executed by user ${interaction.user.id} in guild ${interaction.guildId}`);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
   },
 };

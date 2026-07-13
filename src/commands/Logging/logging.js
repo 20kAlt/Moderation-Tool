@@ -5,6 +5,10 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 import dashboard from './modules/logging_dashboard.js';
 import channel from './modules/logging_channel.js';
 
+<<<<<<< HEAD
+=======
+import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 export default {
     data: new SlashCommandBuilder()
         .setName('logging')

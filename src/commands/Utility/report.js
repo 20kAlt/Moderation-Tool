@@ -1,6 +1,10 @@
 import { SlashCommandBuilder, ChannelType } from 'discord.js';
+<<<<<<< HEAD
 import { logger } from '../../utils/logger.js';
 import { handleInteractionError } from '../../utils/errorHandler.js';
+=======
+import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 import report from './modules/report.js';
@@ -44,6 +48,7 @@ export default {
     category: 'Utility',
 
     async execute(interaction, config, client) {
+<<<<<<< HEAD
         try {
             const subcommand = interaction.options.getSubcommand();
 
@@ -60,5 +65,18 @@ export default {
             logger.error('report command error:', error);
             await handleInteractionError(interaction, error, { commandName: 'report', source: 'report_command' });
         }
+=======
+        const subcommand = interaction.options.getSubcommand();
+
+        if (subcommand === 'file') {
+            return await report.execute(interaction, config, client);
+        }
+
+        if (subcommand === 'setchannel') {
+            return await reportSetchannel.execute(interaction, config, client);
+        }
+
+        return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Unknown subcommand.' });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     },
 };

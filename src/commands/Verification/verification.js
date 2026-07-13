@@ -1,8 +1,13 @@
 import { botConfig, getColor } from '../../config/bot.js';
 import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
 import { createEmbed, infoEmbed, successEmbed } from '../../utils/embeds.js';
+<<<<<<< HEAD
 import { getGuildConfig, setGuildConfig } from '../../services/guildConfig.js';
 import { handleInteractionError, withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
+=======
+import { getGuildConfig, setGuildConfig } from '../../services/config/guildConfig.js';
+import { withErrorHandling, createError, ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 import { removeVerification, verifyUser } from '../../services/verificationService.js';
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
@@ -225,6 +230,7 @@ async function handleSetup(interaction, guild, client) {
 
 async function handleRemove(interaction, guild, client) {
     const targetUser = interaction.options.getUser("user");
+<<<<<<< HEAD
     
     try {
         const result = await removeVerification(client, guild.id, targetUser.id, {
@@ -258,4 +264,28 @@ async function handleRemove(interaction, guild, client) {
             { command: 'verification', subcommand: 'remove' }
         );
     }
+=======
+
+    const result = await removeVerification(client, guild.id, targetUser.id, {
+        moderatorId: interaction.user.id,
+        reason: 'admin_removal'
+    });
+
+    if (result.status === 'not_verified') {
+        return await InteractionHelper.safeReply(interaction, {
+            embeds: [infoEmbed('Not Verified', `${targetUser.tag} does not currently have the verified role.`)],
+            flags: MessageFlags.Ephemeral
+        });
+    }
+
+    logger.info('Verification removed via command', {
+        guildId: guild.id,
+        targetUserId: targetUser.id,
+        moderatorId: interaction.user.id
+    });
+
+    return await InteractionHelper.safeReply(interaction, {
+        embeds: [successEmbed('Verification Removed', `Verification removed from ${targetUser.tag}.`)]
+    });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 }

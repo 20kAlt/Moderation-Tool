@@ -149,7 +149,11 @@ export async function playQuery(client, interaction, query) {
             added += 1;
         }
 
+<<<<<<< HEAD
         if (!player.playing && !player.paused && !player.current) {
+=======
+        if (!player.playing && !player.paused) {
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             player.play();
         }
 
@@ -181,16 +185,32 @@ export async function playQuery(client, interaction, query) {
         }
 
         track.info.requester = interaction.user;
+<<<<<<< HEAD
         player.queue.add(track);
 
         if (!player.playing && !player.paused && !player.current) {
+=======
+
+        const willPlayNow = !player.playing && !player.paused;
+        player.queue.add(track);
+        const queuePosition = player.queue.length;
+
+        if (willPlayNow) {
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             player.play();
         }
 
         return {
             embed: successEmbed(
+<<<<<<< HEAD
                 'Track Added',
                 `**${track.info.title}**\n${track.info.author}\nPosition: #${player.queue.length} in queue`,
+=======
+                willPlayNow ? 'Now Playing' : 'Track Added',
+                willPlayNow
+                    ? `**${track.info.title}**\n${track.info.author}`
+                    : `**${track.info.title}**\n${track.info.author}\nPosition: #${queuePosition} in queue`,
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             ),
         };
     }
@@ -205,6 +225,14 @@ export async function skipTrack(client, interaction) {
     }
     assertCanControl(interaction.member, player);
     const title = player.current.info?.title || 'Unknown';
+<<<<<<< HEAD
+=======
+    // Under track-loop, stop() would replay the same track. Clear it so the skip
+    // advances; trackStart re-applies the stored loop mode to the next track.
+    if (player.loop === 'track') {
+        player.setLoop('none');
+    }
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     player.stop();
     return successEmbed('Skipped', `Skipped **${title}**.`);
 }
@@ -244,7 +272,10 @@ export async function applyPause(client, guildId) {
     }
 
     player.pause(true);
+<<<<<<< HEAD
     getGuildMusicData(guildId).wasPaused = true;
+=======
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     await refreshPlayerMessage(client, guildId);
     return true;
 }
@@ -256,7 +287,10 @@ export async function applyResume(client, guildId) {
     }
 
     player.pause(false);
+<<<<<<< HEAD
     getGuildMusicData(guildId).wasPaused = false;
+=======
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     await refreshPlayerMessage(client, guildId);
     return true;
 }
@@ -351,7 +385,28 @@ export async function seekTrack(client, interaction, seconds) {
     }
     assertCanControl(interaction.member, player);
 
+<<<<<<< HEAD
     const position = Math.max(0, seconds * 1000);
+=======
+    const info = player.current.info || {};
+    if (info.isStream || info.isSeekable === false) {
+        throw new TitanBotError(
+            'Not seekable',
+            ErrorTypes.USER_INPUT,
+            'This track cannot be seeked (it may be a live stream).',
+        );
+    }
+
+    const position = Math.max(0, seconds * 1000);
+    if (info.length && position > info.length) {
+        throw new TitanBotError(
+            'Seek out of range',
+            ErrorTypes.USER_INPUT,
+            `You can only seek up to ${Math.floor(info.length / 1000)}s for this track.`,
+        );
+    }
+
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     player.seek(position);
     await refreshPlayerMessage(client, interaction.guild.id);
     return successEmbed('Seeked', `Seeked to **${seconds}s**.`);
@@ -371,6 +426,10 @@ export async function removeFromQueue(client, interaction, index) {
 
     const removed = player.queue[queueIndex];
     player.queue.remove(queueIndex);
+<<<<<<< HEAD
+=======
+    await refreshPlayerMessage(client, interaction.guild.id);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     return successEmbed('Removed', `Removed **${removed.info?.title || 'track'}** from the queue.`);
 }
 
@@ -390,6 +449,10 @@ export async function moveInQueue(client, interaction, from, to) {
     const track = player.queue[fromIndex];
     player.queue.remove(fromIndex);
     player.queue.splice(toIndex, 0, track);
+<<<<<<< HEAD
+=======
+    await refreshPlayerMessage(client, interaction.guild.id);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     return successEmbed('Moved', `Moved **${track.info?.title || 'track'}** to position #${to}.`);
 }
 
@@ -452,6 +515,11 @@ export async function destroyPlayerSession(client, guildId, player, guildData, {
 
     guildData.previousTracks = [];
     guildData.stopConfirmPending = null;
+<<<<<<< HEAD
+=======
+    guildData.autoPaused = false;
+    guildData.queuePages?.clear();
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
     if (guildData.playerMessageId && guildData.playerChannelId) {
         try {

@@ -1,7 +1,11 @@
 import { Events } from 'discord.js';
 import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 import { logger } from '../utils/logger.js';
+<<<<<<< HEAD
 import { buildRoleAuditLines } from '../utils/logEmbeds.js';
+=======
+import { buildRoleAuditLines } from '../utils/logging/logEmbeds.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
 export default {
   name: Events.GuildRoleCreate,

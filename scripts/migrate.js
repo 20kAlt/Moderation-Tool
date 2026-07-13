@@ -3,16 +3,39 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { logger } from '../src/utils/logger.js';
+<<<<<<< HEAD
 import { EXPECTED_SCHEMA_LABEL, EXPECTED_SCHEMA_VERSION } from '../src/config/schemaVersion.js';
+=======
+import { EXPECTED_SCHEMA_LABEL, EXPECTED_SCHEMA_VERSION } from '../src/config/database/schemaVersion.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
+<<<<<<< HEAD
+=======
+// Imported after dotenv.config so resolveSslConfig sees the loaded env vars.
+const { resolveSslConfig } = await import('../src/config/database/postgres.js');
+// The schema is the single source of truth shared with the runtime auto-create
+// path (src/utils/postgresDatabase.js), so this script can never diverge from it.
+const {
+  tableStatements,
+  indexStatements,
+  UPDATE_TIMESTAMP_FUNCTION,
+  triggerDefinitions,
+} = await import('../src/utils/database/schema.js');
+const { assertAllowlistedIdentifier, quoteIdentifier } = await import('../src/utils/sqlIdentifiers.js');
+
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 const { Pool } = pg;
 
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL,
+<<<<<<< HEAD
   ssl: false,
+=======
+  ssl: resolveSslConfig(),
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 });
 
 const migrationTable = process.env.POSTGRES_MIGRATION_TABLE || 'schema_migrations';
@@ -59,6 +82,7 @@ const getCurrentSchemaVersion = async (client) => {
 const createTables = async (client) => {
   logger.info('📊 Creating database tables...');
 
+<<<<<<< HEAD
   const tables = [
     
     `CREATE TABLE IF NOT EXISTS guild_configs (
@@ -189,6 +213,11 @@ const createTables = async (client) => {
   for (const table of tables) {
     try {
       await client.query(table);
+=======
+  for (const statement of tableStatements) {
+    try {
+      await client.query(statement);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     } catch (error) {
       logger.error(`❌ Error creating table: ${error.message}`);
       throw error;
@@ -201,6 +230,7 @@ const createTables = async (client) => {
 const createIndexes = async (client) => {
   logger.info('📈 Creating indexes...');
 
+<<<<<<< HEAD
   const indexes = [
     'CREATE INDEX IF NOT EXISTS idx_user_levels_guild ON user_levels(guild_id)',
     'CREATE INDEX IF NOT EXISTS idx_user_economy_guild ON user_economy(guild_id)',
@@ -212,6 +242,11 @@ const createIndexes = async (client) => {
   for (const index of indexes) {
     try {
       await client.query(index);
+=======
+  for (const statement of indexStatements) {
+    try {
+      await client.query(statement);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     } catch (error) {
       logger.error(`❌ Error creating index: ${error.message}`);
       throw error;
@@ -224,6 +259,7 @@ const createIndexes = async (client) => {
 const createTriggers = async (client) => {
   logger.info('⏰ Setting up automatic timestamps...');
 
+<<<<<<< HEAD
   const triggers = [
     {
       table: 'guild_configs',
@@ -283,6 +319,28 @@ const createTriggers = async (client) => {
         FOR EACH ROW
         EXECUTE FUNCTION update_timestamp_${table}();
       `);
+=======
+  await client.query(UPDATE_TIMESTAMP_FUNCTION);
+
+  const allowedTriggerIdentifiers = new Set(triggerDefinitions.map((trigger) => trigger.name));
+  const allowedTableIdentifiers = new Set(triggerDefinitions.map((trigger) => trigger.table));
+
+  for (const { name, table } of triggerDefinitions) {
+    try {
+      const safeTrigger = quoteIdentifier(
+        assertAllowlistedIdentifier(name, allowedTriggerIdentifiers, 'Trigger identifier')
+      );
+      const safeTable = quoteIdentifier(
+        assertAllowlistedIdentifier(table, allowedTableIdentifiers, 'Trigger table identifier')
+      );
+
+      await client.query(`DROP TRIGGER IF EXISTS ${safeTrigger} ON ${safeTable};`);
+      await client.query(
+        `CREATE TRIGGER ${safeTrigger}
+         BEFORE UPDATE ON ${safeTable}
+         FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();`
+      );
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     } catch (error) {
       logger.error(`❌ Error creating trigger for ${table}: ${error.message}`);
       throw error;
@@ -380,4 +438,8 @@ if (command === 'apply') {
 } else {
   logger.error(`Unknown command: ${command}. Use one of: apply, check, status`);
   process.exit(1);
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)

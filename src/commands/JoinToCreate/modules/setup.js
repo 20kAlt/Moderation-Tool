@@ -36,14 +36,22 @@ export default {
             });
 
             const embed = successEmbed(
+<<<<<<< HEAD
+=======
+                '✅ Join to Create Setup Complete',
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
                 `Created trigger channel: ${triggerChannel}\n\n` +
                 `**Settings:**\n` +
                 `• Temporary Channel Name Template: \`${nameTemplate}\`\n` +
                 `• User Limit: ${userLimit === 0 ? 'No limit' : userLimit + ' users'}\n` +
                 `• Bitrate: ${bitrate} kbps\n` +
                 `${category ?`• Category: ${category.name}`: '• Category: None (root level)'}\n\n` +
+<<<<<<< HEAD
                 `When users join this channel, a temporary voice channel will be created for them.`,
                 '✅ Join to Create Setup Complete'
+=======
+                `When users join this channel, a temporary voice channel will be created for them.`
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             );
 
             try {

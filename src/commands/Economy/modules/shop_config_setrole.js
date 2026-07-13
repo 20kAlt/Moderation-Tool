@@ -1,9 +1,17 @@
 import { PermissionsBitField } from 'discord.js';
 import { successEmbed } from '../../../utils/embeds.js';
+<<<<<<< HEAD
 import { getGuildConfig, setGuildConfig } from '../../../services/guildConfig.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
 import { logger } from '../../../utils/logger.js';
 
+=======
+import { getGuildConfig, setGuildConfig } from '../../../services/config/guildConfig.js';
+import { InteractionHelper } from '../../../utils/interactionHelper.js';
+import { logger } from '../../../utils/logger.js';
+
+import { replyUserError, ErrorTypes } from '../../../utils/errorHandler.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 export default {
     async execute(interaction, config, client) {
         if (!interaction.member.permissions.has(PermissionsBitField.Flags.ManageGuild)) {

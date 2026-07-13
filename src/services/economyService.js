@@ -204,7 +204,10 @@ class EconomyService {
       });
 
       return {
+<<<<<<< HEAD
         success: true,
+=======
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         senderNewBalance: senderData.wallet,
         receiverNewBalance: receiverData.wallet
       };

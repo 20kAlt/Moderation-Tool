@@ -61,7 +61,11 @@ function tokenize(expression) {
   while (index < expression.length) {
     const character = expression[index];
 
+<<<<<<< HEAD
     if (character === '' || character === '\t' || character === '\n') {
+=======
+    if (character === ' ' || character === '\t' || character === '\n' || character === '\r') {
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
       index += 1;
       continue;
     }

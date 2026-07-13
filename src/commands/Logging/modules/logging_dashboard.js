@@ -1,6 +1,10 @@
 import { EmbedBuilder, MessageFlags, PermissionsBitField } from 'discord.js';
 import { getColor } from '../../../config/bot.js';
+<<<<<<< HEAD
 import { getGuildConfig } from '../../../services/guildConfig.js';
+=======
+import { getGuildConfig } from '../../../services/config/guildConfig.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 import { getLoggingStatus } from '../../../services/loggingService.js';
 import {
   createLoggingDashboardComponents,
@@ -9,10 +13,18 @@ import {
   DASHBOARD_CATEGORIES,
   DASHBOARD_CATEGORY_LABELS,
   EVENT_TYPES_BY_CATEGORY,
+<<<<<<< HEAD
 } from '../../../utils/loggingUi.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
 import { logger } from '../../../utils/logger.js';
 
+=======
+} from '../../../utils/logging/loggingUi.js';
+import { InteractionHelper } from '../../../utils/interactionHelper.js';
+import { logger } from '../../../utils/logger.js';
+
+import { replyUserError, ErrorTypes } from '../../../utils/errorHandler.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 export function getCategoryStatus(enabledEvents, category, auditEnabled) {
   if (!auditEnabled) return false;
   const events = enabledEvents || {};

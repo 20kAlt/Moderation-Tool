@@ -1,9 +1,31 @@
 // postgresDatabase.js
 
 import pg from 'pg';
+<<<<<<< HEAD
 import { pgConfig, resolvePostgresPoolConfig } from '../config/postgres.js';
 import { logger } from './logger.js';
 import { assertAllowlistedIdentifier, quoteIdentifier } from './sqlIdentifiers.js';
+=======
+import { pgConfig, resolvePostgresPoolConfig } from '../config/database/postgres.js';
+import { logger } from './logger.js';
+import { assertAllowlistedIdentifier, quoteIdentifier } from './sqlIdentifiers.js';
+import {
+    canonicalizeKey,
+    getLegacyVariantsForCanonical,
+} from './database/keys.js';
+import {
+    parseKey,
+    isTempBackedType,
+    getStructuredListPlan,
+} from './database/keyParser.js';
+import { runKeyMigration } from './database/keyMigration.js';
+import {
+    tableStatements,
+    indexStatements,
+    UPDATE_TIMESTAMP_FUNCTION,
+    triggerDefinitions,
+} from './database/schema.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
 class PostgreSQLDatabase {
     constructor() {
@@ -88,6 +110,10 @@ class PostgreSQLDatabase {
                             logger.warn(
                                 `No schema version found. Bootstrapped schema ledger to version ${pgConfig.migration.expectedVersion} (${pgConfig.migration.expectedLabel}).`
                             );
+<<<<<<< HEAD
+=======
+                            await this.runStartupKeyMigration();
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
                             return true;
                         }
 
@@ -99,6 +125,10 @@ class PostgreSQLDatabase {
                     }
                 }
 
+<<<<<<< HEAD
+=======
+                await this.runStartupKeyMigration();
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
                 return true;
             } catch (error) {
                 this.lastFailureReason = error.code || 'POSTGRES_CONNECTION_FAILED';
@@ -137,6 +167,27 @@ class PostgreSQLDatabase {
         return false;
     }
 
+<<<<<<< HEAD
+=======
+    async runStartupKeyMigration() {
+        if (pgConfig.features.autoMigrate === false) {
+            return;
+        }
+
+        try {
+            const result = await runKeyMigration({ pool: this.pool, logger });
+            if (result?.alreadyDone) {
+                logger.debug('Key migration already applied, skipping.');
+            } else if (result && (result.migrated > 0 || result.errors > 0)) {
+                logger.info('Startup key migration finished', result);
+            }
+        } catch (error) {
+            // Never block startup on key migration; legacy reads still work via fallback.
+            logger.error('Startup key migration failed (continuing with legacy fallback):', error);
+        }
+    }
+
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     isAvailable() {
         return this.isConnected && this.pool;
     }
@@ -218,6 +269,7 @@ class PostgreSQLDatabase {
     }
 
     async createTables() {
+<<<<<<< HEAD
         const tables = [
             `CREATE TABLE IF NOT EXISTS ${pgConfig.tables.guilds} (
                 id VARCHAR(20) PRIMARY KEY,
@@ -384,6 +436,9 @@ class PostgreSQLDatabase {
         ];
 
         for (const table of tables) {
+=======
+        for (const table of tableStatements) {
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             try {
                 await this.pool.query(table);
             } catch (error) {
@@ -398,6 +453,7 @@ class PostgreSQLDatabase {
     }
 
     async createIndexes() {
+<<<<<<< HEAD
         const indexes = [
             `CREATE INDEX IF NOT EXISTS idx_guild_users_guild_id ON ${pgConfig.tables.guild_users}(guild_id)`,
             `CREATE INDEX IF NOT EXISTS idx_guild_users_user_id ON ${pgConfig.tables.guild_users}(user_id)`,
@@ -420,6 +476,9 @@ class PostgreSQLDatabase {
         ];
 
         for (const index of indexes) {
+=======
+        for (const index of indexStatements) {
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             try {
                 await this.pool.query(index);
             } catch (error) {
@@ -432,6 +491,7 @@ class PostgreSQLDatabase {
 
     async createAuditTriggers() {
         try {
+<<<<<<< HEAD
             const functionQuery = `
                 CREATE OR REPLACE FUNCTION update_updated_at_column()
                 RETURNS TRIGGER AS $$
@@ -459,6 +519,11 @@ class PostgreSQLDatabase {
                 { name: 'update_tickets_updated_at', table: pgConfig.tables.tickets },
                 { name: 'update_afk_status_updated_at', table: pgConfig.tables.afk_status },
             ];
+=======
+            await this.pool.query(UPDATE_TIMESTAMP_FUNCTION);
+
+            const triggers = triggerDefinitions;
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
             const allowedTriggerIdentifiers = new Set(triggers.map(trigger => trigger.name));
 
@@ -494,6 +559,38 @@ class PostgreSQLDatabase {
         }
     }
 
+<<<<<<< HEAD
+=======
+    async _getTempValue(key, defaultValue = null) {
+        const result = await this.pool.query(
+            `SELECT value FROM ${pgConfig.tables.temp_data} WHERE key = $1 AND (expires_at IS NULL OR expires_at > NOW())`,
+            [key],
+        );
+        return result.rows.length > 0 ? result.rows[0].value : defaultValue;
+    }
+
+    async _getWithLegacyFallback(canonicalKey, originalKey, defaultValue) {
+        let value = await this._getTempValue(canonicalKey, defaultValue);
+        if (value !== defaultValue) {
+            return value;
+        }
+
+        const legacyKeys = new Set([
+            ...(originalKey !== canonicalKey ? [originalKey] : []),
+            ...getLegacyVariantsForCanonical(canonicalKey),
+        ]);
+
+        for (const legacyKey of legacyKeys) {
+            value = await this._getTempValue(legacyKey, defaultValue);
+            if (value !== defaultValue) {
+                return value;
+            }
+        }
+
+        return defaultValue;
+    }
+
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     async get(key, defaultValue = null) {
         try {
             if (!this.isAvailable()) {
@@ -501,6 +598,7 @@ class PostgreSQLDatabase {
                 return defaultValue;
             }
 
+<<<<<<< HEAD
             const parsedKey = this.parseKey(key);
             
             if (parsedKey.type === 'temp') {
@@ -515,11 +613,40 @@ class PostgreSQLDatabase {
                 const result = await this.pool.query(
                     `SELECT value FROM ${pgConfig.tables.cache_data} WHERE key = $1 AND (expires_at IS NULL OR expires_at > NOW())`,
                     [parsedKey.fullKey]
+=======
+            const canonicalKey = canonicalizeKey(key);
+            const parsedKey = parseKey(canonicalKey);
+
+            if (parsedKey.type === 'temp' || isTempBackedType(parsedKey.type)) {
+                return await this._getWithLegacyFallback(parsedKey.fullKey, key, defaultValue);
+            }
+
+            if (parsedKey.type === 'cache') {
+                const result = await this.pool.query(
+                    `SELECT value FROM ${pgConfig.tables.cache_data} WHERE key = $1 AND (expires_at IS NULL OR expires_at > NOW())`,
+                    [parsedKey.fullKey],
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
                 );
                 return result.rows.length > 0 ? result.rows[0].value : defaultValue;
             }
 
+<<<<<<< HEAD
             return await this.getStructuredData(parsedKey, defaultValue);
+=======
+            const structuredValue = await this.getStructuredData(parsedKey, defaultValue);
+            if (structuredValue !== defaultValue) {
+                return structuredValue;
+            }
+
+            if (canonicalKey !== key) {
+                const legacyParsed = parseKey(key);
+                if (legacyParsed.fullKey !== parsedKey.fullKey) {
+                    return await this.getStructuredData(legacyParsed, defaultValue);
+                }
+            }
+
+            return structuredValue;
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         } catch (error) {
             logger.error(`Error getting value for key ${key}:`, error);
             return defaultValue;
@@ -533,6 +660,7 @@ class PostgreSQLDatabase {
                 return false;
             }
 
+<<<<<<< HEAD
             const parsedKey = this.parseKey(key);
             const expiresAt = ttl ? new Date(Date.now() + ttl * 1000) : null;
             const jsonValue = JSON.stringify(value ?? null);
@@ -553,6 +681,29 @@ class PostgreSQLDatabase {
                      VALUES ($1, $2, $3) 
                      ON CONFLICT (key) DO UPDATE SET value = $2, expires_at = $3`,
                     [parsedKey.fullKey, jsonValue, expiresAt]
+=======
+            const canonicalKey = canonicalizeKey(key);
+            const parsedKey = parseKey(canonicalKey);
+            const expiresAt = ttl ? new Date(Date.now() + ttl * 1000) : null;
+            const jsonValue = JSON.stringify(value ?? null);
+
+            if (parsedKey.type === 'temp' || isTempBackedType(parsedKey.type)) {
+                await this.pool.query(
+                    `INSERT INTO ${pgConfig.tables.temp_data} (key, value, expires_at)
+                     VALUES ($1, $2, $3)
+                     ON CONFLICT (key) DO UPDATE SET value = $2, expires_at = $3`,
+                    [parsedKey.fullKey, jsonValue, expiresAt],
+                );
+                return true;
+            }
+
+            if (parsedKey.type === 'cache') {
+                await this.pool.query(
+                    `INSERT INTO ${pgConfig.tables.cache_data} (key, value, expires_at)
+                     VALUES ($1, $2, $3)
+                     ON CONFLICT (key) DO UPDATE SET value = $2, expires_at = $3`,
+                    [parsedKey.fullKey, jsonValue, expiresAt],
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
                 );
                 return true;
             }
@@ -571,6 +722,7 @@ class PostgreSQLDatabase {
                 return false;
             }
 
+<<<<<<< HEAD
             const parsedKey = this.parseKey(key);
             
             if (parsedKey.type === 'temp') {
@@ -584,6 +736,31 @@ class PostgreSQLDatabase {
             }
 
             return await this.deleteStructuredData(parsedKey);
+=======
+            const canonicalKey = canonicalizeKey(key);
+            const parsedKey = parseKey(canonicalKey);
+            let deleted = false;
+
+            if (parsedKey.type === 'temp' || isTempBackedType(parsedKey.type)) {
+                await this.pool.query(`DELETE FROM ${pgConfig.tables.temp_data} WHERE key = $1`, [parsedKey.fullKey]);
+                deleted = true;
+            } else if (parsedKey.type === 'cache') {
+                await this.pool.query(`DELETE FROM ${pgConfig.tables.cache_data} WHERE key = $1`, [parsedKey.fullKey]);
+                deleted = true;
+            } else {
+                deleted = await this.deleteStructuredData(parsedKey);
+            }
+
+            for (const legacyKey of getLegacyVariantsForCanonical(canonicalKey)) {
+                await this.pool.query(`DELETE FROM ${pgConfig.tables.temp_data} WHERE key = $1`, [legacyKey]);
+            }
+
+            if (key !== canonicalKey) {
+                await this.pool.query(`DELETE FROM ${pgConfig.tables.temp_data} WHERE key = $1`, [key]);
+            }
+
+            return deleted;
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         } catch (error) {
             logger.error(`Error deleting key ${key}:`, error);
             return false;
@@ -597,6 +774,7 @@ class PostgreSQLDatabase {
                 return [];
             }
 
+<<<<<<< HEAD
             const keys = [];
             
             const tempResult = await this.pool.query(
@@ -612,6 +790,45 @@ class PostgreSQLDatabase {
             keys.push(...cacheResult.rows.map(row => row.key));
 
             return keys;
+=======
+            const keys = new Set();
+            const plan = getStructuredListPlan(prefix, pgConfig.tables);
+            const tempPrefixes = plan.tempPrefixes ?? [prefix];
+
+            for (const tempPrefix of tempPrefixes) {
+                const tempResult = await this.pool.query(
+                    `SELECT key FROM ${pgConfig.tables.temp_data} WHERE key LIKE $1 AND (expires_at IS NULL OR expires_at > NOW())`,
+                    [`${tempPrefix}%`],
+                );
+                for (const row of tempResult.rows) {
+                    keys.add(canonicalizeKey(row.key));
+                }
+            }
+
+            const cacheResult = await this.pool.query(
+                `SELECT key FROM ${pgConfig.tables.cache_data} WHERE key LIKE $1 AND (expires_at IS NULL OR expires_at > NOW())`,
+                [`${prefix}%`],
+            );
+            for (const row of cacheResult.rows) {
+                keys.add(row.key);
+            }
+
+            for (const query of plan.queries) {
+                const result = await this.pool.query(query.sql, query.params);
+                for (const row of result.rows) {
+                    keys.add(query.mapKey(row));
+                }
+            }
+
+            for (const staticKey of plan.staticKeys ?? []) {
+                if (!staticKey.startsWith(prefix)) continue;
+                if (await this.exists(staticKey)) {
+                    keys.add(staticKey);
+                }
+            }
+
+            return [...keys];
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         } catch (error) {
             logger.error(`Error listing keys with prefix ${prefix}:`, error);
             return [];
@@ -695,6 +912,7 @@ class PostgreSQLDatabase {
         }
     }
 
+<<<<<<< HEAD
     parseKey(key) {
         
         if (key.startsWith('temp:')) {
@@ -747,6 +965,8 @@ class PostgreSQLDatabase {
         return { type: 'temp', fullKey: key };
     }
 
+=======
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     async getStructuredData(parsedKey, defaultValue) {
         try {
             switch (parsedKey.type) {
@@ -789,12 +1009,30 @@ class PostgreSQLDatabase {
                     );
                     return levelingConfigResult.rows.length > 0 ? levelingConfigResult.rows[0].config : defaultValue;
                 
+<<<<<<< HEAD
                 case 'user_level':
+=======
+                case 'user_level': {
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
                     const userLevelResult = await this.pool.query(
                         `SELECT xp, level, total_xp, last_message, rank FROM ${pgConfig.tables.user_levels} WHERE guild_id = $1 AND user_id = $2`,
                         [parsedKey.guildId, parsedKey.userId]
                     );
+<<<<<<< HEAD
                     return userLevelResult.rows.length > 0 ? userLevelResult.rows[0] : defaultValue;
+=======
+                    if (userLevelResult.rows.length === 0) return defaultValue;
+                    // Map snake_case columns to the camelCase shape consumers expect
+                    const levelRow = userLevelResult.rows[0];
+                    return {
+                        xp: Number(levelRow.xp) || 0,
+                        level: Number(levelRow.level) || 0,
+                        totalXp: Number(levelRow.total_xp) || 0,
+                        lastMessage: Number(levelRow.last_message) || 0,
+                        rank: Number(levelRow.rank) || 0,
+                    };
+                }
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
                 
                 case 'economy': {
                     const economyResult = await this.pool.query(
@@ -810,12 +1048,28 @@ class PostgreSQLDatabase {
                     return { wallet: row.balance ?? 0, bank: row.bank ?? 0 };
                 }
                 
+<<<<<<< HEAD
                 case 'afk_status':
                     const afkResult = await this.pool.query(
                         `SELECT reason, status_at, expires_at FROM ${pgConfig.tables.afk_status} WHERE guild_id = $1 AND user_id = $2`,
                         [parsedKey.guildId, parsedKey.userId]
                     );
                     return afkResult.rows.length > 0 ? afkResult.rows[0] : defaultValue;
+=======
+                case 'afk_status': {
+                    const afkResult = await this.pool.query(
+                        `SELECT reason, status_at, expires_at FROM ${pgConfig.tables.afk_status} WHERE guild_id = $1 AND user_id = $2`,
+                        [parsedKey.guildId, parsedKey.userId],
+                    );
+                    if (afkResult.rows.length === 0) return defaultValue;
+                    const row = afkResult.rows[0];
+                    return {
+                        reason: row.reason,
+                        setAt: row.status_at,
+                        expiresAt: row.expires_at,
+                    };
+                }
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
                 
                 case 'ticket':
                     const ticketResult = await this.pool.query(
@@ -1004,7 +1258,11 @@ class PostgreSQLDatabase {
                          VALUES ($1, $2, $3, $4) 
                          ON CONFLICT (guild_id, user_id) DO UPDATE SET 
                          reason = $3, expires_at = $4, status_at = CURRENT_TIMESTAMP`,
+<<<<<<< HEAD
                         [parsedKey.guildId, parsedKey.userId, value.reason, value.expiresAt ? new Date(value.expiresAt) : null]
+=======
+                        [parsedKey.guildId, parsedKey.userId, value.reason, (value.expiresAt ?? value.expires_at) ? new Date(value.expiresAt ?? value.expires_at) : null]
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
                     );
                     return true;
                 
@@ -1118,6 +1376,16 @@ class PostgreSQLDatabase {
                 case 'ticket':
                     await this.pool.query(`DELETE FROM ${pgConfig.tables.tickets} WHERE guild_id = $1 AND channel_id = $2`, [parsedKey.guildId, parsedKey.channelId]);
                     return true;
+<<<<<<< HEAD
+=======
+
+                case 'counters':
+                    await this.pool.query(
+                        `UPDATE ${pgConfig.tables.guilds} SET counters = '[]'::jsonb, updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+                        [parsedKey.guildId],
+                    );
+                    return true;
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
                 
                 default:
                     return false;

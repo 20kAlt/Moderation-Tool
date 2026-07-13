@@ -4,6 +4,10 @@ import { getFromDb, setInDb } from '../utils/database.js';
 import { checkRateLimit } from '../utils/rateLimiter.js';
 import { logger } from '../utils/logger.js';
 
+<<<<<<< HEAD
+=======
+import { replyUserError, ErrorTypes } from '../utils/errorHandler.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 function buildSharedTodoViewPayload(listData, listId, guild) {
   const memberList = (listData.members || []).map(memberId => {
     const member = guild?.members?.cache?.get(memberId);
@@ -302,7 +306,11 @@ const sharedTodoCompleteModalHandler = {
       }
 
       if (task.completed) {
+<<<<<<< HEAD
         return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Task #${task.id} is already completed.' });
+=======
+        return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `Task #${task.id} is already completed.` });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
       }
       
       task.completed = true;

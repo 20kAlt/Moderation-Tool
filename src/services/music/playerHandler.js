@@ -92,6 +92,15 @@ export function setupPlayerHandler(client) {
         try {
             const guildData = getGuildMusicData(player.guildId);
 
+<<<<<<< HEAD
+=======
+            // Keep the Lavalink player's loop mode aligned with the stored preference.
+            // Skip temporarily clears track-loop so it can advance; restore it here.
+            if (guildData.loop && player.loop !== guildData.loop) {
+                player.setLoop(guildData.loop);
+            }
+
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             if (player.previous) {
                 guildData.previousTracks.push(player.previous);
                 if (guildData.previousTracks.length > 20) {
@@ -178,6 +187,10 @@ export function setupPlayerHandler(client) {
         guildData.playerMessageId = null;
         guildData.playerChannelId = null;
         guildData.previousTracks = [];
+<<<<<<< HEAD
+=======
+        guildData.autoPaused = false;
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         if (guildData.idleTimeout) {
             clearTimeout(guildData.idleTimeout);
             guildData.idleTimeout = null;

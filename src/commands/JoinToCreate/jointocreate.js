@@ -452,7 +452,11 @@ async function handleNameTemplateModal(interaction, triggerChannel, currentConfi
 
 async function handleUserLimitModal(interaction, triggerChannel, currentConfig, client) {
     try {
+<<<<<<< HEAD
         const currentLimit = currentConfig.channelConfig.userLimit ?? currentConfig.userLimit ?? 0;
+=======
+        const currentLimit = currentConfig.channelConfig?.userLimit ?? currentConfig.userLimit ?? 0;
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
         const modal = new ModalBuilder()
             .setCustomId(`jtc_limit_modal_${triggerChannel.id}`)

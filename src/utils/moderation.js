@@ -17,6 +17,10 @@ const ACTION_TO_EVENT_TYPE = {
   'Channel Locked': EVENT_TYPES.MODERATION_LOCK,
   'Channel Unlocked': EVENT_TYPES.MODERATION_UNLOCK,
   'DM Sent': EVENT_TYPES.MODERATION_DM,
+<<<<<<< HEAD
+=======
+  'Bot Message Sent': EVENT_TYPES.MODERATION_CONFIG,
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
   'Log Channel Activated': EVENT_TYPES.MODERATION_CONFIG,
   'Log Filter Updated': EVENT_TYPES.MODERATION_CONFIG,
   'Case Created': EVENT_TYPES.MODERATION_CONFIG,

@@ -1,8 +1,14 @@
 import { SlashCommandBuilder, PermissionFlagsBits, PermissionsBitField, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ComponentType, LabelBuilder, RoleSelectMenuBuilder } from 'discord.js';
 import { createEmbed, successEmbed } from '../../utils/embeds.js';
+<<<<<<< HEAD
 import { getColor } from '../../config/bot.js';
 import { logger } from '../../utils/logger.js';
 import { handleInteractionError, withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
+=======
+import { getColor, getApplicationStatusColor } from '../../config/bot.js';
+import { logger } from '../../utils/logger.js';
+import { withErrorHandling, createError, ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 import ApplicationService from '../../services/applicationService.js';
 import { 
     getApplicationSettings, 
@@ -238,7 +244,11 @@ async function handleSetup(interaction) {
 
     const existingRoles = await getApplicationRoles(interaction.client, interaction.guild.id);
     if (existingRoles.some(r => r.roleId === roleId)) {
+<<<<<<< HEAD
         await replyUserError(submitted, { type: ErrorTypes.CONFIGURATION, message: 'The role ${role} is already configured as an application.' });
+=======
+        await replyUserError(submitted, { type: ErrorTypes.CONFIGURATION, message: `The role ${role} is already configured as an application.` });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         return;
     }
 
@@ -377,6 +387,7 @@ async function handleReview(interaction) {
 
             try {
                 const user = await reasonSubmit.client.users.fetch(application.userId);
+<<<<<<< HEAD
                 const statusColor = status === "approved" ? getColor('success') : getColor('error');
                 const reviewStatus = getApplicationStatusPresentation(status);
                 const dmEmbed = createEmbed(
@@ -385,6 +396,16 @@ async function handleReview(interaction) {
                         `**Note:** ${reason}\n\n` +
                         `Use \`/apply status id:${appId}\` to view details.`
                 ).setColor(statusColor);
+=======
+                const statusColor = getApplicationStatusColor(status);
+                const reviewStatus = getApplicationStatusPresentation(status);
+                const dmEmbed = createEmbed({
+                    title: `${reviewStatus.statusEmoji} Application ${reviewStatus.statusLabel}`,
+                    description: `Your application for **${application.roleName}** has been **${status}**\n` +
+                        `**Note:** ${reason}\n\n` +
+                        `Use \`/apply status id:${appId}\` to view details.`
+                }).setColor(statusColor);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
                 await user.send({ embeds: [dmEmbed] });
             } catch (error) {
@@ -397,7 +418,11 @@ async function handleReview(interaction) {
 
             if (application.logMessageId && application.logChannelId) {
                 try {
+<<<<<<< HEAD
                     const statusColor = status === "approved" ? getColor('success') : getColor('error');
+=======
+                    const statusColor = getApplicationStatusColor(status);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
                     const logChannel = interaction.guild.channels.cache.get(
                         application.logChannelId,
                     );
@@ -542,7 +567,15 @@ async function handleList(interaction) {
 
             return InteractionHelper.safeEditReply(interaction, { embeds: [embed], flags: ["Ephemeral"] });
         } else {
+<<<<<<< HEAD
             return await replyUserError(interaction, { type: ErrorTypes.CONFIGURATION, message: '"No applications found and no application roles configured.\\n" +\n                        "Use `/app-admin roles add` to configure application roles first."' });
+=======
+            return await replyUserError(interaction, {
+                type: ErrorTypes.CONFIGURATION,
+                message: 'No applications found and no application roles configured.\n' +
+                    'Use `/app-admin roles add` to configure application roles first.'
+            });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         }
     }
 
@@ -577,6 +610,7 @@ async function handleList(interaction) {
     });
 }
 
+<<<<<<< HEAD
 export async function handleApplicationReviewModal(interaction) {
     if (!interaction.isModalSubmit()) return;
     
@@ -669,3 +703,5 @@ export async function handleApplicationReviewModal(interaction) {
         await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'An error occurred while processing the application.' });
     }
 }
+=======
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)

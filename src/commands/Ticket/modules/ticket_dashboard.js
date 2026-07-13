@@ -20,8 +20,12 @@ import { InteractionHelper } from '../../../utils/interactionHelper.js';
 import { successEmbed, infoEmbed } from '../../../utils/embeds.js';
 import { logger } from '../../../utils/logger.js';
 import { TitanBotError, ErrorTypes, replyUserError } from '../../../utils/errorHandler.js';
+<<<<<<< HEAD
 import { getGuildConfig } from '../../../services/guildConfig.js';
 import { getGuildConfigKey } from '../../../utils/database.js';
+=======
+import { getGuildConfig, setGuildConfig } from '../../../services/config/guildConfig.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 import { getGuildTicketStats } from '../../../utils/database/tickets.js';
 import { getUserTicketCount } from '../../../services/ticket.js';
 import {
@@ -76,7 +80,11 @@ async function persistPanelMessageId(client, guildId, guildConfig, messageId) {
     if (!messageId || guildConfig.ticketPanelMessageId === messageId) return;
     guildConfig.ticketPanelMessageId = messageId;
     if (client.db) {
+<<<<<<< HEAD
         await client.db.set(getGuildConfigKey(guildId), guildConfig);
+=======
+        await setGuildConfig(client, guildId, guildConfig);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     }
 }
 
@@ -379,7 +387,11 @@ async function handlePanelMessage(selectInteraction, rootInteraction, guildConfi
 
     const newMessage = submitted.fields.getTextInputValue('panel_msg_input').trim();
     guildConfig.ticketPanelMessage = newMessage;
+<<<<<<< HEAD
     await client.db.set(getGuildConfigKey(guildId), guildConfig);
+=======
+    await setGuildConfig(client, guildId, guildConfig);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
     const panelUpdated = await updateLivePanel(client, rootInteraction.guild, guildConfig, guildId);
 
@@ -432,7 +444,11 @@ async function handleButtonLabel(selectInteraction, rootInteraction, guildConfig
 
     const newLabel = submitted.fields.getTextInputValue('btn_label_input').trim();
     guildConfig.ticketButtonLabel = newLabel;
+<<<<<<< HEAD
     await client.db.set(getGuildConfigKey(guildId), guildConfig);
+=======
+    await setGuildConfig(client, guildId, guildConfig);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
     const panelUpdated = await updateLivePanel(client, rootInteraction.guild, guildConfig, guildId);
 
@@ -489,7 +505,11 @@ async function handleStaffRole(selectInteraction, rootInteraction, guildConfig, 
         const role = roleInteraction.roles.first();
 
         guildConfig.ticketStaffRoleId = role.id;
+<<<<<<< HEAD
         await client.db.set(getGuildConfigKey(guildId), guildConfig);
+=======
+        await setGuildConfig(client, guildId, guildConfig);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
         await roleInteraction.followUp({
             embeds: [successEmbed('Staff Role Updated', `Staff role set to ${role}.`)],
@@ -544,7 +564,11 @@ async function handleOpenCategory(selectInteraction, rootInteraction, guildConfi
         const category = catInteraction.channels.first();
 
         guildConfig.ticketCategoryId = category.id;
+<<<<<<< HEAD
         await client.db.set(getGuildConfigKey(guildId), guildConfig);
+=======
+        await setGuildConfig(client, guildId, guildConfig);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
         await catInteraction.followUp({
             embeds: [
@@ -604,7 +628,11 @@ async function handleClosedCategory(selectInteraction, rootInteraction, guildCon
         const category = catInteraction.channels.first();
 
         guildConfig.ticketClosedCategoryId = category.id;
+<<<<<<< HEAD
         await client.db.set(getGuildConfigKey(guildId), guildConfig);
+=======
+        await setGuildConfig(client, guildId, guildConfig);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
         await catInteraction.followUp({
             embeds: [
@@ -671,7 +699,11 @@ async function handleMaxTickets(selectInteraction, rootInteraction, guildConfig,
     }
 
     guildConfig.maxTicketsPerUser = newMax;
+<<<<<<< HEAD
     await client.db.set(getGuildConfigKey(guildId), guildConfig);
+=======
+    await setGuildConfig(client, guildId, guildConfig);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
     await submitted.reply({
         embeds: [
@@ -691,7 +723,11 @@ async function handleDmOnClose(btnInteraction, rootInteraction, guildConfig, gui
 
     const newState = guildConfig.dmOnClose === false;
     guildConfig.dmOnClose = newState;
+<<<<<<< HEAD
     await client.db.set(getGuildConfigKey(guildId), guildConfig);
+=======
+    await setGuildConfig(client, guildId, guildConfig);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
     await btnInteraction.followUp({
         embeds: [
@@ -738,7 +774,11 @@ async function handleLogsChannel(selectInteraction, rootInteraction, guildConfig
         const channel = channelInteraction.channels.first();
 
         guildConfig.ticketLogsChannelId = channel.id;
+<<<<<<< HEAD
         await client.db.set(getGuildConfigKey(guildId), guildConfig);
+=======
+        await setGuildConfig(client, guildId, guildConfig);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
         await channelInteraction.followUp({
             embeds: [successEmbed('Logs Channel Updated', `Ticket logs will be sent to ${channel}`)],
@@ -790,7 +830,11 @@ async function handleTranscriptChannel(selectInteraction, rootInteraction, guild
         const channel = channelInteraction.channels.first();
 
         guildConfig.ticketTranscriptChannelId = channel.id;
+<<<<<<< HEAD
         await client.db.set(getGuildConfigKey(guildId), guildConfig);
+=======
+        await setGuildConfig(client, guildId, guildConfig);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
         await channelInteraction.followUp({
             embeds: [successEmbed('Transcript Channel Updated', `Transcripts will be sent to ${channel}`)],
@@ -982,7 +1026,11 @@ async function handleDeleteSystem(btnInteraction, rootInteraction, guildConfig, 
     }
 
     try {
+<<<<<<< HEAD
         const { pgConfig } = await import('../../../config/postgres.js');
+=======
+        const { pgConfig } = await import('../../../config/database/postgres.js');
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         if (client.db?.db?.pool && typeof client.db.db.isAvailable === 'function' && client.db.db.isAvailable()) {
             await client.db.db.pool.query(
                 `DELETE FROM ${pgConfig.tables.tickets} WHERE guild_id = $1`,
@@ -996,7 +1044,11 @@ async function handleDeleteSystem(btnInteraction, rootInteraction, guildConfig, 
     for (const key of keysToDelete) {
         delete guildConfig[key];
     }
+<<<<<<< HEAD
     await client.db.set(getGuildConfigKey(guildId), guildConfig);
+=======
+    await setGuildConfig(client, guildId, guildConfig);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
     await submitted.followUp({
         embeds: [

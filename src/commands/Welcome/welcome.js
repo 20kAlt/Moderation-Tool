@@ -66,7 +66,11 @@ export default {
             const existingConfig = await getWelcomeConfig(client, guild.id);
             if (existingConfig?.channelId) {
                 logger.info(`[Welcome] Setup blocked because config already exists in channel ${existingConfig.channelId} for guild ${guild.id}`);
+<<<<<<< HEAD
                 return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `Welcome is already configured for <#${existingConfig.channelId}>. Use **/welcome config** to customize channel, message, ping, or image.` });
+=======
+                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `Welcome is already configured for <#${existingConfig.channelId}>. Use **/greet dashboard** to customize channel, message, ping, or image.` });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             }
             
             if (!message || message.trim().length === 0) {
@@ -108,7 +112,11 @@ export default {
                         { name: 'Ping User', value: ping ? 'Yes' : 'No' },
                         { name: 'Status', value: 'Enabled' }
                     )
+<<<<<<< HEAD
                     .setFooter({ text: 'Tip: Use /welcome config to customize welcome settings' });
+=======
+                    .setFooter({ text: 'Tip: Use /greet dashboard to customize welcome settings' });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
                 if (image) {
                     embed.setImage(image);

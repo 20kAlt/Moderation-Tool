@@ -1,5 +1,6 @@
 import { Events } from 'discord.js';
 import { logger } from '../utils/logger.js';
+<<<<<<< HEAD
 import { getLevelingConfig, getUserLevelData } from '../services/leveling.js';
 import { addXp } from '../services/xpSystem.js';
 import { checkRateLimit } from '../utils/rateLimiter.js';
@@ -8,6 +9,17 @@ import { supportsPrefixExecution, executePrefixCommand, resolvePrefixAccessKey }
 import { resolveCommandAlias, resolveSubcommandAlias } from '../config/commandAliases.js';
 import { getPrefixRestriction } from '../config/prefixRestrictions.js';
 import { getGuildConfig } from '../services/guildConfig.js';
+=======
+import { getLevelingConfig, getUserLevelData } from '../services/leveling/leveling.js';
+import { addXp } from '../services/leveling/xpSystem.js';
+import { checkRateLimit } from '../utils/rateLimiter.js';
+import { parsePrefixCommand } from '../utils/prefixParser.js';
+import { supportsPrefixExecution, executePrefixCommand, resolvePrefixAccessKey } from '../utils/messageAdapter.js';
+import { resolveCommandAlias, resolveSubcommandAlias } from '../config/commands/commandAliases.js';
+import { getPrefixRestriction } from '../config/commands/prefixRestrictions.js';
+import { getGuildConfig } from '../services/config/guildConfig.js';
+import { getCommandPrefix, getBotMessage, isBotOwner, isCommandCategoryEnabled, isMaintenanceMode } from '../config/bot.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 import { enforceAbuseProtection, formatCooldownDuration } from '../utils/abuseProtection.js';
 import { createEmbed } from '../utils/embeds.js';
 import { isCommandEnabled } from '../services/commandAccessService.js';
@@ -46,7 +58,11 @@ export default {
 async function handlePrefixCommand(message, client) {
   try {
     const guildConfig = await getGuildConfig(client, message.guild.id);
+<<<<<<< HEAD
     const prefix = guildConfig?.prefix || client.config.bot.prefix || '!';
+=======
+    const prefix = guildConfig?.prefix || getCommandPrefix();
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     const parsed = parsePrefixCommand(message.content, prefix);
     
     if (!parsed) {
@@ -72,6 +88,31 @@ async function handlePrefixCommand(message, client) {
       return; 
     }
 
+<<<<<<< HEAD
+=======
+    if (isMaintenanceMode() && !isBotOwner(message.author.id)) {
+      await message.channel.send({
+        embeds: [createEmbed({
+          title: 'Maintenance Mode',
+          description: getBotMessage('maintenanceMode'),
+          color: 'warning',
+        })],
+      }).catch(() => {});
+      return;
+    }
+
+    if (!isCommandCategoryEnabled(command.category)) {
+      await message.channel.send({
+        embeds: [createEmbed({
+          title: 'Feature Disabled',
+          description: getBotMessage('commandDisabled'),
+          color: 'error',
+        })],
+      }).catch(() => {});
+      return;
+    }
+
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     const restriction = getPrefixRestriction(command, args, resolveSubcommandAlias);
     if (!supportsPrefixExecution(command) || restriction.blocked) {
       if (restriction.blocked && restriction.reason) {
@@ -218,8 +259,13 @@ async function handleLeveling(message, client) {
     }
 
     const result = await addXp(client, message.guild, message.member, finalXP);
+<<<<<<< HEAD
     
     if (result.success && result.leveledUp) {
+=======
+
+    if (result?.leveledUp) {
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
       logger.info(
         `${message.author.tag} leveled up to level ${result.level} in ${message.guild.name}`
       );

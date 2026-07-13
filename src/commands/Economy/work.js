@@ -4,10 +4,18 @@ import { getEconomyData, setEconomyData } from '../../utils/economy.js';
 import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
+<<<<<<< HEAD
 
 const WORK_COOLDOWN = 30 * 60 * 1000;
 const MIN_WORK_AMOUNT = 50;
 const MAX_WORK_AMOUNT = 300;
+=======
+import { botConfig } from '../../config/bot.js';
+
+const WORK_COOLDOWN = botConfig.economy?.cooldowns?.work ?? 30 * 60 * 1000;
+const MIN_WORK_AMOUNT = botConfig.economy?.workMin ?? 10;
+const MAX_WORK_AMOUNT = botConfig.economy?.workMax ?? 100;
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 const LAPTOP_MULTIPLIER = 1.5;
 const WORK_JOBS = [
     "Software Developer",

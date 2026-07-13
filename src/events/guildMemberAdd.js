@@ -1,6 +1,11 @@
 import { Events, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
+<<<<<<< HEAD
 import { getColor } from '../config/bot.js';
 import { getGuildConfig } from '../services/guildConfig.js';
+=======
+import { getColor, botConfig } from '../config/bot.js';
+import { getGuildConfig } from '../services/config/guildConfig.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 import { getWelcomeConfig } from '../utils/database.js';
 import { formatWelcomeMessage } from '../utils/welcome.js';
 import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
@@ -24,6 +29,7 @@ export default {
 
         if (welcomeConfig?.enabled && welcomeChannelId) {
             const channel = guild.channels.cache.get(welcomeChannelId);
+<<<<<<< HEAD
             if (channel?.isTextBased?.()) {
                 const me = guild.members.me;
                 const permissions = me ? channel.permissionsFor(me) : null;
@@ -34,6 +40,16 @@ export default {
                 const formatData = { user, guild, member };
                 const welcomeMessage = formatWelcomeMessage(
                     welcomeConfig.welcomeMessage || welcomeConfig.welcomeEmbed?.description || 'Welcome {user} to {server}!',
+=======
+            const me = guild.members.me;
+            const permissions = channel?.isTextBased?.() && me ? channel.permissionsFor(me) : null;
+            // Skip only the welcome message if permissions are missing; the rest of the
+            // join pipeline (auto-role, verification, logging, counters) must still run.
+            if (permissions?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages])) {
+                const formatData = { user, guild, member };
+                const welcomeMessage = formatWelcomeMessage(
+                    welcomeConfig.welcomeMessage || welcomeConfig.welcomeEmbed?.description || botConfig.welcome?.defaultWelcomeMessage || 'Welcome {user} to {server}!',
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
                     formatData
                 );
 

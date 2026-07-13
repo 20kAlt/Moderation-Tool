@@ -1,5 +1,10 @@
 import { logger } from '../utils/logger.js';
+<<<<<<< HEAD
 import { getGuildConfigKey } from '../utils/database/keys.js';
+=======
+import { getReactionRoleKey } from '../utils/database/keys.js';
+import { getGuildConfig, setGuildConfig, patchGuildConfig } from './guildConfig.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 import {
     getTicketPanelStatus,
     getVerificationPanelStatus,
@@ -9,15 +14,27 @@ import { getAllReactionRoleMessages } from './reactionRoleService.js';
 
 async function persistVerificationMessageId(client, guildId, config, messageId) {
     if (!messageId || config.verification?.messageId === messageId) return;
+<<<<<<< HEAD
     config.verification = { ...config.verification, messageId };
     await client.db.set(getGuildConfigKey(guildId), config);
+=======
+    await patchGuildConfig(client, guildId, {
+        verification: { ...config.verification, messageId },
+    });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 }
 
 async function persistReactionRoleMessageId(client, guildId, panelData, messageId) {
     if (!messageId || panelData.messageId === messageId) return;
+<<<<<<< HEAD
     const oldKey = `reaction_roles:${guildId}:${panelData.messageId}`;
     panelData.messageId = messageId;
     const newKey = `reaction_roles:${guildId}:${messageId}`;
+=======
+    const oldKey = getReactionRoleKey(guildId, panelData.messageId);
+    panelData.messageId = messageId;
+    const newKey = getReactionRoleKey(guildId, messageId);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     await client.db.set(newKey, panelData);
     await client.db.delete(oldKey).catch(() => {});
 }
@@ -36,7 +53,11 @@ export async function reconcileTicketPanels(client) {
         summary.scannedGuilds += 1;
 
         try {
+<<<<<<< HEAD
             const config = await client.db.get(getGuildConfigKey(guild.id));
+=======
+            const config = await getGuildConfig(client, guild.id);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             if (!config?.ticketPanelChannelId) continue;
 
             const panelStatus = await getTicketPanelStatus(client, guild, config);
@@ -44,7 +65,11 @@ export async function reconcileTicketPanels(client) {
             if (panelStatus.recoveredId) {
                 summary.recoveredIds += 1;
                 config.ticketPanelMessageId = panelStatus.recoveredId;
+<<<<<<< HEAD
                 await client.db.set(getGuildConfigKey(guild.id), config);
+=======
+                await setGuildConfig(client, guild.id, config);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             }
 
             if (panelStatus.exists) {
@@ -81,7 +106,11 @@ export async function reconcileVerificationPanels(client) {
         summary.scannedGuilds += 1;
 
         try {
+<<<<<<< HEAD
             const config = await client.db.get(getGuildConfigKey(guild.id));
+=======
+            const config = await getGuildConfig(client, guild.id);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             const verification = config?.verification;
             if (!verification?.channelId || verification.enabled === false) continue;
 

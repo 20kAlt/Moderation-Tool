@@ -83,7 +83,12 @@ export default {
 
             if (win) {
                 const amountWon = Math.floor(betAmount * PAYOUT_MULTIPLIER);
+<<<<<<< HEAD
 cashChange = amountWon;
+=======
+                // Net change: the bet is replaced by the payout (bet was at stake, not pre-deducted)
+                cashChange = amountWon - betAmount;
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
                 resultEmbed = successEmbed(
                     "🎉 You Won!",

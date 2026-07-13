@@ -2,7 +2,10 @@ import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { createEmbed, errorEmbed, warningEmbed } from '../../utils/embeds.js';
 import { getConfirmationButtons } from '../../utils/components.js';
 import { logger } from '../../utils/logger.js';
+<<<<<<< HEAD
 import { handleInteractionError } from '../../utils/errorHandler.js';
+=======
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 export default {
@@ -12,6 +15,7 @@ export default {
         .setDescription('Delete all your personal data from the bot (irreversible)'),
 
     async execute(interaction, guildConfig, client) {
+<<<<<<< HEAD
         try {
             const warningMessage = 
                 `⚠️ **THIS ACTION IS IRREVERSIBLE!** ⚠️\n\n` +
@@ -52,5 +56,33 @@ export default {
                 source: 'wipedata_command'
             });
         }
+=======
+        const warningMessage = 
+            `⚠️ **THIS ACTION IS IRREVERSIBLE!** ⚠️\n\n` +
+            `This will permanently delete **ALL** your data from this server including:\n` +
+            `• 💰 Economy balance (wallet & bank)\n` +
+            `• 📊 Levels and XP\n` +
+            `• 🎒 Inventory items\n` +
+            `• 🛍️ Shop purchases\n` +
+            `• 🎂 Birthday information\n` +
+            `• 🔢 Counter data\n` +
+            `• 📋 All other personal data\n\n` +
+            `**This cannot be undone. Are you absolutely sure?**`;
+
+        const embed = warningEmbed('Wipe All Data', warningMessage);
+
+        const confirmButtons = getConfirmationButtons('wipedata');
+
+        await InteractionHelper.safeReply(interaction, {
+            embeds: [embed],
+            components: [confirmButtons],
+            flags: MessageFlags.Ephemeral
+        });
+
+        logger.info(`Wipedata command executed - confirmation prompt shown`, {
+            userId: interaction.user.id,
+            guildId: interaction.guildId
+        });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     }
 };

@@ -1,6 +1,10 @@
 // prefixParser.js
 
+<<<<<<< HEAD
 import { resolveSubcommandAlias } from '../config/commandAliases.js';
+=======
+import { resolveSubcommandAlias } from '../config/commands/commandAliases.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 import { logger } from './logger.js';
 
 export function parsePrefixCommand(content, prefix) {

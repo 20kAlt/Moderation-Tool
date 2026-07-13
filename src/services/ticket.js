@@ -8,16 +8,58 @@ import {
   PermissionFlagsBits,
   AttachmentBuilder,
 } from 'discord.js';
+<<<<<<< HEAD
 import { buildStandardLogEmbed, formatLogLine } from '../utils/logEmbeds.js';
+=======
+import { buildStandardLogEmbed, formatLogLine } from '../utils/logging/logEmbeds.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 import { getGuildConfig } from './guildConfig.js';
 import { getTicketData, saveTicketData, deleteTicketData, getOpenTicketCountForUser, incrementTicketCounter } from '../utils/database.js';
 import { logger } from '../utils/logger.js';
 import { createEmbed, errorEmbed } from '../utils/embeds.js';
+<<<<<<< HEAD
 import { logTicketEvent } from '../utils/ticketLogging.js';
 import { ensureTypedServiceError } from '../utils/serviceErrorBoundary.js';
 import { PRIORITY_MAP } from '../utils/helpers.js';
 const TICKET_DELETE_DELAY_MS = 3000;
 const TICKET_DELETE_DELAY_SECONDS = Math.floor(TICKET_DELETE_DELAY_MS / 1000);
+=======
+import { logTicketEvent } from '../utils/ticket/ticketLogging.js';
+import { createError, ErrorTypes } from '../utils/errorHandler.js';
+import { ensureTypedServiceError, wrapServiceBoundary } from '../utils/serviceErrorBoundary.js';
+import { PRIORITY_MAP } from '../utils/helpers.js';
+const TICKET_DELETE_DELAY_MS = 3000;
+const TICKET_DELETE_DELAY_SECONDS = Math.floor(TICKET_DELETE_DELAY_MS / 1000);
+const TICKET_SERVICE = 'ticketService';
+
+function ticketUserError(message, userMessage, type = ErrorTypes.VALIDATION, context = {}) {
+  throw createError(message, type, userMessage, { service: TICKET_SERVICE, ...context });
+}
+
+function requireTicket(ticketData, channel) {
+  if (!ticketData) {
+    ticketUserError(
+      'Not a ticket channel',
+      'This is not a ticket channel.',
+      ErrorTypes.VALIDATION,
+      { channelId: channel?.id, guildId: channel?.guild?.id }
+    );
+  }
+  return ticketData;
+}
+
+function rethrowTicketError(error, operation, userMessage, context = {}) {
+  throw ensureTypedServiceError(error, {
+    service: TICKET_SERVICE,
+    operation,
+    message: `Ticket operation failed: ${operation}`,
+    userMessage,
+    context,
+  });
+}
+
+
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
 function buildTicketControlRow({ claimedBy = null } = {}) {
   return new ActionRowBuilder().addComponents(
@@ -40,6 +82,7 @@ function buildTicketControlRow({ claimedBy = null } = {}) {
   );
 }
 
+<<<<<<< HEAD
 export async function getUserTicketCount(guildId, userId) {
   try {
     return await getOpenTicketCountForUser(guildId, userId);
@@ -60,6 +103,16 @@ export async function getUserTicketCount(guildId, userId) {
     return 0;
   }
 }
+=======
+export const getUserTicketCount = wrapServiceBoundary(async function getUserTicketCount(guildId, userId) {
+  return await getOpenTicketCountForUser(guildId, userId);
+}, {
+  service: TICKET_SERVICE,
+  operation: 'getUserTicketCount',
+  userMessage: 'Failed to count open tickets.',
+  context: {},
+});
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
 export async function createTicket(guild, member, categoryId, reason = 'No reason provided', priority = 'none') {
   try {
@@ -70,10 +123,19 @@ export async function createTicket(guild, member, categoryId, reason = 'No reaso
     const currentTicketCount = await getUserTicketCount(guild.id, member.id);
     
     if (currentTicketCount >= maxTicketsPerUser) {
+<<<<<<< HEAD
       return {
         success: false,
         error: `You have reached the maximum number of open tickets (${maxTicketsPerUser}). Please close your existing tickets before creating a new one.`
       };
+=======
+      ticketUserError(
+        `Max open tickets reached for ${member.id}`,
+        `You have reached the maximum number of open tickets (${maxTicketsPerUser}). Please close your existing tickets before creating a new one.`,
+        ErrorTypes.VALIDATION,
+        { guildId: guild.id, userId: member.id, operation: 'createTicket' }
+      );
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     }
     
     let category = categoryId ? 
@@ -209,6 +271,7 @@ export async function createTicket(guild, member, categoryId, reason = 'No reaso
       }
     });
     
+<<<<<<< HEAD
     return { success: true, channel, ticketData };
     
   } catch (error) {
@@ -230,15 +293,25 @@ export async function createTicket(guild, member, categoryId, reason = 'No reaso
       error: typedError.userMessage || typedError.message,
       errorCode: typedError.context?.errorCode
     };
+=======
+    return { channel, ticketData };
+    
+  } catch (error) {
+    rethrowTicketError(error, 'createTicket', 'Failed to create ticket. Please try again in a moment.', { guildId: guild?.id, userId: member?.id });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
   }
 }
 
 export async function closeTicket(channel, closer, reason = 'No reason provided') {
   try {
+<<<<<<< HEAD
     const ticketData = await getTicketData(channel.guild.id, channel.id);
     if (!ticketData) {
       return { success: false, error: 'This is not a ticket channel' };
     }
+=======
+    const ticketData = requireTicket(await getTicketData(channel.guild.id, channel.id), channel);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     
     const config = await getGuildConfig(channel.client, channel.guild.id);
     const dmOnClose = config.dmOnClose !== false;
@@ -411,6 +484,7 @@ components: []
       }
     });
     
+<<<<<<< HEAD
     return { success: true, ticketData };
     
   } catch (error) {
@@ -433,11 +507,18 @@ components: []
       error: typedError.userMessage || typedError.message,
       errorCode: typedError.context?.errorCode
     };
+=======
+    return ticketData;
+    
+  } catch (error) {
+    rethrowTicketError(error, 'closeTicket', 'Failed to close ticket. Please try again in a moment.', { guildId: channel?.guild?.id, channelId: channel?.id, closerId: closer?.id });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
   }
 }
 
 export async function claimTicket(channel, claimer) {
   try {
+<<<<<<< HEAD
     const ticketData = await getTicketData(channel.guild.id, channel.id);
     if (!ticketData) {
       return { success: false, error: 'This is not a ticket channel' };
@@ -448,6 +529,17 @@ export async function claimTicket(channel, claimer) {
         success: false, 
         error: `This ticket is already claimed by <@${ticketData.claimedBy}>` 
       };
+=======
+    const ticketData = requireTicket(await getTicketData(channel.guild.id, channel.id), channel);
+    
+    if (ticketData.claimedBy) {
+      ticketUserError(
+        'Ticket already claimed',
+        `This ticket is already claimed by <@${ticketData.claimedBy}>`,
+        ErrorTypes.VALIDATION,
+        { channelId: channel.id, claimedBy: ticketData.claimedBy, operation: 'claimTicket' }
+      );
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     }
     
     ticketData.claimedBy = claimer.id;
@@ -517,6 +609,7 @@ export async function claimTicket(channel, claimer) {
       }
     });
     
+<<<<<<< HEAD
     return { success: true, ticketData };
     
   } catch (error) {
@@ -539,11 +632,18 @@ export async function claimTicket(channel, claimer) {
       error: typedError.userMessage || typedError.message,
       errorCode: typedError.context?.errorCode
     };
+=======
+    return ticketData;
+    
+  } catch (error) {
+    rethrowTicketError(error, 'claimTicket', 'Failed to claim ticket. Please try again in a moment.', { guildId: channel?.guild?.id, channelId: channel?.id, claimerId: claimer?.id });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
   }
 }
 
 export async function reopenTicket(channel, reopener) {
   try {
+<<<<<<< HEAD
     const ticketData = await getTicketData(channel.guild.id, channel.id);
     if (!ticketData) {
       return { success: false, error: 'This is not a ticket channel' };
@@ -554,6 +654,17 @@ export async function reopenTicket(channel, reopener) {
         success: false, 
         error: 'This ticket is not currently closed' 
       };
+=======
+    const ticketData = requireTicket(await getTicketData(channel.guild.id, channel.id), channel);
+    
+    if (ticketData.status !== 'closed') {
+      ticketUserError(
+        'Ticket not closed',
+        'This ticket is not currently closed.',
+        ErrorTypes.VALIDATION,
+        { channelId: channel.id, operation: 'reopenTicket' }
+      );
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     }
 
     const config = await getGuildConfig(channel.client, channel.guild.id);
@@ -641,6 +752,7 @@ export async function reopenTicket(channel, reopener) {
       await channel.send({ embeds: [reopenEmbed] });
     }
     
+<<<<<<< HEAD
     return {
       success: true,
       ticketData,
@@ -668,6 +780,12 @@ export async function reopenTicket(channel, reopener) {
       error: typedError.userMessage || typedError.message,
       errorCode: typedError.context?.errorCode
     };
+=======
+    return { ticketData, movedToOpenCategory, openCategoryMoveFailed };
+    
+  } catch (error) {
+    rethrowTicketError(error, 'reopenTicket', 'Failed to reopen ticket. Please try again in a moment.', { guildId: channel?.guild?.id, channelId: channel?.id, reopenerId: reopener?.id });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
   }
 }
 
@@ -768,10 +886,14 @@ ${rows}
 
 export async function deleteTicket(channel, deleter) {
   try {
+<<<<<<< HEAD
     const ticketData = await getTicketData(channel.guild.id, channel.id);
     if (!ticketData) {
       return { success: false, error: 'This is not a ticket channel' };
     }
+=======
+    const ticketData = requireTicket(await getTicketData(channel.guild.id, channel.id), channel);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     
     const deleteEmbed = createEmbed({
       title: 'Ticket Deleted',
@@ -913,6 +1035,7 @@ export async function deleteTicket(channel, deleter) {
       }
     }, TICKET_DELETE_DELAY_MS);
     
+<<<<<<< HEAD
     return { success: true, ticketData };
     
   } catch (error) {
@@ -935,11 +1058,18 @@ export async function deleteTicket(channel, deleter) {
       error: typedError.userMessage || typedError.message,
       errorCode: typedError.context?.errorCode
     };
+=======
+    return ticketData;
+    
+  } catch (error) {
+    rethrowTicketError(error, 'deleteTicket', 'Failed to delete ticket. Please try again in a moment.', { guildId: channel?.guild?.id, channelId: channel?.id, deleterId: deleter?.id });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
   }
 }
 
 export async function unclaimTicket(channel, unclaimer) {
   try {
+<<<<<<< HEAD
     const ticketData = await getTicketData(channel.guild.id, channel.id);
     if (!ticketData) {
       return { success: false, error: 'This is not a ticket channel' };
@@ -957,6 +1087,26 @@ export async function unclaimTicket(channel, unclaimer) {
         success: false, 
         error: 'You can only unclaim your own tickets or need Manage Channels permission.' 
       };
+=======
+    const ticketData = requireTicket(await getTicketData(channel.guild.id, channel.id), channel);
+    
+    if (!ticketData.claimedBy) {
+      ticketUserError(
+        'Ticket not claimed',
+        'This ticket is not currently claimed.',
+        ErrorTypes.VALIDATION,
+        { channelId: channel.id, operation: 'unclaimTicket' }
+      );
+    }
+    
+    if (ticketData.claimedBy !== unclaimer.id && !unclaimer.permissions.has(PermissionFlagsBits.ManageChannels)) {
+      ticketUserError(
+        'Cannot unclaim ticket',
+        'You can only unclaim your own tickets or need Manage Channels permission.',
+        ErrorTypes.PERMISSION,
+        { channelId: channel.id, operation: 'unclaimTicket' }
+      );
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     }
     
     const previousClaimer = ticketData.claimedBy;
@@ -1028,6 +1178,7 @@ export async function unclaimTicket(channel, unclaimer) {
       }
     });
     
+<<<<<<< HEAD
     return { success: true, ticketData };
     
   } catch (error) {
@@ -1050,6 +1201,12 @@ export async function unclaimTicket(channel, unclaimer) {
       error: typedError.userMessage || typedError.message,
       errorCode: typedError.context?.errorCode
     };
+=======
+    return ticketData;
+    
+  } catch (error) {
+    rethrowTicketError(error, 'unclaimTicket', 'Failed to unclaim ticket. Please try again in a moment.', { guildId: channel?.guild?.id, channelId: channel?.id, unclaimerId: unclaimer?.id });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
   }
 }
 
@@ -1059,6 +1216,7 @@ async function getNextTicketNumber(guildId) {
 
 export async function updateTicketPriority(channel, priority, updater) {
   try {
+<<<<<<< HEAD
     const ticketData = await getTicketData(channel.guild.id, channel.id);
     if (!ticketData) {
       return { success: false, error: 'This is not a ticket channel' };
@@ -1067,6 +1225,18 @@ export async function updateTicketPriority(channel, priority, updater) {
     const priorityInfo = PRIORITY_MAP[priority];
     if (!priorityInfo) {
       return { success: false, error: 'Invalid priority level' };
+=======
+    const ticketData = requireTicket(await getTicketData(channel.guild.id, channel.id), channel);
+    
+    const priorityInfo = PRIORITY_MAP[priority];
+    if (!priorityInfo) {
+      ticketUserError(
+      'Invalid priority level',
+      'Invalid priority level.',
+      ErrorTypes.VALIDATION,
+      { channelId: channel.id, priority, operation: 'updateTicketPriority' }
+    );
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     }
     
     ticketData.priority = priority;
@@ -1136,6 +1306,7 @@ export async function updateTicketPriority(channel, priority, updater) {
       }
     });
     
+<<<<<<< HEAD
     return { success: true, ticketData };
     
   } catch (error) {
@@ -1158,5 +1329,11 @@ export async function updateTicketPriority(channel, priority, updater) {
       error: typedError.userMessage || typedError.message,
       errorCode: typedError.context?.errorCode
     };
+=======
+    return ticketData;
+    
+  } catch (error) {
+    rethrowTicketError(error, 'updateTicketPriority', 'Failed to update ticket priority. Please try again in a moment.', { guildId: channel?.guild?.id, channelId: channel?.id, updaterId: updater?.id, priority });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
   }
 }

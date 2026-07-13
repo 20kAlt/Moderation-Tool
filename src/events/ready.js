@@ -3,7 +3,11 @@ import { logger, startupLog } from "../utils/logger.js";
 import config from "../config/application.js";
 import { reconcileReactionRoleMessages } from "../services/reactionRoleService.js";
 import { reconcileTicketPanels, reconcileVerificationPanels, reconcileReactionRolePanelHealth } from "../services/panelHealthService.js";
+<<<<<<< HEAD
 import { reconcileLevelRoles } from "../services/levelRoleSyncService.js";
+=======
+import { reconcileLevelRoles } from "../services/leveling/levelRoleSyncService.js";
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 import { initRiffyAfterReady } from "../services/music/riffySetup.js";
 
 export default {

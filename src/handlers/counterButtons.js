@@ -2,7 +2,11 @@ import { MessageFlags } from 'discord.js';
 import { createEmbed, successEmbed } from '../utils/embeds.js';
 import { performDeletionByCounterId } from '../commands/ServerStats/modules/serverstats_delete.js';
 import { logger } from '../utils/logger.js';
+<<<<<<< HEAD
 import { ErrorTypes, replyUserError } from '../utils/errorHandler.js';
+=======
+import { ErrorTypes, replyUserError, handleInteractionError } from '../utils/errorHandler.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
 export const counterDeleteActionHandler = {
   name: 'counter-delete',
@@ -50,6 +54,7 @@ export const counterDeleteActionHandler = {
         return;
       }
 
+<<<<<<< HEAD
       const result = await performDeletionByCounterId(client, interaction.guild, counterId);
 
       if (!result.success) {
@@ -68,6 +73,20 @@ export const counterDeleteActionHandler = {
       } else {
         await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'An error occurred while processing this action.' }).catch(() => null);
       }
+=======
+      const { message } = await performDeletionByCounterId(client, interaction.guild, counterId);
+
+      await interaction.editReply({
+        embeds: [successEmbed(message)],
+        components: []
+      }).catch(logger.error);
+    } catch (error) {
+      await handleInteractionError(interaction, error, {
+        type: 'button',
+        handler: 'counter_delete',
+        customId: interaction.customId,
+      });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     }
   }
 };

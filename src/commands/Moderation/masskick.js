@@ -2,8 +2,13 @@ import { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } from 'discord.
 import { createEmbed, successEmbed, warningEmbed } from '../../utils/embeds.js';
 import { logModerationAction } from '../../utils/moderation.js';
 import { logger } from '../../utils/logger.js';
+<<<<<<< HEAD
 import { ModerationService } from '../../services/moderationService.js';
 import { TitanBotError } from '../../utils/errorHandler.js';
+=======
+import { ModerationService } from '../../services/moderation/moderationService.js';
+import { TitanBotError, replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 export default {

@@ -2,7 +2,11 @@ import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import axios from 'axios';
 import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
+<<<<<<< HEAD
 import { handleInteractionError } from '../../utils/errorHandler.js';
+=======
+import { handleInteractionError, replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { getColor } from '../../config/bot.js';
 
@@ -53,7 +57,11 @@ export default {
             clearDeferTimer();
             
             if (!response.data?.list?.length) {
+<<<<<<< HEAD
                 return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: 'No definitions found for "${term}" on Urban Dictionary.' });
+=======
+                return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: `No definitions found for "${term}" on Urban Dictionary.` });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             }
             
             const definition = response.data.list[0];
@@ -117,7 +125,11 @@ export default {
             });
 
             if (error.response?.status === 404 || !error.response) {
+<<<<<<< HEAD
                 await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: 'No definitions found for "${interaction.options.getString(\'term\')}" on Urban Dictionary.' });
+=======
+                await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: `No definitions found for "${interaction.options.getString('term')}" on Urban Dictionary.` });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             } else if (error.response?.status === 429) {
                 await replyUserError(interaction, { type: ErrorTypes.RATE_LIMIT, message: 'Too many requests to Urban Dictionary. Please try again in a few minutes.' });
             } else {

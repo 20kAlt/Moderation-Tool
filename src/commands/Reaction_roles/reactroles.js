@@ -2,7 +2,11 @@ import { getColor } from '../../config/bot.js';
 import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, RoleSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ButtonBuilder, ButtonStyle, MessageFlags, ComponentType, EmbedBuilder, LabelBuilder, CheckboxBuilder, TextDisplayBuilder } from 'discord.js';
 import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
+<<<<<<< HEAD
 import { handleInteractionError, createError, TitanBotError, ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
+=======
+import { createError, TitanBotError, ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { createReactionRoleMessage, hasDangerousPermissions, getAllReactionRoleMessages, deleteReactionRoleMessage } from '../../services/reactionRoleService.js';
 import { logEvent, EVENT_TYPES } from '../../services/loggingService.js';
@@ -11,8 +15,21 @@ import {
     formatPanelStatusField,
 } from '../../utils/panelStatus.js';
 import { startDashboardSession } from '../../utils/dashboardSession.js';
+<<<<<<< HEAD
 
 const DASHBOARD_EPHEMERAL = MessageFlags.Ephemeral;
+=======
+import { getReactionRoleKey } from '../../utils/database/keys.js';
+
+const DASHBOARD_EPHEMERAL = MessageFlags.Ephemeral;
+const SELECT_OPTION_LABEL_LIMIT = 100;
+const SELECT_OPTION_DESCRIPTION_LIMIT = 100;
+
+function truncateText(value, maxLength) {
+    const text = String(value ?? '');
+    return text.length > maxLength ? text.substring(0, maxLength) : text;
+}
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
 export default {
     data: new SlashCommandBuilder()
@@ -26,6 +43,10 @@ export default {
                 .addChannelOption(option => 
                     option.setName('channel')
                         .setDescription('The channel to send the reaction role message to')
+<<<<<<< HEAD
+=======
+                        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
                         .setRequired(true)
                 )
                 .addStringOption(option =>
@@ -80,6 +101,7 @@ export default {
     async execute(interaction) {
         const subcommand = interaction.options.getSubcommand();
 
+<<<<<<< HEAD
         try {
             if (subcommand === 'setup') {
                 await handleSetup(interaction);
@@ -93,6 +115,13 @@ export default {
                 commandName: 'reactroles',
                 subcommand: subcommand
             });
+=======
+        if (subcommand === 'setup') {
+            await handleSetup(interaction);
+        } else if (subcommand === 'dashboard') {
+            const selectedPanelId = interaction.options.getString('panel');
+            await handleDashboard(interaction, selectedPanelId);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         }
     },
 
@@ -100,6 +129,7 @@ export default {
         if (interaction.commandName !== 'reactroles') return;
         if (interaction.options.getSubcommand() !== 'dashboard') return;
 
+<<<<<<< HEAD
         try {
             const guildId = interaction.guild.id;
             const client = interaction.client;
@@ -109,15 +139,33 @@ export default {
                 panels = await getAllReactionRoleMessages(client, guildId);
             } catch (dbError) {
                 
+=======
+        // Autocomplete must respond within 3s. Build choices from stored panel data and
+        // cached channels/messages only — no network fetches — to avoid DiscordAPIError 10062.
+        try {
+            const guildId = interaction.guild.id;
+            const client = interaction.client;
+            const guild = interaction.guild;
+
+            let panels;
+            try {
+                panels = await getAllReactionRoleMessages(client, guildId);
+            } catch {
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
                 await interaction.respond([]).catch(() => {});
                 return;
             }
 
+<<<<<<< HEAD
             if (!panels || panels.length === 0) {
+=======
+            if (!panels?.length) {
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
                 await interaction.respond([]).catch(() => {});
                 return;
             }
 
+<<<<<<< HEAD
             const guild = interaction.guild;
 
             const validPanels = [];
@@ -171,6 +219,27 @@ export default {
             const validChoices = choices.filter(c => c !== null);
             await interaction.respond(validChoices).catch(() => {});
         } catch (error) {
+=======
+            const choices = [];
+            for (const panel of panels) {
+                if (!panel.messageId || !panel.channelId) continue;
+
+                const channel = guild.channels.cache.get(panel.channelId);
+                if (!channel) continue;
+
+                const cachedTitle = channel.messages?.cache?.get(panel.messageId)?.embeds?.[0]?.title;
+                const roleCount = Array.isArray(panel.roles) ? panel.roles.length : 0;
+                const label = cachedTitle
+                    ? `${cachedTitle} (#${channel.name})`
+                    : `#${channel.name} · ${roleCount} role${roleCount === 1 ? '' : 's'}`;
+
+                choices.push({ name: label.substring(0, 100), value: panel.messageId });
+                if (choices.length >= 25) break;
+            }
+
+            await interaction.respond(choices).catch(() => {});
+        } catch {
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             await interaction.respond([]).catch(() => {});
         }
     }
@@ -225,10 +294,22 @@ async function handleSetup(interaction) {
 
     const roles = [];
     const roleValidationErrors = [];
+<<<<<<< HEAD
+=======
+    const seenRoleIds = new Set();
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     
     for (let i = 1; i <= 5; i++) {
         const role = interaction.options.getRole(`role${i}`);
         if (role) {
+<<<<<<< HEAD
+=======
+            if (seenRoleIds.has(role.id)) {
+                roleValidationErrors.push(`**${role.name}** - This role was selected more than once`);
+                continue;
+            }
+
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             if (role.position >= interaction.guild.members.me.roles.highest.position) {
                 roleValidationErrors.push(`**${role.name}** - My bot's role is positioned lower than this role in your server's role hierarchy and cannot assign it`);
                 continue;
@@ -249,6 +330,10 @@ async function handleSetup(interaction) {
                 continue;
             }
             
+<<<<<<< HEAD
+=======
+            seenRoleIds.add(role.id);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             roles.push(role);
         }
     }
@@ -267,7 +352,11 @@ async function handleSetup(interaction) {
         
         await interaction.followUp({
             embeds: [warningEmbed('Role Validation Warning', errorMsg)],
+<<<<<<< HEAD
             ephemeral: true
+=======
+            flags: MessageFlags.Ephemeral
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         });
     }
 
@@ -288,8 +377,13 @@ async function handleSetup(interaction) {
             .setMaxValues(roles.length)
             .addOptions(
                 roles.map(role => ({
+<<<<<<< HEAD
                     label: role.name,
                     description: `Add/remove the ${role.name} role`,
+=======
+                    label: truncateText(role.name, SELECT_OPTION_LABEL_LIMIT),
+                    description: truncateText(`Add/remove the ${role.name} role`, SELECT_OPTION_DESCRIPTION_LIMIT),
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
                     value: role.id,
                     emoji: '🎭'
                 }))
@@ -312,6 +406,7 @@ async function handleSetup(interaction) {
     });
 
     const roleIds = roles.map(role => role.id);
+<<<<<<< HEAD
     await createReactionRoleMessage(
         interaction.client,
         interaction.guildId,
@@ -320,6 +415,23 @@ async function handleSetup(interaction) {
         roleIds
     );
     
+=======
+    try {
+        await createReactionRoleMessage(
+            interaction.client,
+            interaction.guildId,
+            channel.id,
+            message.id,
+            roleIds
+        );
+    } catch (saveError) {
+        // The panel is already posted but its data failed to persist, so the dropdown
+        // would not work. Remove the orphaned message before surfacing the error.
+        await message.delete().catch(() => {});
+        throw saveError;
+    }
+
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     logger.info(`Reaction role message created: ${message.id} with ${roles.length} roles by ${interaction.user.tag}`);
 
     try {
@@ -521,9 +633,15 @@ function buildReactionRoleDashboardPayload(panelData, discordMsg, guildId, guild
 
 async function migrateReactionRoleMessageId(client, guildId, panelData, newMessageId) {
     if (!newMessageId || panelData.messageId === newMessageId) return;
+<<<<<<< HEAD
     const oldKey = `reaction_roles:${guildId}:${panelData.messageId}`;
     panelData.messageId = newMessageId;
     await client.db.set(`reaction_roles:${guildId}:${newMessageId}`, panelData);
+=======
+    const oldKey = getReactionRoleKey(guildId, panelData.messageId);
+    panelData.messageId = newMessageId;
+    await client.db.set(getReactionRoleKey(guildId, newMessageId), panelData);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     await client.db.delete(oldKey).catch(() => {});
 }
 
@@ -842,7 +960,11 @@ async function handleAddRole(selectInteraction, rootInteraction, panelData, guil
         }
 
         panelData.roles.push(role.id);
+<<<<<<< HEAD
         const key = `reaction_roles:${guildId}:${panelData.messageId}`;
+=======
+        const key = getReactionRoleKey(guildId, panelData.messageId);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         await client.db.set(key, panelData);
 
         await rebuildLivePanelMessage(guild, panelData);
@@ -971,7 +1093,11 @@ async function handleRemoveRole(selectInteraction, rootInteraction, panelData, p
                 });
             }
         } else {
+<<<<<<< HEAD
             const key = `reaction_roles:${guildId}:${panelData.messageId}`;
+=======
+            const key = getReactionRoleKey(guildId, panelData.messageId);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
             await client.db.set(key, panelData);
             await rebuildLivePanelMessage(guild, panelData);
 

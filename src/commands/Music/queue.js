@@ -1,6 +1,9 @@
 import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
+<<<<<<< HEAD
 import { handleInteractionError } from '../../utils/errorHandler.js';
+=======
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 import { buildQueueReply } from '../../services/music/musicActions.js';
 
 export default {
@@ -14,6 +17,7 @@ export default {
         ),
 
     async execute(interaction, config, client) {
+<<<<<<< HEAD
         try {
             await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
             const page = (interaction.options.getInteger('page') || 1) - 1;
@@ -25,5 +29,14 @@ export default {
         } catch (error) {
             await handleInteractionError(interaction, error, { command: 'queue' });
         }
+=======
+        await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
+        const page = (interaction.options.getInteger('page') || 1) - 1;
+        const payload = buildQueueReply(client, interaction.guild.id, page);
+        await InteractionHelper.safeEditReply(interaction, {
+            embeds: payload.embeds,
+            components: payload.components,
+        });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     },
 };

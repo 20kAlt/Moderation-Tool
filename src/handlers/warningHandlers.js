@@ -1,9 +1,19 @@
+<<<<<<< HEAD
 import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } from 'discord.js';
 import { successEmbed } from '../utils/embeds.js';
 import { WarningService } from '../services/warningService.js';
 import { InteractionHelper } from '../utils/interactionHelper.js';
 import { logger } from '../utils/logger.js';
 
+=======
+import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, MessageFlags } from 'discord.js';
+import { successEmbed } from '../utils/embeds.js';
+import { WarningService } from '../services/moderation/warningService.js';
+import { InteractionHelper } from '../utils/interactionHelper.js';
+import { logger } from '../utils/logger.js';
+
+import { replyUserError, ErrorTypes } from '../utils/errorHandler.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 const warningDeleteSpecificHandler = {
   name: 'warning_delete_specific',
   async execute(interaction, client) {
@@ -96,6 +106,7 @@ async function warningDeleteModalHandler(interaction, client) {
     const warnings = await WarningService.getWarnings(guildId, targetUserId);
 
     if (warningNumber > warnings.length) {
+<<<<<<< HEAD
       return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: 'Warning #${warningNumber} does not exist. This user only has ${warnings.length} warning(s).' });
     }
 
@@ -105,6 +116,13 @@ async function warningDeleteModalHandler(interaction, client) {
     if (!result.success) {
       throw new Error(result.error || 'Failed to delete warning');
     }
+=======
+      return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: `Warning #${warningNumber} does not exist. This user only has ${warnings.length} warning(s).` });
+    }
+
+    const warningToDelete = warnings[warningNumber - 1];
+    await WarningService.removeWarning(guildId, targetUserId, warningToDelete.id);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
     const targetUser = await client.users.fetch(targetUserId).catch(() => null);
     const targetName = targetUser ? targetUser.username : 'the user';
@@ -138,6 +156,7 @@ async function warningClearConfirmModalHandler(interaction, client) {
       return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'You must type "DELETE" exactly to confirm clearing all warnings.' });
     }
 
+<<<<<<< HEAD
     await interaction.deferReply({ flags: ['Ephemeral'] });
 
     const guildId = interaction.guildId;
@@ -146,6 +165,12 @@ async function warningClearConfirmModalHandler(interaction, client) {
     if (!result.success) {
       throw new Error(result.error || 'Failed to clear warnings');
     }
+=======
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+    const guildId = interaction.guildId;
+    const { count } = await WarningService.clearWarnings(guildId, targetUserId);
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
     const targetUser = await client.users.fetch(targetUserId).catch(() => null);
     const targetName = targetUser ? targetUser.username : 'the user';
@@ -153,7 +178,11 @@ async function warningClearConfirmModalHandler(interaction, client) {
     logger.info(`[MODERATION] All warnings cleared for ${targetUserId} in ${guildId} by ${interaction.user.id}`);
 
     await interaction.editReply({
+<<<<<<< HEAD
       embeds: [successEmbed('✅ Warnings Cleared', `All warnings for **${targetName}** have been cleared. **${result.count}** warning(s) removed.`)]
+=======
+      embeds: [successEmbed('✅ Warnings Cleared', `All warnings for **${targetName}** have been cleared. **${count}** warning(s) removed.`)]
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
     });
   } catch (error) {
     logger.error('Warning clear confirm modal handler error:', error);

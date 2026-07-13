@@ -2,6 +2,10 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuild
 import { shopItems } from '../../../config/shop/items.js';
 import { getColor } from '../../../config/bot.js';
 import { logger } from '../../../utils/logger.js';
+<<<<<<< HEAD
+=======
+import { handleInteractionError } from '../../../utils/errorHandler.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
 export default {
     async execute(interaction, config, client) {
@@ -80,11 +84,22 @@ export default {
                     const disabledComponents = createShopComponents(currentPage);
                     disabledComponents.forEach(row => row.components.forEach(btn => btn.setDisabled(true)));
                     await message.edit({ components: disabledComponents });
+<<<<<<< HEAD
                 } catch (_) {}
             });
         } catch (error) {
             logger.error('shop_browse error:', error);
             await interaction.reply({ content: '❌ An error occurred while loading the shop.', flags: MessageFlags.Ephemeral });
+=======
+                } catch (error) {
+                    logger.debug('shop_browse: could not disable components on collector end', {
+                        error: error.message,
+                    });
+                }
+            });
+        } catch (error) {
+            await handleInteractionError(interaction, error, { command: 'shop_browse' });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         }
     },
 };

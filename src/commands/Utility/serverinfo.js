@@ -1,7 +1,10 @@
 import { SlashCommandBuilder } from 'discord.js';
 import { createEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
+<<<<<<< HEAD
 import { handleInteractionError } from '../../utils/errorHandler.js';
+=======
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
 export default {
@@ -10,6 +13,7 @@ export default {
     .setDescription("Get detailed information about the server"),
 
   async execute(interaction) {
+<<<<<<< HEAD
     try {
       const deferSuccess = await InteractionHelper.safeDefer(interaction);
       if (!deferSuccess) {
@@ -60,14 +64,60 @@ export default {
       logger.error(`ServerInfo command execution failed`, {
         error: error.message,
         stack: error.stack,
+=======
+    const deferSuccess = await InteractionHelper.safeDefer(interaction);
+    if (!deferSuccess) {
+      logger.warn(`ServerInfo interaction defer failed`, {
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
         userId: interaction.user.id,
         guildId: interaction.guildId,
         commandName: 'serverinfo'
       });
+<<<<<<< HEAD
       await handleInteractionError(interaction, error, {
         commandName: 'serverinfo',
         source: 'serverinfo_command'
       });
     }
+=======
+      return;
+    }
+
+    const guild = interaction.guild;
+    const owner = await guild.fetchOwner();
+
+    const createdTimestamp = Math.floor(guild.createdAt.getTime() / 1000);
+
+    const embed = createEmbed({ title: `Server Info: ${guild.name}`, description: `Server ID: ${guild.id}` })
+      .setThumbnail(guild.iconURL({ size: 256 }))
+      .addFields(
+        { name: "Owner", value: owner.user.tag, inline: true },
+        { name: "Members", value: `${guild.memberCount}`, inline: true },
+        {
+          name: "Channels",
+          value: `${guild.channels.cache.size}`,
+          inline: true,
+        },
+        { name: "Roles", value: `${guild.roles.cache.size}`, inline: true },
+        {
+          name: "Boosts",
+          value: `Level ${guild.premiumTier} (${guild.premiumSubscriptionCount})`,
+          inline: true,
+        },
+        {
+          name: "Creation Date",
+          value: `<t:${createdTimestamp}:R>`,
+          inline: true,
+        },
+      );
+
+    await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+    logger.info(`ServerInfo command executed`, {
+      userId: interaction.user.id,
+      guildId: guild.id,
+      guildName: guild.name,
+      memberCount: guild.memberCount
+    });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
   },
 };

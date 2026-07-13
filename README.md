@@ -109,6 +109,7 @@ TitanBot is fully containerized for easy deployment.
    ```
 
 2. **Configure environment variables:**
+<<<<<<< HEAD
    Create a `.env` file from `.env.example` and fill in your bot details and PostgreSQL credentials.
 
 3. **Start the containers:**
@@ -117,20 +118,49 @@ TitanBot is fully containerized for easy deployment.
    ```
 
 This will start the bot, PostgreSQL, and Lavalink (when music is enabled).
+=======
+   ```bash
+   cp .env.example .env
+   ```
+   Set at minimum `DISCORD_TOKEN`, `CLIENT_ID`, and `GUILD_ID`. Docker Compose also reads `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` from `.env` (defaults: `titanbot` / `password` / `titanbot`).
+
+3. **Build and start the containers:**
+   ```bash
+   docker compose up -d --build
+   ```
+
+4. **Check status:**
+   ```bash
+   docker compose ps
+   curl http://localhost:3000/health
+   ```
+
+This starts the bot and PostgreSQL. The compose file sets `POSTGRES_SSL=false` and `AUTO_MIGRATE=true` for the bundled database. Music uses public Lavalink v4 nodes from `lavalink/nodes.json` by default.
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
 ### Music
 
 Music uses [Lavalink v4](https://github.com/lavalink-devs/Lavalink) via [Riffy](https://github.com/riffy-rb/riffy), similar to [Musicify](https://github.com/codebymitch/Musicify).
 
+<<<<<<< HEAD
 1. Set in `.env`:
+=======
+1. By default, the bot loads multiple public v4 SSL nodes from [`lavalink/nodes.json`](lavalink/nodes.json) (sourced from [lavalink.darrennathanael.com](https://lavalink.darrennathanael.com/SSL/Lavalink-SSL/)). Edit that file to add or remove nodes.
+2. To self-host Lavalink instead, run `docker compose --profile local-lavalink up -d` and set single-node env vars in `.env`:
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
    ```env
    LAVALINK_HOST=lavalink
    LAVALINK_PORT=2333
    LAVALINK_PASSWORD=youshallnotpass
    LAVALINK_SECURE=false
    ```
+<<<<<<< HEAD
 2. With Docker Compose, Lavalink is included automatically when you `docker compose up`.
 3. On Railway, deploy Lavalink separately or as another service and point `LAVALINK_HOST` at the private hostname.
+=======
+   Remove or rename `lavalink/nodes.json` so the bot falls back to those env vars.
+3. Override nodes inline with `LAVALINK_NODES` (JSON array) or point at another file with `LAVALINK_NODES_FILE`.
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 4. Use `/play <song>` from a voice channel, or `/join` to connect without playing. Prefix shortcuts: `join`, `np`, `leave`, `pause`, `resume`, `skip`, `stop`, `volume <0-100>`, or `music <subcommand>`. Use `/nowplaying` and `/queue` for status; `/music` for loop, shuffle, seek, and other controls.
 
 ### Using GitHub Container Registry
@@ -145,7 +175,11 @@ docker pull ghcr.io/codebymitch/titanbot:main
 ## Manual Installation Steps
 
 ### Prerequisites
+<<<<<<< HEAD
 - Node.js 18.0.0 or higher
+=======
+- Node.js 20.10.0 or higher
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 - PostgreSQL server (recommended) or memory storage fallback
 - Discord bot application with proper intents
 
@@ -202,6 +236,7 @@ docker pull ghcr.io/codebymitch/titanbot:main
    This gives clear startup/online status messages while keeping logs simple for non-technical operators.
    If port `3000` is busy, the bot tries the next available ports automatically (up to `PORT_RETRY_ATTEMPTS`).
 
+<<<<<<< HEAD
 ### Running in multiple servers (optional)
 
 Most users run TitanBot on a **single server** with `GUILD_ID` set (default tutorial setup). If you want commands to work in **every server** the bot is invited to, opt in with:
@@ -214,6 +249,15 @@ Notes for multi-server mode:
 - `GUILD_ID` is not used for command registration when `MULTI_GUILD=true` (you can leave it set or remove it)
 - Global slash commands may take up to about an hour to propagate on first deploy
 - Each server still has **isolated** config, economy, tickets, leveling, and other data
+=======
+### Multiple servers
+
+Slash commands are registered **globally** on startup (via `CLIENT_ID`), so the bot works in every server it is invited to. `GUILD_ID` stays in the tutorial `.env` for setup steps but is not used for command registration.
+
+Notes:
+- Global slash commands may take up to about an hour to propagate on first deploy
+- Each server has **isolated** data: config, economy, tickets, leveling, dashboards, warnings, etc. (all keys are scoped as `guild:{guildId}:...`)
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 - In the [Discord Developer Portal](https://discord.com/developers/applications), ensure your bot is not restricted to a single guild if you plan to invite it elsewhere
 - Generate an OAuth2 invite URL from the [Discord Developer Portal](https://discord.com/developers/applications) (OAuth2 → URL Generator, scopes: `bot` and `applications.commands`)
 
@@ -235,6 +279,15 @@ Notes for multi-server mode:
    ```bash
    npm start
    ```
+<<<<<<< HEAD
+=======
+
+> **Note on database migrations:** Schema tables and legacy key migrations run
+> **automatically on startup**, so` managed hosts like **Railway** need no manual
+> migration step — just deploy/restart. To disable auto-migration set
+> `AUTO_MIGRATE=false`. You can still run a manual key migration locally with
+> `node scripts/migrate-keys.js --dry-run` (preview) or `node scripts/migrate-keys.js`.
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 <a name="bot-intents"></a>
 
 ## Required Bot Intents

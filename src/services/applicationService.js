@@ -15,9 +15,16 @@ import {
     getApplicationRoles,
     saveApplicationRoles
 } from '../utils/database.js';
+<<<<<<< HEAD
 
 const applicationCooldowns = new Map();
 const APPLICATION_SUBMIT_COOLDOWN = 5 * 60 * 1000; 
+=======
+import botConfig from '../config/bot.js';
+
+const applicationCooldowns = new Map();
+const APPLICATION_SUBMIT_COOLDOWN = (botConfig.applications?.applicationCooldown ?? 24) * 60 * 60 * 1000;
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 
 class ApplicationService {
     static sanitizeApplicationText(value, maxLength) {

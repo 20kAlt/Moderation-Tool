@@ -2,6 +2,10 @@ import { successEmbed } from '../utils/embeds.js';
 import { logger } from '../utils/logger.js';
 import { evaluateMathExpression } from '../utils/safeMathParser.js';
 
+<<<<<<< HEAD
+=======
+import { replyUserError, ErrorTypes } from '../utils/errorHandler.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 function evaluate(expression) {
     return evaluateMathExpression(expression);
 }

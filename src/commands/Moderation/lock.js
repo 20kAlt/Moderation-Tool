@@ -5,6 +5,10 @@ import { logger } from '../../utils/logger.js';
 import { getColor } from '../../config/bot.js';
 
 import { InteractionHelper } from '../../utils/interactionHelper.js';
+<<<<<<< HEAD
+=======
+import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
 export default {
     data: new SlashCommandBuilder()
     .setName("lock")
@@ -31,7 +35,11 @@ export default {
     try {
       const currentPermissions = channel.permissionsFor(everyoneRole);
       if (currentPermissions.has(PermissionFlagsBits.SendMessages) === false) {
+<<<<<<< HEAD
         return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: '${channel} is already locked.' });
+=======
+        return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `${channel} is already locked.` });
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
       }
 
       await channel.permissionOverwrites.edit(
@@ -40,6 +48,7 @@ export default {
 { type: 0, reason: `Channel locked by ${interaction.user.tag}` },
       );
 
+<<<<<<< HEAD
       const lockEmbed = createEmbed(
         "🔒 Channel Locked (Action Log)",
         `${channel} has been locked down by ${interaction.user}.`,
@@ -54,6 +63,8 @@ export default {
           },
         );
 
+=======
+>>>>>>> 771ebe2 (Reorganize project structure, wire bot config, and fix dependency vulnerabilities)
       await logEvent({
         client,
         guild: interaction.guild,
