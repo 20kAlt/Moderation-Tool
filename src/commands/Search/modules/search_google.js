@@ -1,17 +1,8 @@
-import { SlashCommandBuilder, MessageFlags } from 'discord.js';
-import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
-import { logger } from '../../utils/logger.js';
-import { getColor } from '../../config/bot.js';
+import { createEmbed } from '../../../utils/embeds.js';
+import { logger } from '../../../utils/logger.js';
+import { InteractionHelper } from '../../../utils/interactionHelper.js';
 
-import { InteractionHelper } from '../../utils/interactionHelper.js';
 export default {
-    data: new SlashCommandBuilder()
-        .setName('google')
-        .setDescription('Search Google')
-        .addStringOption(option => 
-            option.setName('query')
-                .setDescription('What would you like to search for?')
-                .setRequired(true)),
     async execute(interaction) {
         const query = interaction.options.getString('query');
         const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;

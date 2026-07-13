@@ -1,29 +1,19 @@
-import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import axios from 'axios';
-import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
-import { logger } from '../../utils/logger.js';
-import { handleInteractionError, replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
-import { InteractionHelper } from '../../utils/interactionHelper.js';
-import { getColor } from '../../config/bot.js';
+import { createEmbed } from '../../../utils/embeds.js';
+import { logger } from '../../../utils/logger.js';
+import { handleInteractionError, replyUserError, ErrorTypes } from '../../../utils/errorHandler.js';
+import { InteractionHelper } from '../../../utils/interactionHelper.js';
 
 export default {
-    data: new SlashCommandBuilder()
-        .setName('define')
-        .setDescription('Look up a word definition')
-        .addStringOption(option => 
-            option.setName('word')
-                .setDescription('The word to look up')
-                .setRequired(true)),
     async execute(interaction) {
         try {
-            
             const deferred = await InteractionHelper.safeDefer(interaction);
             if (!deferred) {
                 return;
             }
 
             const word = interaction.options.getString('word');
-            
+
             if (word.length < 2) {
                 logger.warn('Define command - word too short', {
                     userId: interaction.user.id,
@@ -32,23 +22,23 @@ export default {
                 });
                 return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Please enter a word with at least 2 characters.' });
             }
-            
+
             const response = await axios.get(
                 `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`,
                 { timeout: 5000 }
             );
-            
+
             if (!response.data || response.data.length === 0) {
                 return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: `No definitions found for "${word}".` });
             }
-            
+
             const data = response.data[0];
             const embed = createEmbed({
                 title: data.word,
                 description: data.phonetic ? `*${data.phonetic}*` : '',
                 color: 'success'
             });
-            
+
             data.meanings.slice(0, 5).forEach(meaning => {
                 const definitions = meaning.definitions
                     .slice(0, 3)
@@ -60,7 +50,7 @@ export default {
                         return text;
                     })
                     .join('\n\n');
-                
+
                 if (definitions) {
                     embed.addFields({
                         name: `**${meaning.partOfSpeech || 'Definition'}**`,
@@ -69,18 +59,18 @@ export default {
                     });
                 }
             });
-            
+
             embed.setFooter({ text: 'Powered by Free Dictionary API' });
-            
+
             await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
-            
+
             logger.info('Dictionary definition retrieved', {
                 userId: interaction.user.id,
                 word: word,
                 guildId: interaction.guildId,
                 commandName: 'define'
             });
-            
+
         } catch (error) {
             logger.error('Dictionary lookup error', {
                 error: error.message,

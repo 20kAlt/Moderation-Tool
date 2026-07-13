@@ -1,24 +1,14 @@
-import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import axios from 'axios';
-import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
-import { logger } from '../../utils/logger.js';
-import { handleInteractionError, replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
-import { InteractionHelper } from '../../utils/interactionHelper.js';
-import { getColor } from '../../config/bot.js';
+import { createEmbed } from '../../../utils/embeds.js';
+import { logger } from '../../../utils/logger.js';
+import { handleInteractionError, replyUserError, ErrorTypes } from '../../../utils/errorHandler.js';
+import { InteractionHelper } from '../../../utils/interactionHelper.js';
 
 export default {
-    data: new SlashCommandBuilder()
-        .setName('urban')
-        .setDescription('Search Urban Dictionary for definitions')
-        .addStringOption(option => 
-            option.setName('term')
-                .setDescription('The term to look up on Urban Dictionary')
-                .setRequired(true)),
-    
     async execute(interaction) {
         try {
             const term = interaction.options.getString('term');
-            
+
             if (term.length < 2) {
                 logger.warn('Urban command - term too short', {
                     userId: interaction.user.id,
@@ -45,29 +35,29 @@ export default {
                     });
                 });
             }, 1500);
-            
+
             const response = await axios.get(
                 `https://api.urbandictionary.com/v0/define?term=${encodeURIComponent(term)}`,
                 { timeout: 5000 }
             );
             clearDeferTimer();
-            
+
             if (!response.data?.list?.length) {
                 return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: `No definitions found for "${term}" on Urban Dictionary.` });
             }
-            
+
             const definition = response.data.list[0];
             const cleanDefinition = definition.definition.replace(/\[|\]/g, '');
             const cleanExample = definition.example.replace(/\[|\]/g, '');
-            
+
             const formattedDefinition = cleanDefinition
-.replace(/\n\s*\n/g, '\n\n')
+                .replace(/\n\s*\n/g, '\n\n')
                 .slice(0, 2000);
-                
+
             const formattedExample = cleanExample
                 ? `*"${cleanExample.replace(/\n/g, ' ').slice(0, 500)}..."*`
                 : '*No example provided*';
-            
+
             const embed = createEmbed({
                 title: definition.word,
                 description: formattedDefinition,
@@ -75,36 +65,36 @@ export default {
             })
             .setURL(definition.permalink)
             .addFields(
-                { 
-                    name: 'Example', 
+                {
+                    name: 'Example',
                     value: formattedExample,
-                    inline: false 
+                    inline: false
                 },
-                { 
-                    name: 'Stats', 
+                {
+                    name: 'Stats',
                     value: `${definition.thumbs_up.toLocaleString()} • ${definition.thumbs_down.toLocaleString()}`,
-                    inline: true 
+                    inline: true
                 },
-                { 
-                    name: 'Author', 
+                {
+                    name: 'Author',
                     value: definition.author || 'Anonymous',
-                    inline: true 
+                    inline: true
                 }
             )
-            .setFooter({ 
+            .setFooter({
                 text: 'Urban Dictionary',
-                iconURL: 'https://i.imgur.com/8aQrX3a.png' 
+                iconURL: 'https://i.imgur.com/8aQrX3a.png'
             });
-                
+
             await InteractionHelper.safeReply(interaction, { embeds: [embed] });
-            
+
             logger.info('Urban Dictionary definition retrieved', {
                 userId: interaction.user.id,
                 term: term,
                 guildId: interaction.guildId,
                 commandName: 'urban'
             });
-            
+
         } catch (error) {
             logger.error('Urban Dictionary error', {
                 error: error.message,

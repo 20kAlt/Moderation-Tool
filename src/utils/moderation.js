@@ -1,7 +1,7 @@
 // moderation.js
 
 import { logEvent as logAuditEvent, EVENT_TYPES } from '../services/loggingService.js';
-import { formatLogLine } from './logEmbeds.js';
+import { formatLogLine } from './logging/logEmbeds.js';
 import { logger } from './logger.js';
 import { getFromDb, setInDb } from './database.js';
 
