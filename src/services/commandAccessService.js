@@ -6,7 +6,7 @@ import {
   formatCategoryName,
   getCategoryIcon,
   PROTECTED_COMMANDS,
-} from '../config/commandCategories.js';
+} from '../config/commands/commandCategories.js';
 
 function normalizeToggleRecord(raw) {
   if (!raw) {

@@ -2,7 +2,7 @@ import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import axios from 'axios';
 import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
-import { handleInteractionError } from '../../utils/errorHandler.js';
+import { handleInteractionError, replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { getColor } from '../../config/bot.js';
 
@@ -39,7 +39,7 @@ export default {
             );
             
             if (!response.data || response.data.length === 0) {
-                return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: 'No definitions found for "${word}".' });
+                return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: `No definitions found for "${word}".` });
             }
             
             const data = response.data[0];
@@ -92,7 +92,7 @@ export default {
             });
 
             if (error.response?.status === 404) {
-                await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: 'No definitions found for "${interaction.options.getString(\'word\')}".' });
+                await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: `No definitions found for "${interaction.options.getString('word')}".` });
             } else {
                 await handleInteractionError(interaction, error, {
                     commandName: 'define',

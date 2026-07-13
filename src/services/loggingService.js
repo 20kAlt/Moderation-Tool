@@ -9,7 +9,7 @@ import {
   buildStandardLogEmbed,
   fieldsToLines,
   splitComparisonFields,
-} from '../utils/logEmbeds.js';
+} from '../utils/logging/logEmbeds.js';
 
 const LOG_DESTINATIONS = ['audit', 'applications', 'reports'];
 
