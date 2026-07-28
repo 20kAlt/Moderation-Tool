@@ -60,7 +60,7 @@ function buildPreviewEmbed(state) {
     if (state.description) embed.setDescription(state.description.substring(0, 4096));
 
     try {
-        embed.setColor(state.color || getColor('primary'));
+        embed.setColor(getColor(state.color || 'primary'));
     } catch {
         embed.setColor(getColor('primary'));
     }
@@ -120,97 +120,80 @@ function buildDashboardEmbed(state) {
 }
 
 function buildMainMenu(state) {
-    const select = new StringSelectMenuBuilder()
-        .setCustomId('eb_menu')
-        .setPlaceholder('Choose an action...')
-        .addOptions(
-            new StringSelectMenuOptionBuilder()
-                .setLabel('Edit Content')
-                .setDescription('Set the title and description')
-                .setValue('edit_content')
-                .setEmoji('✏️'),
-            new StringSelectMenuOptionBuilder()
-                .setLabel('Set Color')
-                .setDescription('Pick a preset or enter a custom hex code')
-                .setValue('set_color')
-                .setEmoji('🎨'),
-            new StringSelectMenuOptionBuilder()
-                .setLabel('Set Author')
-                .setDescription('Configure the author block at the top of the embed')
-                .setValue('set_author')
-                .setEmoji('👤'),
-            new StringSelectMenuOptionBuilder()
-                .setLabel('Set Footer')
-                .setDescription('Configure the footer text and icon')
-                .setValue('set_footer')
-                .setEmoji('📄'),
-            new StringSelectMenuOptionBuilder()
-                .setLabel('Set Images')
-                .setDescription('Set the thumbnail or large banner image')
-                .setValue('set_images')
-                .setEmoji('🖼️'),
-            new StringSelectMenuOptionBuilder()
-                .setLabel(`Add Field (${state.fields.length}/${MAX_FIELDS})`)
-                .setDescription('Add a new inline or block field')
-                .setValue('add_field')
-                .setEmoji('➕'),
-        );
-
-    if (state.fields.length > 0) {
-        select.addOptions(
-            new StringSelectMenuOptionBuilder()
-                .setLabel('Edit Field')
-                .setDescription('Modify the name, value, or inline setting of a field')
-                .setValue('edit_field')
-                .setEmoji('📝'),
-            new StringSelectMenuOptionBuilder()
-                .setLabel('Remove Field')
-                .setDescription('Delete a field from the embed')
-                .setValue('remove_field')
-                .setEmoji('➖'),
-        );
-
-        if (state.fields.length >= 2) {
-            select.addOptions(
-                new StringSelectMenuOptionBuilder()
-                    .setLabel('Reorder Fields')
-                    .setDescription('Move a field up or down in the list')
-                    .setValue('reorder_fields')
-                    .setEmoji('↕️'),
-            );
-        }
-    }
-
-    select.addOptions(
-        new StringSelectMenuOptionBuilder()
-            .setLabel(state.timestamp ? 'Disable Timestamp' : 'Enable Timestamp')
-            .setDescription('Toggle the automatic timestamp in the footer')
-            .setValue('toggle_timestamp')
-            .setEmoji('🕐'),
-        new StringSelectMenuOptionBuilder()
+    const primaryRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId('eb_main_edit_content')
+            .setLabel('Edit Content')
+            .setStyle(ButtonStyle.Primary)
+            .setEmoji('✏️'),
+        new ButtonBuilder()
+            .setCustomId('eb_main_set_color')
+            .setLabel('Set Color')
+            .setStyle(ButtonStyle.Secondary)
+            .setEmoji('🎨'),
+        new ButtonBuilder()
+            .setCustomId('eb_main_set_images')
+            .setLabel('Set Images')
+            .setStyle(ButtonStyle.Secondary)
+            .setEmoji('🖼️'),
+        new ButtonBuilder()
+            .setCustomId('eb_main_post_embed')
             .setLabel('Post Embed')
-            .setDescription('Send the finished embed to a channel')
-            .setValue('post_embed')
+            .setStyle(ButtonStyle.Success)
             .setEmoji('📤'),
-        new StringSelectMenuOptionBuilder()
+    );
+
+    const secondaryRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId('eb_main_add_field')
+            .setLabel(`Add Field (${state.fields.length}/${MAX_FIELDS})`)
+            .setStyle(ButtonStyle.Primary)
+            .setEmoji('➕'),
+        new ButtonBuilder()
+            .setCustomId('eb_main_edit_field')
+            .setLabel('Edit Field')
+            .setStyle(ButtonStyle.Secondary)
+            .setEmoji('📝')
+            .setDisabled(state.fields.length === 0),
+        new ButtonBuilder()
+            .setCustomId('eb_main_remove_field')
+            .setLabel('Remove Field')
+            .setStyle(ButtonStyle.Danger)
+            .setEmoji('➖')
+            .setDisabled(state.fields.length === 0),
+        new ButtonBuilder()
+            .setCustomId('eb_main_toggle_timestamp')
+            .setLabel(state.timestamp ? 'Disable Timestamp' : 'Enable Timestamp')
+            .setStyle(ButtonStyle.Secondary)
+            .setEmoji('🕐'),
+    );
+
+    const tertiaryRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId('eb_main_reorder_fields')
+            .setLabel('Reorder Fields')
+            .setStyle(ButtonStyle.Secondary)
+            .setEmoji('↕️')
+            .setDisabled(state.fields.length < 2),
+        new ButtonBuilder()
+            .setCustomId('eb_main_json_export')
             .setLabel('JSON / Raw Data')
-            .setDescription('View the raw JSON for this embed')
-            .setValue('json_export')
+            .setStyle(ButtonStyle.Secondary)
             .setEmoji('📋'),
-        new StringSelectMenuOptionBuilder()
+        new ButtonBuilder()
+            .setCustomId('eb_main_reset_all')
             .setLabel('Reset Everything')
-            .setDescription('Clear all fields and start over')
-            .setValue('reset_all')
+            .setStyle(ButtonStyle.Danger)
             .setEmoji('🗑️'),
     );
 
-    return select;
+    return [primaryRow, secondaryRow, tertiaryRow];
 }
 
 async function refreshDashboard(interaction, state) {
     return await InteractionHelper.safeEditReply(interaction, {
         embeds: [buildPreviewEmbed(state), buildDashboardEmbed(state)],
-        components: [new ActionRowBuilder().addComponents(buildMainMenu(state))],
+        components: buildMainMenu(state),
     });
 }
 
@@ -1078,54 +1061,48 @@ export default {
             await refreshDashboard(interaction, state);
 
             const collector = interaction.channel.createMessageComponentCollector({
-                componentType: ComponentType.StringSelect,
+                componentType: ComponentType.Button,
                 filter: i =>
-                    i.user.id === interaction.user.id && i.customId === 'eb_menu',
+                    i.user.id === interaction.user.id && i.customId.startsWith('eb_main_'),
                 time: IDLE_TIMEOUT,
             });
 
             collector.on('collect', async ci => {
                 try {
-                    switch (ci.values[0]) {
-                        case 'edit_content':
+                    switch (ci.customId) {
+                        case 'eb_main_edit_content':
                             await handleEditContent(ci, interaction, state);
                             break;
-                        case 'set_color':
+                        case 'eb_main_set_color':
                             await handleSetColor(ci, interaction, state);
                             break;
-                        case 'set_author':
-                            await handleSetAuthor(ci, interaction, state);
-                            break;
-                        case 'set_footer':
-                            await handleSetFooter(ci, interaction, state);
-                            break;
-                        case 'set_images':
+                        case 'eb_main_set_images':
                             await handleSetImages(ci, interaction, state);
                             break;
-                        case 'add_field':
+                        case 'eb_main_post_embed':
+                            await handlePostEmbed(ci, interaction, state, guild);
+                            break;
+                        case 'eb_main_add_field':
                             await handleAddField(ci, interaction, state);
                             break;
-                        case 'edit_field':
+                        case 'eb_main_edit_field':
                             await handleEditField(ci, interaction, state);
                             break;
-                        case 'remove_field':
+                        case 'eb_main_remove_field':
                             await handleRemoveField(ci, interaction, state);
                             break;
-                        case 'reorder_fields':
+                        case 'eb_main_reorder_fields':
                             await handleReorderFields(ci, interaction, state);
                             break;
-                        case 'toggle_timestamp':
+                        case 'eb_main_toggle_timestamp':
                             state.timestamp = !state.timestamp;
                             await ci.deferUpdate();
                             await refreshDashboard(interaction, state);
                             break;
-                        case 'post_embed':
-                            await handlePostEmbed(ci, interaction, state, guild);
-                            break;
-                        case 'json_export':
+                        case 'eb_main_json_export':
                             await handleJsonExport(ci, interaction, state);
                             break;
-                        case 'reset_all':
+                        case 'eb_main_reset_all':
                             state.title       = null;
                             state.description = null;
                             state.color       = getColor('primary');

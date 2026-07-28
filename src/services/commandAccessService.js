@@ -114,9 +114,10 @@ export function isCommandEnabledInConfig(config, commandName, category) {
   // Check if it's a subcommand (contains space)
   const isSubcommand = normalizedName.includes(' ');
   const baseCommand = isSubcommand ? normalizedName.split(' ')[0] : normalizedName;
+  const isProtected = isProtectedCommand(baseCommand);
 
-  // Protected commands (only applies to base commands, not subcommands)
-  if (!isSubcommand && isProtectedCommand(baseCommand)) {
+  // Protected commands and their subcommands should always remain enabled.
+  if (isProtected) {
     return true;
   }
 
@@ -226,7 +227,8 @@ export async function disableCommand(client, guildId, commandName, context = {})
     throw new Error(`Unknown command: \`${normalizedName}\`.`);
   }
 
-  if (!target.isSubcommand && isProtectedCommand(normalizedName)) {
+  const isProtectedTarget = isProtectedCommand(normalizedName) || (target.isSubcommand && isProtectedCommand(target.parentCommand));
+  if (isProtectedTarget) {
     throw new Error(`The \`${normalizedName}\` command cannot be disabled.`);
   }
 
