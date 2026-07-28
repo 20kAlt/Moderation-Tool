@@ -21,6 +21,26 @@ import {
     triggerDefinitions,
 } from './database/schema.js';
 
+function normalizeTimestampInput(value, fallback = new Date()) {
+    if (value instanceof Date && !Number.isNaN(value.getTime())) {
+        return value;
+    }
+
+    const numericValue = typeof value === 'string' && /^[0-9]+$/.test(value)
+        ? Number(value)
+        : Number(value);
+
+    if (Number.isFinite(numericValue) && numericValue >= 0) {
+        const date = new Date(numericValue);
+        if (!Number.isNaN(date.getTime())) {
+            return date;
+        }
+    }
+
+    const parsedDate = new Date(value);
+    return !Number.isNaN(parsedDate.getTime()) ? parsedDate : fallback;
+}
+
 class PostgreSQLDatabase {
     constructor() {
         this.pool = null;
@@ -812,13 +832,16 @@ class PostgreSQLDatabase {
                          ON CONFLICT (id) DO NOTHING`,
                         [parsedKey.userId]
                     );
+
+                    const lastMessageValue = value?.lastMessage ?? value?.last_message;
+                    const normalizedLastMessage = normalizeTimestampInput(lastMessageValue, new Date());
                     
                     await this.pool.query(
                         `INSERT INTO ${pgConfig.tables.user_levels} (guild_id, user_id, xp, level, total_xp, last_message, rank, updated_at) 
                          VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP) 
                          ON CONFLICT (guild_id, user_id) DO UPDATE SET 
                          xp = $3, level = $4, total_xp = $5, last_message = $6, rank = $7, updated_at = CURRENT_TIMESTAMP`,
-                        [parsedKey.guildId, parsedKey.userId, value.xp || 0, value.level || 0, value.totalXp || 0, value.lastMessage || new Date(), value.rank || 0]
+                        [parsedKey.guildId, parsedKey.userId, value.xp || 0, value.level || 0, value.totalXp || 0, normalizedLastMessage, value.rank || 0]
                     );
                     return true;
                 

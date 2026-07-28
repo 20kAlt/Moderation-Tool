@@ -53,17 +53,25 @@ function isValidHex(str) {
     return /^#[0-9A-Fa-f]{6}$/.test(str);
 }
 
+function resolveEmbedColor(value) {
+    try {
+        const resolved = getColor(value || 'primary');
+        if (typeof resolved === 'number' && Number.isFinite(resolved) && resolved >= 0 && resolved <= 0xffffff) {
+            return resolved;
+        }
+    } catch {
+        // ignore invalid value and fall through to primary
+    }
+    return getColor('primary');
+}
+
 function buildPreviewEmbed(state) {
     const embed = new EmbedBuilder();
 
     if (state.title)       embed.setTitle(state.title.substring(0, 256));
     if (state.description) embed.setDescription(state.description.substring(0, 4096));
 
-    try {
-        embed.setColor(getColor(state.color || 'primary'));
-    } catch {
-        embed.setColor(getColor('primary'));
-    }
+    embed.setColor(resolveEmbedColor(state.color));
 
     if (state.author?.name) {
         const obj = { name: state.author.name.substring(0, 256) };

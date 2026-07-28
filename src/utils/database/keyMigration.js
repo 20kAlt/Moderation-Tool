@@ -60,6 +60,25 @@ async function ensureParentRows(client, guildId, userId) {
     }
 }
 
+function resolveTimestampValue(input, fallback = new Date()) {
+    if (input instanceof Date && !Number.isNaN(input.getTime())) {
+        return input;
+    }
+
+    if (typeof input === 'string' && /^[0-9]+$/.test(input)) {
+        const timestamp = new Date(Number(input));
+        return Number.isNaN(timestamp.getTime()) ? fallback : timestamp;
+    }
+
+    if (typeof input === 'number' && Number.isFinite(input)) {
+        const timestamp = new Date(input);
+        return Number.isNaN(timestamp.getTime()) ? fallback : timestamp;
+    }
+
+    const parsedDate = new Date(input);
+    return !Number.isNaN(parsedDate.getTime()) ? parsedDate : fallback;
+}
+
 async function migrateEconomyFromTemp(client, legacyKey, value) {
     const parsed = parseKey(canonicalizeKey(legacyKey));
     const payload = typeof value === 'string' ? JSON.parse(value) : value;
@@ -82,6 +101,7 @@ async function migrateEconomyFromTemp(client, legacyKey, value) {
 async function migrateUserLevelFromTemp(client, legacyKey, value) {
     const parsed = parseKey(canonicalizeKey(legacyKey));
     const payload = typeof value === 'string' ? JSON.parse(value) : value;
+    const lastMessageValue = payload?.lastMessage ?? payload?.last_message;
 
     await ensureParentRows(client, parsed.guildId, parsed.userId);
     await client.query(
@@ -101,7 +121,7 @@ async function migrateUserLevelFromTemp(client, legacyKey, value) {
             Number(payload?.xp) || 0,
             Number(payload?.level) || 0,
             Number(payload?.totalXp ?? payload?.total_xp) || 0,
-            Number(payload?.lastMessage ?? payload?.last_message) || 0,
+            resolveTimestampValue(lastMessageValue),
             Number(payload?.rank) || 0,
         ],
     );
