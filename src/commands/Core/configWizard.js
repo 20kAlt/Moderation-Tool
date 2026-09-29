@@ -94,7 +94,7 @@ function buildDashboardEmbed(config, guild) {
             },
             {
                 name: '⚡ Command Access',
-                value: `Use \`${config.prefix || getCommandPrefix()}commands dashboard\` to enable or disable commands and subcommands.`,
+                value: `Optional command categories start disabled on new servers. Use \`${config.prefix || getCommandPrefix()}commands dashboard\` to enable the features you want. Setup controls stay available.`,
                 inline: false,
             },
         ],

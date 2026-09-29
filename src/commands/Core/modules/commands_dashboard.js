@@ -121,7 +121,7 @@ export function buildOverviewEmbed(snapshot, guild, prefix = getCommandPrefix())
 
   return createEmbed({
     title: '⚙️ Command Access',
-    description: `Manage slash and prefix commands for **${guild.name}**. Subcommands (e.g. \`birthday list\`) are listed separately.`,
+    description: `Manage slash and prefix commands for **${guild.name}**. New servers start with non-moderation categories disabled. Enable only what you need; setup controls stay available. Subcommands (e.g. \`birthday list\`) are listed separately.`,
     color: 'info',
     fields,
     footer: '🔒 commands & configwizard always stay available',

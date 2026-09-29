@@ -33,10 +33,10 @@ export default {
         .addIntegerOption((option) =>
             option
                 .setName("winners")
-                .setDescription("The number of winners to pick.")
+                .setDescription(`The number of winners to pick (default: ${GIVEAWAY_MIN_WINNERS}).`)
                 .setMinValue(GIVEAWAY_MIN_WINNERS)
                 .setMaxValue(GIVEAWAY_MAX_WINNERS)
-                .setRequired(true),
+                .setRequired(false),
         )
         .addStringOption((option) =>
             option
@@ -78,7 +78,7 @@ export default {
         logger.info(`Giveaway creation started by ${interaction.user.tag} in guild ${interaction.guildId}`);
 
         const durationString = interaction.options.getString("duration");
-        const winnerCount = interaction.options.getInteger("winners");
+        const winnerCount = interaction.options.getInteger("winners") ?? GIVEAWAY_MIN_WINNERS;
         const prize = interaction.options.getString("prize");
         const targetChannel = interaction.options.getChannel("channel") || interaction.channel;
 

@@ -209,7 +209,7 @@ const sharedTodoAddModalHandler = {
     const userId = interaction.user.id;
 
     try {
-      const allowed = await checkRateLimit(`${userId}:shared_todo_add`, 5, 30000);
+      const allowed = await checkRateLimit(`${interaction.guildId || 'dm'}:${userId}:shared_todo_add`, 5, 30000);
       if (!allowed) {
         return await replyUserError(interaction, { type: ErrorTypes.RATE_LIMIT, message: 'You are adding tasks too quickly. Please wait and try again.' });
       }
@@ -270,7 +270,7 @@ const sharedTodoCompleteModalHandler = {
     const userId = interaction.user.id;
 
     try {
-      const allowed = await checkRateLimit(`${userId}:shared_todo_complete`, 5, 30000);
+      const allowed = await checkRateLimit(`${interaction.guildId || 'dm'}:${userId}:shared_todo_complete`, 5, 30000);
       if (!allowed) {
         return await replyUserError(interaction, { type: ErrorTypes.RATE_LIMIT, message: 'You are completing tasks too quickly. Please wait and try again.' });
       }
@@ -335,7 +335,7 @@ const sharedTodoRemoveModalHandler = {
     const userId = interaction.user.id;
 
     try {
-      const allowed = await checkRateLimit(`${userId}:shared_todo_remove`, 5, 30000);
+      const allowed = await checkRateLimit(`${interaction.guildId || 'dm'}:${userId}:shared_todo_remove`, 5, 30000);
       if (!allowed) {
         return await replyUserError(interaction, { type: ErrorTypes.RATE_LIMIT, message: 'You are removing tasks too quickly. Please wait and try again.' });
       }

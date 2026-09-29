@@ -21,9 +21,9 @@ export default {
                 .addChannelOption((option) =>
                     option
                         .setName('channel')
-                        .setDescription('Channel to send level-up notifications in')
+                        .setDescription('Channel for level-up notifications (defaults to this channel)')
                         .addChannelTypes(ChannelType.GuildText)
-                        .setRequired(true),
+                        .setRequired(false),
                 )
                 .addIntegerOption((option) =>
                     option
@@ -83,7 +83,7 @@ export default {
         }
 
         if (subcommand === 'setup') {
-            const channel = interaction.options.getChannel('channel');
+            const channel = interaction.options.getChannel('channel') || interaction.channel;
             const xpMin = interaction.options.getInteger('xp_min') ?? 15;
             const xpMax = interaction.options.getInteger('xp_max') ?? 25;
             const message =

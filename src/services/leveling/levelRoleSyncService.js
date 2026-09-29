@@ -50,7 +50,7 @@ export async function reconcileLevelRoles(client, guildId = null) {
 
         try {
             const cfg = await getLevelingConfig(client, guild.id);
-            if (cfg.enabled === false) continue;
+            if (!cfg.enabled) continue;
 
             const rewards = { ...(cfg.roleRewards || {}) };
             if (Object.keys(rewards).length === 0) continue;

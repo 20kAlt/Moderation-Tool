@@ -104,7 +104,7 @@ export default {
 
             const defaultCooldownSec = Number(botConfig.commands?.defaultCooldown) || 0;
             if (defaultCooldownSec > 0 && !isBotOwner(interaction.user.id)) {
-              const cooldownKey = `${interaction.user.id}:${interaction.commandName}`;
+              const cooldownKey = `${interaction.guildId || 'dm'}:${interaction.user.id}:${interaction.commandName}`;
               const expiresAt = client.cooldowns.get(cooldownKey);
 
               if (expiresAt && Date.now() < expiresAt) {

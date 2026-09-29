@@ -33,9 +33,9 @@ export default {
                     option
                         .setName("panel_message")
                         .setDescription(
-                            "The main message/description for the ticket panel.",
+                            "The panel message (default: Click the button below to create a support ticket.).",
                         )
-                        .setRequired(true),
+                        .setRequired(false),
                 )
                 .addStringOption((option) =>
                     option

@@ -446,10 +446,10 @@ export const botConfig = {
   // =========================
   // FEATURE TOGGLES
   // =========================
-  // Set any feature to `false` to disable it globally.
+  // Set any feature to `false` to disable it globally, overriding server settings.
   features: {
     // Core systems.
-    economy: false,
+    economy: true,
     leveling: true,
     moderation: true,
     logging: true,
@@ -473,7 +473,7 @@ export const botConfig = {
     utility: true,
     community: true,
     fun: true,
-    music: false,
+    music: true,
   },
 };
 

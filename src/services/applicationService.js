@@ -79,9 +79,9 @@ class ApplicationService {
         return true;
     }
 
-    static checkApplicationCooldown(userId) {
+    static checkApplicationCooldown(guildId, userId) {
         const now = Date.now();
-        const cooldownKey = `submit_${userId}`;
+        const cooldownKey = `submit_${guildId}:${userId}`;
         const lastSubmit = applicationCooldowns.get(cooldownKey);
 
         if (lastSubmit && now - lastSubmit < APPLICATION_SUBMIT_COOLDOWN) {
@@ -90,7 +90,7 @@ class ApplicationService {
                 'Application submission on cooldown',
                 ErrorTypes.RATE_LIMIT,
                 `Please wait ${Math.ceil(remainingTime / 60)} minute(s) before submitting another application.`,
-                { remainingTime, userId }
+                { remainingTime, guildId, userId }
             );
         }
 
@@ -123,7 +123,7 @@ class ApplicationService {
             
             this.validateApplicationSubmission(data);
 
-            this.checkApplicationCooldown(data.userId);
+            this.checkApplicationCooldown(data.guildId, data.userId);
 
             const settings = await getApplicationSettings(client, data.guildId);
             if (!settings.enabled) {

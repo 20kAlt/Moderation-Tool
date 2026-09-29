@@ -23,6 +23,9 @@ async function calculateModalHandler(interaction, client, args) {
         if (!context) {
             return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'This calculation has expired. Please start a new calculation.' });
         }
+        if (context.guildId !== interaction.guildId) {
+            return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'This calculation belongs to a different server.' });
+        }
 
         await interaction.deferReply({ ephemeral: false });
 

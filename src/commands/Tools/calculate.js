@@ -104,11 +104,12 @@ export default {
             }
 
             const userId = interaction.user.id;
-            if (!calculationHistory.has(userId)) {
-                calculationHistory.set(userId, []);
+            const historyKey = `${interaction.guildId || 'dm'}:${userId}`;
+            if (!calculationHistory.has(historyKey)) {
+                calculationHistory.set(historyKey, []);
             }
 
-            const history = calculationHistory.get(userId);
+            const history = calculationHistory.get(historyKey);
             history.unshift({
                 expression,
                 result: formattedResult,
@@ -173,8 +174,7 @@ export default {
                             await i.deferUpdate().catch(console.error);
                         }
 
-                        const userHistory =
-                            calculationHistory.get(userId) || [];
+                        const userHistory = calculationHistory.get(historyKey) || [];
 
                         if (userHistory.length === 0) {
                             await i.followUp({
@@ -217,13 +217,14 @@ export default {
                     }
 
                     try {
-                        const contextKey = `${i.user.id}_${operation}`;
+                        const contextKey = `${interaction.guildId || 'dm'}_${i.user.id}_${interaction.id}_${operation}`;
                         calculationContexts.set(contextKey, {
                             expression,
                             formattedResult,
                             operator,
                             messageId: interaction.message?.id,
                             channelId: interaction.channelId,
+                            guildId: interaction.guildId,
                             userId: i.user.id
                         });
 
