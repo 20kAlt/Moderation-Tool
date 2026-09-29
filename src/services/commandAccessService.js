@@ -1,12 +1,35 @@
 // commandAccessService.js
 
-import { getGuildConfig, updateGuildConfig } from './config/guildConfig.js';
+import { getGuildConfig, setGuildConfig, updateGuildConfig } from './config/guildConfig.js';
+import { logger } from '../utils/logger.js';
 import {
   normalizeCategoryKey,
   formatCategoryName,
   getCategoryIcon,
   PROTECTED_COMMANDS,
 } from '../config/commands/commandCategories.js';
+
+const COMMAND_ACCESS_CONFIG_VERSION = 1;
+const LEGACY_DEFAULT_DISABLED_CATEGORIES = new Set([
+  'birthday',
+  'community',
+  'core',
+  'economy',
+  'fun',
+  'giveaway',
+  'jointocreate',
+  'leveling',
+  'logging',
+  'music',
+  'reaction_roles',
+  'search',
+  'serverstats',
+  'ticket',
+  'tools',
+  'utility',
+  'verification',
+  'welcome',
+]);
 
 function normalizeToggleRecord(raw) {
   if (!raw) {
@@ -143,7 +166,34 @@ export function isCommandEnabledInConfig(config, commandName, category) {
 }
 
 export async function isCommandEnabled(client, guildId, commandName, category = null) {
-  const config = await getGuildConfig(client, guildId);
+  let config = await getGuildConfig(client, guildId);
+
+  if (config.commandAccessConfigVersion !== COMMAND_ACCESS_CONFIG_VERSION) {
+    const disabledCategories = normalizeToggleRecord(config.disabledCategories);
+    const categories = Object.keys(disabledCategories);
+    const matchesLegacyDefaults =
+      categories.length === LEGACY_DEFAULT_DISABLED_CATEGORIES.size &&
+      categories.every(
+        (categoryKey) =>
+          LEGACY_DEFAULT_DISABLED_CATEGORIES.has(categoryKey) && disabledCategories[categoryKey],
+      );
+
+    if (categories.length > 0) {
+      config = {
+        ...config,
+        disabledCategories: matchesLegacyDefaults ? {} : disabledCategories,
+        commandAccessConfigVersion: COMMAND_ACCESS_CONFIG_VERSION,
+      };
+
+      await setGuildConfig(client, guildId, config).catch((error) => {
+        logger.warn('Could not persist guild command-access migration', {
+          guildId,
+          error: error.message,
+        });
+      });
+    }
+  }
+
   let resolvedCategory = category;
 
   if (!resolvedCategory) {
@@ -202,7 +252,12 @@ export function getCommandAccessSnapshot(client, config) {
 }
 
 async function persistAccessConfig(client, guildId, updates, context = {}) {
-  return updateGuildConfig(client, guildId, updates, context);
+  return updateGuildConfig(
+    client,
+    guildId,
+    { ...updates, commandAccessConfigVersion: COMMAND_ACCESS_CONFIG_VERSION },
+    context,
+  );
 }
 
 export function resolveCommandTarget(client, commandName) {
