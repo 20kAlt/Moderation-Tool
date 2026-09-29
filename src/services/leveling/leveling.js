@@ -7,7 +7,7 @@ import { TitanBotError, ErrorTypes } from '../../utils/errorHandler.js';
 import { addXp } from './xpSystem.js';
 import { getUserLevelKey } from '../../utils/database/keys.js';
 
-const BASE_XP = 100;
+const BASE_XP = 10;
 const XP_MULTIPLIER = 1.5;
 const MAX_LEVEL = 1000;
 const MIN_LEVEL = 0;
