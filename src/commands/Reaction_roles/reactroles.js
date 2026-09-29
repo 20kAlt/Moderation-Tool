@@ -2,7 +2,7 @@ import { getColor } from '../../config/bot.js';
 import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, RoleSelectMenuBuilder, ChannelSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ButtonBuilder, ButtonStyle, MessageFlags, ComponentType, EmbedBuilder, LabelBuilder, CheckboxBuilder, TextDisplayBuilder } from 'discord.js';
 import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
-import { createError, TitanBotError, ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
+import { createError, ModerationToolError, ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { createReactionRoleMessage, hasDangerousPermissions, getAllReactionRoleMessages, deleteReactionRoleMessage } from '../../services/reactionRoleService.js';
 import { logEvent, EVENT_TYPES } from '../../services/loggingService.js';
@@ -585,7 +585,7 @@ async function startReactionRoleSetupWizard(interaction, initialState = {}) {
             ));
         } catch (error) {
             logger.error('Reaction role setup wizard failed', { guildId, error: error.message });
-            const message = error instanceof TitanBotError ? error.userMessage : 'Could not create the panel. Check channel permissions and try again.';
+            const message = error instanceof ModerationToolError ? error.userMessage : 'Could not create the panel. Check channel permissions and try again.';
             await InteractionHelper.safeEditReply(interaction, {
                 embeds: [warningEmbed('Could Not Create Panel', message)],
                 components: buildSetupWizardComponents(guildId, state),

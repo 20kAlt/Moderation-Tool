@@ -19,7 +19,7 @@ import {
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
 import { successEmbed, infoEmbed } from '../../../utils/embeds.js';
 import { logger } from '../../../utils/logger.js';
-import { TitanBotError, ErrorTypes, replyUserError } from '../../../utils/errorHandler.js';
+import { ModerationToolError, ErrorTypes, replyUserError } from '../../../utils/errorHandler.js';
 import { getGuildConfig, setGuildConfig } from '../../../services/config/guildConfig.js';
 import { getGuildTicketStats } from '../../../utils/database/tickets.js';
 import { getUserTicketCount } from '../../../services/ticket.js';
@@ -99,7 +99,7 @@ function buildPanelButtonRow(config) {
 async function repostTicketPanel(client, guild, guildConfig, guildId) {
     const channel = await guild.channels.fetch(guildConfig.ticketPanelChannelId).catch(() => null);
     if (!channel) {
-        throw new TitanBotError(
+        throw new ModerationToolError(
             'Panel channel missing',
             ErrorTypes.CONFIGURATION,
             'The configured ticket panel channel no longer exists. Set a new panel channel from the dashboard.',
@@ -408,14 +408,14 @@ export async function startTicketSetupWizard(interaction, client) {
             }
 
             if (!client.db) {
-                throw new TitanBotError('Ticket database unavailable', ErrorTypes.DATABASE, 'The database is unavailable. No ticket panel was created.');
+                throw new ModerationToolError('Ticket database unavailable', ErrorTypes.DATABASE, 'The database is unavailable. No ticket panel was created.');
             }
 
             const panelChannel = await guild.channels.fetch(state.panelChannelId).catch(() => null);
             const botMember = guild.members.me;
             const permissions = panelChannel?.permissionsFor(botMember);
             if (!panelChannel || !permissions?.has(['ViewChannel', 'SendMessages', 'EmbedLinks'])) {
-                throw new TitanBotError('Ticket panel permissions missing', ErrorTypes.PERMISSION, `I need View Channel, Send Messages, and Embed Links in <#${state.panelChannelId}>.`);
+                throw new ModerationToolError('Ticket panel permissions missing', ErrorTypes.PERMISSION, `I need View Channel, Send Messages, and Embed Links in <#${state.panelChannelId}>.`);
             }
 
             const nextConfig = {
@@ -451,7 +451,7 @@ export async function startTicketSetupWizard(interaction, client) {
             ));
         } catch (error) {
             logger.error('Ticket setup wizard failed', { guildId, error: error.message });
-            const message = error instanceof TitanBotError
+            const message = error instanceof ModerationToolError
                 ? error.userMessage
                 : 'Could not create the ticket panel. Check the selected channel permissions and try again.';
             await InteractionHelper.safeEditReply(interaction, {
@@ -541,9 +541,9 @@ export default {
                 },
             });
         } catch (error) {
-            if (error instanceof TitanBotError) throw error;
+            if (error instanceof ModerationToolError) throw error;
             logger.error('Unexpected error in ticket_config:', error);
-            throw new TitanBotError(
+            throw new ModerationToolError(
                 `Ticket config failed: ${error.message}`,
                 ErrorTypes.UNKNOWN,
                 'Failed to open the ticket configuration dashboard.',
