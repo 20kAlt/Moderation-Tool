@@ -1,7 +1,7 @@
 {
-  "name": "titanbot",
+  "name": "moderation-tool",
   "version": "2.1.0",
-  "description": "Modular Ultimate Community Bot by Touchpoint Support",
+  "description": "Moderation Tool Bot by 20k",
   "main": "src/app.js",
   "type": "module",
   "scripts": {
