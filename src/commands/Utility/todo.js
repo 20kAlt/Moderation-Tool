@@ -1,6 +1,12 @@
 import { SlashCommandBuilder, PermissionFlagsBits, PermissionsBitField, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
 import { getFromDb, setInDb } from '../../utils/database.js';
+import {
+    getGuildSharedTodoKey,
+    getGuildSharedTodoUserListsKey,
+    getGuildTodoKey,
+} from '../../utils/database/keys.js';
+import { getGuildSharedTodoData, getGuildTodoData } from '../../utils/database/todoStorage.js';
 import { logger } from '../../utils/logger.js';
 import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
@@ -136,17 +142,19 @@ export default {
 
     async execute(interaction, config, client) {
         const userId = interaction.user.id;
+        const guildId = interaction.guildId;
                 const subcommand = interaction.options.getSubcommand();
                 const shareSubcommand = interaction.options.getSubcommandGroup() === 'share' ? interaction.options.getSubcommand() : null;
 
         async function getOrCreateSharedList(listId, creatorId = null, listName = null) {
-            const listKey = `shared_todo_${listId}`;
-            let listData = await getFromDb(listKey, null);
+            const listKey = getGuildSharedTodoKey(guildId, listId);
+            let listData = await getGuildSharedTodoData(client, guildId, listId, userId);
             
             if (!listData || (listData.ok === false && listData.error)) {
                 if (creatorId) {
                     listData = {
                         id: listId,
+                        guildId,
                         name: listName,
                         creatorId,
                         members: [creatorId],
@@ -187,11 +195,12 @@ export default {
 
                     await getOrCreateSharedList(listId, userId, listName);
 
-                    const userSharedLists = await getFromDb(`user_shared_lists_${userId}`, []);
+                    const userListsKey = getGuildSharedTodoUserListsKey(guildId, userId);
+                    const userSharedLists = await getFromDb(userListsKey, []);
                     const sharedListsArray = Array.isArray(userSharedLists) ? userSharedLists : [];
                     if (!sharedListsArray.includes(listId)) {
                         sharedListsArray.push(listId);
-                        await setInDb(`user_shared_lists_${userId}`, sharedListsArray);
+                        await setInDb(userListsKey, sharedListsArray);
                     }
 
                     return await InteractionHelper.safeEditReply(interaction, {
@@ -220,13 +229,14 @@ export default {
 
                     if (!listData.members.includes(memberToAdd.id)) {
                         listData.members.push(memberToAdd.id);
-                        await setInDb(`shared_todo_${listId}`, listData);
+                        await setInDb(getGuildSharedTodoKey(guildId, listId), listData);
 
-                        const memberLists = await getFromDb(`user_shared_lists_${memberToAdd.id}`, []);
+                        const memberListsKey = getGuildSharedTodoUserListsKey(guildId, memberToAdd.id);
+                        const memberLists = await getFromDb(memberListsKey, []);
                         const memberListsArray = Array.isArray(memberLists) ? memberLists : [];
                         if (!memberListsArray.includes(listId)) {
                             memberListsArray.push(listId);
-                            await setInDb(`user_shared_lists_${memberToAdd.id}`, memberListsArray);
+                            await setInDb(memberListsKey, memberListsArray);
                         }
 
                         return await InteractionHelper.safeEditReply(interaction, {
@@ -358,7 +368,7 @@ export default {
                     };
 
                     listData.tasks.push(newTask);
-                    await setInDb(`shared_todo_${listId}`, listData);
+                    await setInDb(getGuildSharedTodoKey(guildId, listId), listData);
 
                     return await InteractionHelper.safeEditReply(interaction, {
                         embeds: [
@@ -387,7 +397,7 @@ export default {
                     }
 
                     const [removedTask] = listData.tasks.splice(taskIndex, 1);
-                    await setInDb(`shared_todo_${listId}`, listData);
+                    await setInDb(getGuildSharedTodoKey(guildId, listId), listData);
 
                     return await InteractionHelper.safeEditReply(interaction, {
                         embeds: [
@@ -399,12 +409,8 @@ export default {
             return;
         }
 
-        const dbKey = `todo_${userId}`;
-
-        const userData = await getFromDb(dbKey, {
-            tasks: [],
-            nextId: 1
-        });
+        const dbKey = getGuildTodoKey(guildId, userId);
+        const userData = await getGuildTodoData(guildId, userId);
 
         if (!userData.tasks) userData.tasks = [];
         if (!userData.nextId) userData.nextId = 1;
@@ -467,7 +473,7 @@ export default {
                 }
 
                 task.completed = true;
-                await setInDb(`todo_${userId}`, userData);
+                await setInDb(dbKey, userData);
 
                 return await InteractionHelper.safeEditReply(interaction, {
                     embeds: [
@@ -485,7 +491,7 @@ export default {
                 }
 
                 const [removedTask] = userData.tasks.splice(taskIndex, 1);
-                await setInDb(`todo_${userId}`, userData);
+                await setInDb(dbKey, userData);
 
                 return await InteractionHelper.safeEditReply(interaction, {
                     embeds: [

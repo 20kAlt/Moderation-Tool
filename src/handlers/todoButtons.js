@@ -1,6 +1,8 @@
 import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
 import { successEmbed } from '../utils/embeds.js';
-import { getFromDb, setInDb } from '../utils/database.js';
+import { setInDb } from '../utils/database.js';
+import { getGuildSharedTodoKey } from '../utils/database/keys.js';
+import { getGuildSharedTodoData } from '../utils/database/todoStorage.js';
 import { checkRateLimit } from '../utils/rateLimiter.js';
 import { logger } from '../utils/logger.js';
 
@@ -88,8 +90,12 @@ async function refreshSharedTodoMessage(interaction, listId, messageId) {
     return;
   }
 
-  const listKey = `shared_todo_${listId}`;
-  const listData = await getFromDb(listKey, null);
+  const listData = await getGuildSharedTodoData(
+    interaction.client,
+    interaction.guildId,
+    listId,
+    interaction.user.id,
+  );
   if (!listData) {
     return;
   }
@@ -222,8 +228,8 @@ const sharedTodoAddModalHandler = {
         return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Task text cannot be empty.' });
       }
 
-      const listKey = `shared_todo_${listId}`;
-      let listData = await getFromDb(listKey, null);
+      const listKey = getGuildSharedTodoKey(interaction.guildId, listId);
+      let listData = await getGuildSharedTodoData(client, interaction.guildId, listId, userId);
       
       if (!listData) {
         return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Shared list not found.' });
@@ -283,8 +289,8 @@ const sharedTodoCompleteModalHandler = {
         return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Task ID must be a positive number.' });
       }
 
-      const listKey = `shared_todo_${listId}`;
-      let listData = await getFromDb(listKey, null);
+      const listKey = getGuildSharedTodoKey(interaction.guildId, listId);
+      let listData = await getGuildSharedTodoData(client, interaction.guildId, listId, userId);
       
       if (!listData) {
         return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Shared list not found.' });
@@ -348,8 +354,8 @@ const sharedTodoRemoveModalHandler = {
         return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Task ID must be a positive number.' });
       }
 
-      const listKey = `shared_todo_${listId}`;
-      const listData = await getFromDb(listKey, null);
+      const listKey = getGuildSharedTodoKey(interaction.guildId, listId);
+      const listData = await getGuildSharedTodoData(client, interaction.guildId, listId, userId);
 
       if (!listData) {
         return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Shared list not found.' });

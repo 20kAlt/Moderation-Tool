@@ -16,6 +16,18 @@ export function getTicketCounterKey(guildId) {
     return `guild:${guildId}:ticket:counter`;
 }
 
+export function getGuildTodoKey(guildId, userId) {
+    return `guild:${guildId}:todo:${userId}`;
+}
+
+export function getGuildSharedTodoKey(guildId, listId) {
+    return `guild:${guildId}:shared_todo:${listId}`;
+}
+
+export function getGuildSharedTodoUserListsKey(guildId, userId) {
+    return `guild:${guildId}:shared_todo:users:${userId}`;
+}
+
 export function getInviteTrackingKey(guildId) {
     return `guild:${guildId}:invites`;
 }
