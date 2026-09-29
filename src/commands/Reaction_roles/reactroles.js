@@ -1,5 +1,5 @@
 import { getColor } from '../../config/bot.js';
-import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, RoleSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ButtonBuilder, ButtonStyle, MessageFlags, ComponentType, EmbedBuilder, LabelBuilder, CheckboxBuilder, TextDisplayBuilder } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, RoleSelectMenuBuilder, ChannelSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ButtonBuilder, ButtonStyle, MessageFlags, ComponentType, EmbedBuilder, LabelBuilder, CheckboxBuilder, TextDisplayBuilder } from 'discord.js';
 import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
 import { createError, TitanBotError, ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
@@ -30,27 +30,27 @@ export default {
         .addSubcommand(subcommand =>
             subcommand
                 .setName('setup')
-                .setDescription('Set up a new reaction role panel')
+                .setDescription('Open a setup UI, or provide options for direct setup')
                 .addChannelOption(option => 
                     option.setName('channel')
-                        .setDescription('The channel to send the reaction role message to')
+                        .setDescription('Panel channel (omit to choose it in the setup UI)')
                         .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
-                        .setRequired(true)
+                        .setRequired(false)
                 )
                 .addStringOption(option =>
                     option.setName('title')
                         .setDescription('Title for the reaction role panel')
-                        .setRequired(true)
+                        .setRequired(false)
                 )
                 .addStringOption(option =>
                     option.setName('description')
                         .setDescription('Description for the reaction role panel')
-                        .setRequired(true)
+                        .setRequired(false)
                 )
                 .addRoleOption(option =>
                     option.setName('role1')
                         .setDescription('First role to add')
-                        .setRequired(true)
+                        .setRequired(false)
                 )
                 .addRoleOption(option =>
                     option.setName('role2')
@@ -146,14 +146,27 @@ export default {
 };
 
 async function handleSetup(interaction) {
-    const deferSuccess = await InteractionHelper.safeDefer(interaction);
+    const deferSuccess = await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
     if (!deferSuccess) return;
     
     logger.info(`Reaction role setup initiated by ${interaction.user.tag} in guild ${interaction.guild.name}`);
     
     const channel = interaction.options.getChannel('channel');
-    const title = interaction.options.getString('title');
-    const description = interaction.options.getString('description');
+    const title = interaction.options.getString('title') || 'Choose Your Roles';
+    const description = interaction.options.getString('description') || 'Select any roles you want from the menu below.';
+
+    const selectedRoles = Array.from({ length: 5 }, (_, index) =>
+        interaction.options.getRole(`role${index + 1}`),
+    ).filter(Boolean);
+
+    if (!channel || selectedRoles.length === 0) {
+        return startReactionRoleSetupWizard(interaction, {
+            channelId: channel?.id || null,
+            title,
+            description,
+            roleIds: selectedRoles.map(role => role.id),
+        });
+    }
 
     if (channel.type !== ChannelType.GuildText && channel.type !== ChannelType.GuildAnnouncement) {
         throw createError(
@@ -349,6 +362,241 @@ async function handleSetup(interaction) {
 
     await InteractionHelper.safeEditReply(interaction, {
         embeds: [successEmbed('Success', `✅ Reaction role panel created in ${channel}!\n\n${message.url}`)]
+    });
+}
+
+function buildSetupWizardEmbed(guild, state) {
+    const selectedRoleNames = state.roleIds
+        .map(roleId => guild.roles.cache.get(roleId))
+        .filter(Boolean)
+        .map(role => role.toString());
+
+    return new EmbedBuilder()
+        .setTitle('Create Reaction Roles')
+        .setDescription('Choose where to post the panel, then select every role members can assign to themselves.')
+        .setColor(getColor('info'))
+        .addFields(
+            { name: 'Panel Channel', value: state.channelId ? `<#${state.channelId}>` : '`Choose a channel`', inline: true },
+            { name: 'Roles Selected', value: `**${state.roleIds.length} / 25**`, inline: true },
+            { name: 'Selected Roles', value: selectedRoleNames.length ? selectedRoleNames.join(', ') : '`Choose one or more roles`', inline: false },
+        )
+        .setFooter({ text: `${guild.name} • Members can add and remove selected roles` });
+}
+
+function buildSetupWizardComponents(guildId, state, disabled = false) {
+    const channelSelect = new ChannelSelectMenuBuilder()
+        .setCustomId(`rr_setup_channel_${guildId}`)
+        .setPlaceholder('Choose a panel channel')
+        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement);
+    const roleSelect = new RoleSelectMenuBuilder()
+        .setCustomId(`rr_setup_roles_${guildId}`)
+        .setPlaceholder('Choose roles (up to 25)')
+        .setMinValues(0)
+        .setMaxValues(25);
+
+    return [
+        new ActionRowBuilder().addComponents(channelSelect),
+        new ActionRowBuilder().addComponents(roleSelect),
+        new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId(`rr_setup_create_${guildId}`)
+                .setLabel('Create Panel')
+                .setStyle(ButtonStyle.Success)
+                .setDisabled(disabled || !state.channelId || state.roleIds.length === 0),
+            new ButtonBuilder()
+                .setCustomId(`rr_setup_cancel_${guildId}`)
+                .setLabel('Cancel')
+                .setStyle(ButtonStyle.Secondary)
+                .setDisabled(disabled),
+        ),
+    ];
+}
+
+async function startReactionRoleSetupWizard(interaction, initialState = {}) {
+    const guild = interaction.guild;
+    const client = interaction.client;
+    const guildId = guild.id;
+    const state = {
+        channelId: initialState.channelId || null,
+        roleIds: [...new Set(initialState.roleIds || [])].slice(0, 25),
+        title: initialState.title || 'Choose Your Roles',
+        description: initialState.description || 'Select any roles you want from the menu below.',
+    };
+    const panelCount = await getAllReactionRoleMessages(client, guildId);
+    if (panelCount?.length >= 5) {
+        return InteractionHelper.safeEditReply(interaction, {
+            embeds: [warningEmbed('Panel Limit Reached', 'This server already has 5 reaction role panels. Delete one from the dashboard before creating another.')],
+        });
+    }
+
+    const customIds = {
+        channel: `rr_setup_channel_${guildId}`,
+        roles: `rr_setup_roles_${guildId}`,
+        create: `rr_setup_create_${guildId}`,
+        cancel: `rr_setup_cancel_${guildId}`,
+    };
+    const components = buildSetupWizardComponents(guildId, state);
+    await InteractionHelper.safeEditReply(interaction, {
+        embeds: [buildSetupWizardEmbed(guild, state)],
+        components,
+    });
+
+    const replyMessage = await interaction.fetchReply().catch(() => null);
+    if (!replyMessage || !interaction.channel) return;
+
+    const filter = component =>
+        component.user.id === interaction.user.id &&
+        component.message.id === replyMessage.id &&
+        component.guildId === guildId;
+    const channelCollector = interaction.channel.createMessageComponentCollector({
+        componentType: ComponentType.ChannelSelect,
+        filter: component => filter(component) && component.customId === customIds.channel,
+        time: 600_000,
+    });
+    const roleCollector = interaction.channel.createMessageComponentCollector({
+        componentType: ComponentType.RoleSelect,
+        filter: component => filter(component) && component.customId === customIds.roles,
+        time: 600_000,
+    });
+    const buttonCollector = interaction.channel.createMessageComponentCollector({
+        componentType: ComponentType.Button,
+        filter: component => filter(component) && [customIds.create, customIds.cancel].includes(component.customId),
+        time: 600_000,
+    });
+    const collectors = [channelCollector, roleCollector, buttonCollector];
+    let closed = false;
+
+    const closeWizard = async (embed) => {
+        if (closed) return;
+        closed = true;
+        collectors.forEach(collector => collector.stop());
+        await InteractionHelper.safeEditReply(interaction, { embeds: [embed], components: [] });
+    };
+    const refreshWizard = async component => {
+        await component.deferUpdate();
+        await InteractionHelper.safeEditReply(interaction, {
+            embeds: [buildSetupWizardEmbed(guild, state)],
+            components: buildSetupWizardComponents(guildId, state),
+        });
+    };
+
+    channelCollector.on('collect', async component => {
+        state.channelId = component.values[0];
+        await refreshWizard(component);
+    });
+    roleCollector.on('collect', async component => {
+        state.roleIds = [...new Set(component.values)].slice(0, 25);
+        await refreshWizard(component);
+    });
+    buttonCollector.on('collect', async component => {
+        await component.deferUpdate();
+
+        if (component.customId === customIds.cancel) {
+            await closeWizard(infoEmbed('Setup Cancelled', 'No reaction role panel was created.'));
+            return;
+        }
+
+        if (!state.channelId || state.roleIds.length === 0) {
+            await InteractionHelper.safeEditReply(interaction, {
+                embeds: [warningEmbed('Choose a Channel and Roles', 'Select a panel channel and at least one role before creating the panel.')],
+                components: buildSetupWizardComponents(guildId, state),
+            });
+            return;
+        }
+
+        try {
+            const channel = await guild.channels.fetch(state.channelId).catch(() => null);
+            const botMember = guild.members.me;
+            const permissions = channel?.permissionsFor(botMember);
+            if (!channel || !permissions?.has(['ViewChannel', 'SendMessages', 'EmbedLinks'])) {
+                throw createError(
+                    'Bot missing panel channel permissions',
+                    ErrorTypes.PERMISSION,
+                    `I need View Channel, Send Messages, and Embed Links in <#${state.channelId}>.`,
+                );
+            }
+            if (!botMember?.permissions.has(PermissionFlagsBits.ManageRoles)) {
+                throw createError(
+                    'Bot missing ManageRoles permission',
+                    ErrorTypes.PERMISSION,
+                    'I need the Manage Roles permission to assign roles.',
+                );
+            }
+
+            const roles = state.roleIds
+                .map(roleId => guild.roles.cache.get(roleId))
+                .filter(Boolean);
+            if (roles.length !== state.roleIds.length) {
+                throw createError('Selected role no longer exists', ErrorTypes.VALIDATION, 'One or more selected roles no longer exist. Please choose the roles again.');
+            }
+
+            const panelEmbed = new EmbedBuilder()
+                .setTitle(state.title)
+                .setDescription(state.description)
+                .setColor(getColor('info'))
+                .addFields({ name: 'Available Roles', value: roles.map(role => `• ${role}`).join('\n') })
+                .setFooter({ text: 'Select roles below to add or remove them' });
+            const selectRow = new ActionRowBuilder().addComponents(
+                new StringSelectMenuBuilder()
+                    .setCustomId('reaction_roles')
+                    .setPlaceholder('Select your roles')
+                    .setMinValues(0)
+                    .setMaxValues(roles.length)
+                    .addOptions(roles.map(role => ({
+                        label: truncateText(role.name, SELECT_OPTION_LABEL_LIMIT),
+                        description: truncateText(`Add/remove the ${role.name} role`, SELECT_OPTION_DESCRIPTION_LIMIT),
+                        value: role.id,
+                        emoji: '🎭',
+                    }))),
+            );
+            const panelMessage = await channel.send({ embeds: [panelEmbed], components: [selectRow] });
+
+            try {
+                await createReactionRoleMessage(client, guildId, channel.id, panelMessage.id, state.roleIds);
+            } catch (error) {
+                await panelMessage.delete().catch(() => {});
+                throw error;
+            }
+
+            try {
+                await logEvent({
+                    client,
+                    guildId,
+                    eventType: EVENT_TYPES.REACTION_ROLE_CREATE,
+                    data: {
+                        description: `Reaction role panel created by ${interaction.user.tag}`,
+                        userId: interaction.user.id,
+                        channelId: channel.id,
+                        fields: [
+                            { name: 'Title', value: state.title, inline: false },
+                            { name: 'Roles', value: `${roles.length} roles`, inline: true },
+                            { name: 'Role List', value: roles.map(role => role.toString()).join(', '), inline: false },
+                            { name: 'Message Link', value: panelMessage.url, inline: false },
+                        ],
+                    },
+                });
+            } catch (error) {
+                logger.warn('Failed to log reaction role creation:', error);
+            }
+
+            await closeWizard(successEmbed(
+                'Reaction Role Panel Created',
+                `The panel with ${roles.length} roles is live in ${channel}. Members can add and remove roles from the menu.\n\n${panelMessage.url}`,
+            ));
+        } catch (error) {
+            logger.error('Reaction role setup wizard failed', { guildId, error: error.message });
+            const message = error instanceof TitanBotError ? error.userMessage : 'Could not create the panel. Check channel permissions and try again.';
+            await InteractionHelper.safeEditReply(interaction, {
+                embeds: [warningEmbed('Could Not Create Panel', message)],
+                components: buildSetupWizardComponents(guildId, state),
+            });
+        }
+    });
+
+    buttonCollector.on('end', async (_collected, reason) => {
+        if (reason === 'time') {
+            await closeWizard(infoEmbed('Setup Timed Out', 'No panel was created. Run `/reactroles setup` to try again.'));
+        }
     });
 }
 
