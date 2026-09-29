@@ -12,6 +12,7 @@ import { getCommandPrefix, getBotMessage, isBotOwner, isCommandCategoryEnabled, 
 import { enforceAbuseProtection, formatCooldownDuration } from '../utils/abuseProtection.js';
 import { createEmbed } from '../utils/embeds.js';
 import { isCommandEnabled } from '../services/commandAccessService.js';
+import { clearAfkStatus, getAfkStatus } from '../services/afkService.js';
 import {
   getCountingGameConfig,
   saveCountingGameConfig,
@@ -30,6 +31,8 @@ export default {
 
       logger.debug(`Message received from ${message.author.tag}: ${message.content}`);
 
+      await handleAfkStatuses(message);
+
       const countingProcessed = await handleCountingGame(message, client);
       if (countingProcessed) {
         return;
@@ -43,6 +46,55 @@ export default {
     }
   }
 };
+
+async function handleAfkStatuses(message) {
+  try {
+    const notices = [];
+    const pingUserIds = new Set();
+    const returningStatus = await clearAfkStatus(message.guild.id, message.author.id);
+
+    if (returningStatus) {
+      notices.push(`Welcome back, <@${message.author.id}>. Your AFK status has been cleared.`);
+      pingUserIds.add(message.author.id);
+    }
+
+    const mentionedUsers = new Map(message.mentions.users.map(user => [user.id, user]));
+    if (message.mentions.repliedUser) {
+      mentionedUsers.set(message.mentions.repliedUser.id, message.mentions.repliedUser);
+    }
+
+    for (const user of mentionedUsers.values()) {
+      if (user.id === message.author.id || notices.length >= 10) continue;
+
+      const status = await getAfkStatus(message.guild.id, user.id);
+      if (!status) continue;
+
+      const reason = status.reason ? `\n> ${status.reason}` : '';
+      const since = Number.isFinite(status.since)
+        ? ` <t:${Math.floor(status.since / 1000)}:R>`
+        : '';
+      notices.push(`<@${user.id}> is currently away${since}.${reason}`);
+      pingUserIds.add(user.id);
+    }
+
+    if (notices.length > 0) {
+      await message.reply({
+        embeds: [createEmbed({
+          title: 'AFK Status',
+          description: notices.join('\n\n'),
+          color: 'info',
+        })],
+        allowedMentions: {
+          parse: [],
+          users: [...pingUserIds],
+          repliedUser: false,
+        },
+      });
+    }
+  } catch (error) {
+    logger.error('Error handling AFK statuses:', error);
+  }
+}
 
 async function handlePrefixCommand(message, client) {
   try {
