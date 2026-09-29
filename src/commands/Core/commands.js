@@ -46,6 +46,63 @@ async function ensureManageGuild(interaction) {
   return true;
 }
 
+export async function openCommandAccessDashboard(interaction, client) {
+  if (!(await ensureManageGuild(interaction))) {
+    return;
+  }
+
+  const deferred = await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
+  if (!deferred) {
+    return;
+  }
+
+  const view = await buildDashboardView(client, interaction.guildId, interaction.guild, 'overview');
+  await InteractionHelper.safeEditReply(interaction, {
+    embeds: [view.embed],
+    components: view.components,
+  });
+
+  const replyMessage = await interaction.fetchReply().catch(() => null);
+  if (!replyMessage) {
+    return;
+  }
+
+  const collector = replyMessage.createMessageComponentCollector({
+    filter: createDashboardCollectorFilter(interaction.user.id, interaction.guildId),
+    time: DASHBOARD_TIMEOUT_MS,
+  });
+
+  collector.on('collect', async (componentInteraction) => {
+    try {
+      if (!isCommandAccessCustomId(componentInteraction.customId)) {
+        return;
+      }
+      await handleDashboardComponent(componentInteraction, client);
+    } catch (error) {
+      logger.error('Command access dashboard interaction failed', {
+        error: error.message,
+        customId: componentInteraction.customId,
+        guildId: interaction.guildId,
+      });
+      await replyUserError(componentInteraction, {
+        type: ErrorTypes.UNKNOWN,
+        message: error.message || 'Failed to update command access.',
+      }).catch(() => {});
+    }
+  });
+
+  collector.on('end', async () => {
+    const finalView = await buildDashboardView(client, interaction.guildId, interaction.guild, 'overview');
+    const disabledComponents = finalView.components.map((row) => {
+      const newRow = row.toJSON();
+      newRow.components = newRow.components.map((component) => ({ ...component, disabled: true }));
+      return newRow;
+    });
+
+    await replyMessage.edit({ components: disabledComponents }).catch(() => {});
+  });
+}
+
 export default {
   data: new SlashCommandBuilder()
     .setName('commands')
@@ -160,64 +217,13 @@ export default {
   },
 
   async execute(interaction, config, client) {
-    if (!(await ensureManageGuild(interaction))) {
-      return;
-    }
-
     const subcommand = interaction.options.getSubcommand();
 
     if (subcommand === 'dashboard') {
-      const deferred = await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
-      if (!deferred) {
-        return;
-      }
+      return openCommandAccessDashboard(interaction, client);
+    }
 
-      const view = await buildDashboardView(client, interaction.guildId, interaction.guild, 'overview');
-      await InteractionHelper.safeEditReply(interaction, {
-        embeds: [view.embed],
-        components: view.components,
-      });
-
-      const replyMessage = await interaction.fetchReply().catch(() => null);
-      if (!replyMessage) {
-        return;
-      }
-
-      const collector = replyMessage.createMessageComponentCollector({
-        filter: createDashboardCollectorFilter(interaction.user.id, interaction.guildId),
-        time: DASHBOARD_TIMEOUT_MS,
-      });
-
-      collector.on('collect', async (componentInteraction) => {
-        try {
-          if (!isCommandAccessCustomId(componentInteraction.customId)) {
-            return;
-          }
-          await handleDashboardComponent(componentInteraction, client);
-        } catch (error) {
-          logger.error('Command access dashboard interaction failed', {
-            error: error.message,
-            customId: componentInteraction.customId,
-            guildId: interaction.guildId,
-          });
-          await replyUserError(componentInteraction, {
-            type: ErrorTypes.UNKNOWN,
-            message: error.message || 'Failed to update command access.',
-          }).catch(() => {});
-        }
-      });
-
-      collector.on('end', async () => {
-        const finalView = await buildDashboardView(client, interaction.guildId, interaction.guild, 'overview');
-        const disabledComponents = finalView.components.map((row) => {
-          const newRow = row.toJSON();
-          newRow.components = newRow.components.map((component) => ({ ...component, disabled: true }));
-          return newRow;
-        });
-
-        await replyMessage.edit({ components: disabledComponents }).catch(() => {});
-      });
-
+    if (!(await ensureManageGuild(interaction))) {
       return;
     }
 

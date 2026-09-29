@@ -21,7 +21,8 @@ const __dirname = path.dirname(__filename);
 
 const CATEGORY_SELECT_ID = "help-category-select";
 const ALL_COMMANDS_ID = "help-all-commands";
-const BUG_REPORT_BUTTON_ID = "help-bug-report";
+const SERVER_SETTINGS_BUTTON_ID = "help-server-settings";
+const COMMAND_ACCESS_BUTTON_ID = "help-command-access";
 const HELP_MENU_TIMEOUT_MS = 5 * 60 * 1000;
 
 const CATEGORY_ICONS = {
@@ -90,9 +91,9 @@ export async function createInitialHelpMenu(client, guildId = null) {
             {
                 name: '🚀 Getting Started',
                 value: [
-                    `**1. Launch setup** — Run \`${prefix}configwizard\` to configure prefix, mod role, and logs.`,
-                    `**2. Enable systems** — Use \`${prefix}commands dashboard\` to turn categories on or off.`,
-                    '**3. Browse commands** — Use the menu below to view categories and commands.',
+                    '**1. Configure your server** — Open Server Settings below to set prefix, mod role, and logs.',
+                    '**2. Configure commands** — Open Command Access below to enable or disable commands.',
+                    '**3. Browse commands** — Use the menu below to view commands by category.',
                 ].join('\n'),
                 inline: false,
             },
@@ -114,15 +115,17 @@ export async function createInitialHelpMenu(client, guildId = null) {
     });
     embed.setTimestamp();
 
-    const bugReportButton = new ButtonBuilder()
-        .setCustomId(BUG_REPORT_BUTTON_ID)
-        .setLabel("Report Bug")
-        .setStyle(ButtonStyle.Danger);
+    const serverSettingsButton = new ButtonBuilder()
+        .setCustomId(SERVER_SETTINGS_BUTTON_ID)
+        .setLabel("Server Settings")
+        .setEmoji("⚙️")
+        .setStyle(ButtonStyle.Primary);
 
-    const supportButton = new ButtonBuilder()
-        .setLabel("Support Server")
-        .setURL("https://discord.gg/QnWNz2dKCE")
-        .setStyle(ButtonStyle.Link);
+    const commandAccessButton = new ButtonBuilder()
+        .setCustomId(COMMAND_ACCESS_BUTTON_ID)
+        .setLabel("Command Access")
+        .setEmoji("🛡️")
+        .setStyle(ButtonStyle.Secondary);
 
     const selectRow = createSelectMenu(
         CATEGORY_SELECT_ID,
@@ -130,10 +133,7 @@ export async function createInitialHelpMenu(client, guildId = null) {
         options,
     );
 
-    const buttonRow = new ActionRowBuilder().addComponents([
-        bugReportButton,
-        supportButton,
-    ]);
+    const buttonRow = new ActionRowBuilder().addComponents(serverSettingsButton, commandAccessButton);
 
     return {
         embeds: [embed],
