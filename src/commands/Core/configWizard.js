@@ -125,7 +125,7 @@ function buildDashboardEmbed(config, guild) {
             },
             {
                 name: '⚡ Command Access',
-                value: 'Use `/commands dashboard` to enable or disable commands and subcommands.',
+                value: `Use \`${config.prefix || getCommandPrefix()}commands dashboard\` to enable or disable commands and subcommands.`,
                 inline: false,
             },
             {
@@ -603,7 +603,6 @@ async function handleSettingModalSubmit(selectInteraction, rootInteraction, sett
 }
 
 export default {
-    slashOnly: true,
     data: new SlashCommandBuilder()
         .setName('configwizard')
         .setDescription('Open the server configuration dashboard and setup wizard')

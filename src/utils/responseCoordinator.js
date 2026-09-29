@@ -2,9 +2,29 @@
 
 import { buildUserErrorEmbed } from './embeds.js';
 import { logger } from './logger.js';
+import { MessageFlags, MessageFlagsBitField } from 'discord.js';
 
 function getCommandJson(commandData) {
   return commandData?.toJSON ? commandData.toJSON() : commandData;
+}
+
+function sanitizePrefixPayload(payload) {
+  if (!payload || typeof payload !== 'object' || payload.flags == null) {
+    return payload;
+  }
+
+  const sanitized = { ...payload };
+  const flags = new MessageFlagsBitField(payload.flags);
+  flags.remove(MessageFlags.Ephemeral);
+
+  if (flags.bitfield) {
+    sanitized.flags = flags.bitfield;
+  } else {
+    delete sanitized.flags;
+  }
+
+  delete sanitized.ephemeral;
+  return sanitized;
 }
 
 export function buildPrefixUsage(prefix, commandData, validation) {
@@ -86,7 +106,7 @@ export class ResponseCoordinator {
       return null;
     }
 
-    const sentMessage = await this.message.channel.send(payload);
+    const sentMessage = await this.message.channel.send(sanitizePrefixPayload(payload));
     this.setReplyMessage(sentMessage);
     return sentMessage;
   }
@@ -109,9 +129,7 @@ export class ResponseCoordinator {
     this.interaction.replied = true;
 
     if (this.message?.channel) {
-      const sentMessage = await this.message.channel.send(payload);
-      this.setReplyMessage(sentMessage);
-      return sentMessage;
+      return this.sendPrefixPayload(payload);
     }
 
     if (this.interaction.deferred) {
@@ -172,7 +190,7 @@ export class ResponseCoordinator {
 
   async followUp(payload) {
     if (this.message?.channel) {
-      return this.message.channel.send(payload);
+      return this.sendPrefixPayload(payload);
     }
 
     return this.interaction.followUp(payload);

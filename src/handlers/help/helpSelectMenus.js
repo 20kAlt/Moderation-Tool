@@ -3,9 +3,14 @@ import { createButton, getPaginationRow } from '../../utils/components.js';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { Collection, ActionRowBuilder, MessageFlags } from 'discord.js';
+import { ActionRowBuilder } from 'discord.js';
 import { logger } from '../../utils/logger.js';
 import { handleInteractionError } from '../../utils/errorHandler.js';
+import { getGuildConfig } from '../../services/config/guildConfig.js';
+import { getCommandPrefix } from '../../config/bot.js';
+import { supportsPrefixExecution } from '../../utils/messageAdapter.js';
+import { getPrefixRestriction } from '../../config/commands/prefixRestrictions.js';
+import { resolveSubcommandAlias } from '../../config/commands/commandAliases.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -99,6 +104,24 @@ function buildHelpEntries(command, category) {
     return entries;
 }
 
+function buildPrefixHelpEntries(command, category) {
+    if (!supportsPrefixExecution(command)) {
+        return [];
+    }
+
+    return buildHelpEntries(command, category).filter((entry) => {
+        const args = entry.displayName === entry.baseName
+            ? []
+            : entry.displayName.slice(entry.baseName.length).trim().split(/\s+/);
+        return !getPrefixRestriction(command, args, resolveSubcommandAlias).blocked;
+    });
+}
+
+async function getConfiguredPrefix(client, guildId) {
+    const config = guildId ? await getGuildConfig(client, guildId) : null;
+    return config?.prefix || getCommandPrefix();
+}
+
 function normalizeCommandData(command) {
     const rawData = command?.data;
     if (!rawData) {
@@ -120,7 +143,8 @@ function normalizeCommandData(command) {
     };
 }
 
-async function createCategoryCommandsMenu(category, client) {
+async function createCategoryCommandsMenu(category, client, guildId) {
+    const prefix = await getConfiguredPrefix(client, guildId);
     const categoryName = formatCategoryName(category);
     const icon = CATEGORY_ICONS[categoryName] || "🔍";
 
@@ -145,7 +169,7 @@ async function createCategoryCommandsMenu(category, client) {
                 )
                     continue;
 
-                categoryCommands.push(...buildHelpEntries(command, categoryName));
+                categoryCommands.push(...buildPrefixHelpEntries(command, categoryName));
             }
         }
     } catch (error) {
@@ -157,34 +181,16 @@ async function createCategoryCommandsMenu(category, client) {
 
     categoryCommands.sort((a, b) => a.displayName.localeCompare(b.displayName));
 
-    let registeredCommands = new Collection();
-    try {
-        if (client?.application?.commands?.fetch) {
-            const commands = await client.application.commands.fetch();
-            for (const cmd of commands.values()) {
-                registeredCommands.set(cmd.name, cmd);
-            }
-        }
-    } catch (error) {
-        logger.error('Error fetching registered commands:', error);
-    }
-
     const embed = createEmbed({
         title: `${icon} ${categoryName} Commands`,
         description: categoryCommands.length > 0
-            ? `Click any command mention below to use it.`
+            ? `Use the server prefix \`${prefix}\` before a command.`
             : `No commands found in the **${categoryName}** category.`
     });
 
     if (categoryCommands.length > 0) {
         const commandMentions = categoryCommands
-            .map((cmd) => {
-                const registeredCmd = registeredCommands.get(cmd.baseName);
-                if (registeredCmd && registeredCmd.id) {
-                    return `</${cmd.displayName}:${registeredCmd.id}> · ${cmd.description}`;
-                }
-                return `\`/${cmd.displayName}\` · ${cmd.description}`;
-            })
+            .map((cmd) => `\`${prefix}${cmd.displayName}\` · ${cmd.description}`)
             .join("\n");
 
         const maxLength = 1000;
@@ -238,7 +244,8 @@ async function createCategoryCommandsMenu(category, client) {
     };
 }
 
-export async function createAllCommandsMenu(page = 1, client) {
+export async function createAllCommandsMenu(page = 1, client, guildId) {
+    const prefix = await getConfiguredPrefix(client, guildId);
     const commandsPerPage = 45;
     const allCommands = [];
 
@@ -276,7 +283,7 @@ export async function createAllCommandsMenu(page = 1, client) {
 
                     const categoryName = formatCategoryName(category);
 
-                    allCommands.push(...buildHelpEntries(command, categoryName));
+                    allCommands.push(...buildPrefixHelpEntries(command, categoryName));
                 }
             }
         } catch (error) {
@@ -289,18 +296,6 @@ export async function createAllCommandsMenu(page = 1, client) {
 
     allCommands.sort((a, b) => a.displayName.localeCompare(b.displayName));
 
-    let registeredCommands = new Collection();
-    try {
-        if (client?.application?.commands?.fetch) {
-            const commands = await client.application.commands.fetch();
-            for (const cmd of commands.values()) {
-                registeredCommands.set(cmd.name, cmd);
-            }
-        }
-    } catch (error) {
-        logger.error('Error fetching registered commands:', error);
-    }
-
     const totalPages = Math.ceil(allCommands.length / commandsPerPage);
     const startIndex = (page - 1) * commandsPerPage;
     const endIndex = startIndex + commandsPerPage;
@@ -308,20 +303,14 @@ export async function createAllCommandsMenu(page = 1, client) {
 
     const embed = createEmbed({
         title: "📋 All Commands",
-        description: `Browse every available command in one list. Use the page buttons below to move through the full set.`
+        description: `Browse prefix-compatible commands. Use \`${prefix}\` before each command.`,
     });
 
     embed.setFooter({ text: FOOTER_TEXT });
     embed.setTimestamp();
 
     if (pageCommands.length > 0) {
-        const commandMentions = pageCommands.map((cmd) => {
-            const registeredCmd = registeredCommands.get(cmd.baseName);
-            if (registeredCmd && registeredCmd.id) {
-                return `</${cmd.displayName}:${registeredCmd.id}> · ${cmd.category}`;
-            }
-            return `\`/${cmd.displayName}\` · ${cmd.category}`;
-        });
+        const commandMentions = pageCommands.map((cmd) => `\`${prefix}${cmd.displayName}\` · ${cmd.category}`);
 
         const columnCount = pageCommands.length > 20 ? 3 : (pageCommands.length > 10 ? 2 : 1);
         const chunkSize = Math.ceil(commandMentions.length / columnCount);
@@ -382,13 +371,13 @@ export const helpCategorySelectMenu = {
             const selectedCategory = interaction.values[0];
 
             if (selectedCategory === ALL_COMMANDS_ID) {
-                const { embeds, components } = await createAllCommandsMenu(1, client);
+                const { embeds, components } = await createAllCommandsMenu(1, client, interaction.guildId);
                 await interaction.editReply({
                     embeds,
                     components,
                 });
             } else {
-                const { embeds, components } = await createCategoryCommandsMenu(selectedCategory, client);
+                const { embeds, components } = await createCategoryCommandsMenu(selectedCategory, client, interaction.guildId);
                 await interaction.editReply({
                     embeds,
                     components,

@@ -5,7 +5,6 @@ import { createEmbed } from './embeds.js';
 import { handleInteractionError } from './errorHandler.js';
 import { logger } from './logger.js';
 import { InteractionHelper } from './interactionHelper.js';
-import { SLASH_ONLY_COMMANDS } from '../config/commands/prefixRestrictions.js';
 import { getCommandPrefix } from '../config/bot.js';
 import { ResponseCoordinator, buildPrefixUsage } from './responseCoordinator.js';
 import { enforceDefaultCommandPermissions } from './permissionGuard.js';
@@ -59,6 +58,7 @@ export function createMockInteraction(message, commandData, args) {
   const mockInteraction = {
     user: message.author,
     member: message.member,
+    inGuild: () => Boolean(message.guild),
     get memberPermissions() {
       return message.member?.permissions ?? null;
     },
@@ -138,6 +138,7 @@ export function createMockInteraction(message, commandData, args) {
     _isPrefixCommand: true,
 
     client: message.client,
+    prefix: null,
 
     deferred: false,
     replied: false,
@@ -176,11 +177,6 @@ export function supportsPrefixExecution(command) {
     return false;
   }
 
-  const commandName = command.data?.name?.toLowerCase();
-  if (commandName && SLASH_ONLY_COMMANDS.has(commandName)) {
-    return false;
-  }
-
   if (command.prefixExecute) {
     return true;
   }
@@ -192,18 +188,27 @@ export async function executePrefixCommand(command, message, args, client, prefi
   const mockInteraction = createMockInteraction(message, command.data, args);
   const coordinator = mockInteraction._responseCoordinator;
   const prefix = prefixOverride || getCommandPrefix();
+  mockInteraction.prefix = prefix;
 
   try {
-    const permissionAllowed = await enforceDefaultCommandPermissions(mockInteraction, command, {
-      source: 'messageAdapter.executePrefixCommand',
-      guildConfig,
-    });
-    if (!permissionAllowed) {
-      return;
+    const validation = mockInteraction.options.validateRequired();
+    const usePrefixFallback = !validation.valid && Boolean(command.prefixFallback) && args.length === 0;
+
+    if (!usePrefixFallback) {
+      const permissionAllowed = await enforceDefaultCommandPermissions(mockInteraction, command, {
+        source: 'messageAdapter.executePrefixCommand',
+        guildConfig,
+      });
+      if (!permissionAllowed) {
+        return;
+      }
     }
 
-    const validation = mockInteraction.options.validateRequired();
     if (!validation.valid) {
+      if (usePrefixFallback) {
+        await command.prefixFallback(mockInteraction, guildConfig, client);
+        return;
+      }
       await coordinator.respondUsageFromCommand(prefix, command.data, validation);
       return;
     }

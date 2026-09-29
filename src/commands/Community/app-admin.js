@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, PermissionFlagsBits, PermissionsBitField, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ComponentType, LabelBuilder, RoleSelectMenuBuilder } from 'discord.js';
 import { createEmbed, successEmbed } from '../../utils/embeds.js';
-import { getColor, getApplicationStatusColor } from '../../config/bot.js';
+import { getColor, getApplicationStatusColor, getCommandPrefix } from '../../config/bot.js';
 import { logger } from '../../utils/logger.js';
 import { withErrorHandling, createError, ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
 import ApplicationService from '../../services/applicationService.js';
@@ -18,6 +18,8 @@ import {
 } from '../../utils/database.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import appDashboard from './modules/app_dashboard.js';
+
+const activePrefixSetupSessions = new Set();
 
 function getApplicationStatusPresentation(statusValue) {
     const normalized = typeof statusValue === 'string' ? statusValue.trim().toLowerCase() : 'unknown';
@@ -135,6 +137,9 @@ export default {
 };
 
 async function handleSetup(interaction) {
+    if (interaction._isPrefixCommand) {
+        return handlePrefixSetup(interaction);
+    }
     
     if (interaction.deferred || interaction.replied) {
         return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'This interaction has already been processed. Please try the command again.' });
@@ -268,6 +273,124 @@ async function handleSetup(interaction) {
     setTimeout(() => {
         appDashboard.execute(submitted, null, interaction.client, appName);
     }, 500);
+}
+
+async function handlePrefixSetup(interaction) {
+    const sessionKey = `${interaction.guild.id}:${interaction.user.id}`;
+    const prefix = interaction.prefix || getCommandPrefix();
+    if (activePrefixSetupSessions.has(sessionKey)) {
+        return replyUserError(interaction, {
+            type: ErrorTypes.RATE_LIMIT,
+            message: 'You already have an application setup questionnaire open in your DMs.',
+        });
+    }
+
+    let dmChannel;
+    try {
+        dmChannel = await interaction.user.createDM();
+    } catch (error) {
+        logger.warn('Failed to open application setup DM flow', { userId: interaction.user.id, error: error.message });
+        return replyUserError(interaction, {
+            type: ErrorTypes.USER_INPUT,
+            message: 'I could not DM you. Enable direct messages from this server and try again.',
+        });
+    }
+
+    activePrefixSetupSessions.add(sessionKey);
+    try {
+        await InteractionHelper.safeReply(interaction, {
+            embeds: [createEmbed({
+                title: 'Application Setup Started',
+                description: 'Check your DMs to configure the application. Type `cancel` to stop.',
+            })],
+        });
+
+        const ask = async (prompt, { optional = false } = {}) => {
+            while (true) {
+                await dmChannel.send(prompt);
+                const collected = await dmChannel.awaitMessages({
+                    filter: (message) => message.author.id === interaction.user.id && !message.author.bot,
+                    max: 1,
+                    time: 180_000,
+                }).catch(() => null);
+
+                if (!collected?.size) {
+                    await dmChannel.send('Application setup cancelled because the response timed out.');
+                    return null;
+                }
+
+                const value = collected.first().content.trim();
+                if (value.toLowerCase() === 'cancel') {
+                    await dmChannel.send('Application setup cancelled. No changes were saved.');
+                    return null;
+                }
+                if (optional && value.toLowerCase() === 'skip') {
+                    return '';
+                }
+                if (!value) {
+                    await dmChannel.send('Please provide a value, or type `skip` for an optional question.');
+                    continue;
+                }
+
+                return value;
+            }
+        };
+
+        const roleInput = await ask('Send the role mention or role ID users will apply for.');
+        if (!roleInput) return;
+        const roleMatch = roleInput.match(/^<@&(\d{17,20})>$|^(\d{17,20})$/);
+        const roleId = roleMatch?.[1] || roleMatch?.[2];
+        if (!roleId) {
+            await dmChannel.send(`That does not look like a role mention or ID. Run \`${prefix}app-admin setup\` to try again.`);
+            return;
+        }
+
+        const role = await interaction.guild.roles.fetch(roleId).catch(() => null);
+        if (!role) {
+            await dmChannel.send(`That role could not be found in this server. Run \`${prefix}app-admin setup\` to try again.`);
+            return;
+        }
+
+        const appName = await ask('What should this application be called?');
+        if (!appName) return;
+        if (appName.length > 50) {
+            await dmChannel.send(`Application names must be 50 characters or fewer. Run \`${prefix}app-admin setup\` to try again.`);
+            return;
+        }
+
+        const questions = [];
+        for (const [index, optional] of [[1, false], [2, true], [3, true]]) {
+            const answer = await ask(`Enter question ${index}${optional ? ' (optional; type skip to leave blank)' : ''}.`, { optional });
+            if (answer === null) return;
+            if (answer.length > 100) {
+                await dmChannel.send(`Questions must be 100 characters or fewer. Run \`${prefix}app-admin setup\` to try again.`);
+                return;
+            }
+            if (answer) questions.push(answer);
+        }
+
+        const existingRoles = await getApplicationRoles(interaction.client, interaction.guild.id);
+        if (existingRoles.some((entry) => entry.roleId === roleId)) {
+            await dmChannel.send(`The role ${role} is already configured as an application.`);
+            return;
+        }
+
+        existingRoles.push({ roleId, name: appName, enabled: true });
+        await saveApplicationRoles(interaction.client, interaction.guild.id, existingRoles);
+
+        const settings = await getApplicationSettings(interaction.client, interaction.guild.id);
+        if (!settings.enabled) {
+            await ApplicationService.updateSettings(interaction.client, interaction.guild.id, { enabled: true });
+        }
+        await saveApplicationRoleSettings(interaction.client, interaction.guild.id, roleId, { questions });
+
+        await dmChannel.send(`Application **${appName}** has been created for ${role}. You can manage it with \`${prefix}app-admin dashboard\`.`);
+        await InteractionHelper.safeEditReply(interaction, {
+            embeds: [successEmbed('Application Created', `**${appName}** is ready for users to apply.`)],
+        });
+    } finally {
+        activePrefixSetupSessions.delete(sessionKey);
+    }
 }
 
 async function handleReview(interaction) {
@@ -537,7 +660,7 @@ async function handleList(interaction) {
             });
 
             embed.setFooter({
-                text: "Users can apply with /apply submit or see available roles with /apply list"
+                text: `Users can apply with ${interaction._isPrefixCommand ? interaction.prefix : '/'}apply submit or see available roles with ${interaction._isPrefixCommand ? interaction.prefix : '/'}apply list`
             });
 
             return InteractionHelper.safeEditReply(interaction, { embeds: [embed], flags: ["Ephemeral"] });
@@ -545,7 +668,7 @@ async function handleList(interaction) {
             return await replyUserError(interaction, {
                 type: ErrorTypes.CONFIGURATION,
                 message: 'No applications found and no application roles configured.\n' +
-                    'Use `/app-admin roles add` to configure application roles first.'
+                    `Use \`${interaction._isPrefixCommand ? interaction.prefix : '/'}app-admin roles add\` to configure application roles first.`
             });
         }
     }

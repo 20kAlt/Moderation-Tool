@@ -1,4 +1,4 @@
-import { getColor, getDefaultApplicationQuestions } from '../../config/bot.js';
+import { getColor, getDefaultApplicationQuestions, getCommandPrefix } from '../../config/bot.js';
 import { SlashCommandBuilder, ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
 import { createEmbed, successEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
@@ -18,6 +18,8 @@ import {
     getApplicationRoleSettings
 } from '../../utils/database.js';
 
+const activePrefixApplicationSessions = new Set();
+
 function getApplicationStatusPresentation(statusValue) {
     const normalized = typeof statusValue === 'string' ? statusValue.trim().toLowerCase() : 'unknown';
     const statusLabel =
@@ -35,7 +37,6 @@ function getApplicationStatusPresentation(statusValue) {
 }
 
 export default {
-    slashOnly: true,
     data: new SlashCommandBuilder()
         .setName("apply")
         .setDescription("Manage role applications")
@@ -150,7 +151,11 @@ export async function handleApplicationModal(interaction) {
             answer: answer
         });
     }
-    
+
+    return submitApplicationAnswers(interaction, roleId, applicationRole, role, answers);
+}
+
+async function submitApplicationAnswers(interaction, roleId, applicationRole, role, answers) {
     try {
         const application = await ApplicationService.submitApplication(interaction.client, {
             guildId: interaction.guild.id,
@@ -166,7 +171,7 @@ export async function handleApplicationModal(interaction) {
             'Application Submitted',
             `Your application for **${applicationRole.name}** has been submitted successfully!\n\n` +
             `Application ID: \`${application.id}\`\n` +
-            `You can check the status with \`/apply status id:${application.id}\``
+            `You can check the status with \`${interaction._isPrefixCommand ? interaction.prefix || getCommandPrefix() : '/'}apply status ${application.id}\``
         );
         
         await InteractionHelper.safeEditReply(interaction, { embeds: [embed], flags: ["Ephemeral"] });
@@ -240,13 +245,13 @@ async function handleList(interaction) {
             embed.addFields({
                 name: `${index + 1}. ${appRole.name}`,
                 value: `**Role:** ${role ?`<@&${appRole.roleId}>`: 'Role not found'}\n` +
-                       `**Apply with:** \`/apply submit application:"${appRole.name}"\``,
+                       `**Apply with:** \`${interaction._isPrefixCommand ? interaction.prefix : '/'}apply submit "${appRole.name}"\``,
                 inline: false
             });
         });
 
         embed.setFooter({
-            text: "Use /apply submit application:<name> to apply for any of these roles."
+            text: `Use \`${interaction._isPrefixCommand ? interaction.prefix : '/'}apply submit <name>\` to apply for any of these roles.`
         });
 
         return InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
@@ -277,7 +282,7 @@ async function handleSubmit(interaction, settings) {
     );
 
     if (!applicationRole) {
-        return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: 'Use `/apply list` to see available applications.' });
+        return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: `Use \`${interaction._isPrefixCommand ? interaction.prefix : '/'}apply list\` to see available applications.` });
     }
 
     const userApps = await getUserApplications(
@@ -306,6 +311,10 @@ async function handleSubmit(interaction, settings) {
         questions = roleSettings.questions;
     }
 
+    if (interaction._isPrefixCommand) {
+        return collectPrefixApplicationAnswers(interaction, applicationRole, role, questions);
+    }
+
     questions.forEach((question, index) => {
         const input = new TextInputBuilder()
             .setCustomId(`q${index}`)
@@ -323,6 +332,92 @@ async function handleSubmit(interaction, settings) {
     });
 
     await interaction.showModal(modal);
+}
+
+async function collectPrefixApplicationAnswers(interaction, applicationRole, role, questions) {
+    const sessionKey = `${interaction.guild.id}:${interaction.user.id}`;
+    if (activePrefixApplicationSessions.has(sessionKey)) {
+        return replyUserError(interaction, {
+            type: ErrorTypes.RATE_LIMIT,
+            message: 'You already have an application questionnaire open in your DMs.',
+        });
+    }
+
+    activePrefixApplicationSessions.add(sessionKey);
+    try {
+        let dmChannel;
+        try {
+            dmChannel = await interaction.user.createDM();
+        } catch (error) {
+            logger.warn('Failed to open application DM flow', { userId: interaction.user.id, error: error.message });
+            return replyUserError(interaction, {
+                type: ErrorTypes.USER_INPUT,
+                message: 'I could not DM you. Enable direct messages from this server and try again.',
+            });
+        }
+
+        await InteractionHelper.safeReply(interaction, {
+            embeds: [createEmbed({
+                title: 'Application Started',
+                description: `Check your DMs to answer the questions for **${applicationRole.name}**. Type \`cancel\` to stop.`,
+            })],
+        });
+        await dmChannel.send({
+            embeds: [createEmbed({
+                title: `Application for ${applicationRole.name}`,
+                description: 'Answer each question in a separate message. Type `cancel` at any time to stop.',
+            })],
+        });
+
+        const answers = [];
+        for (let index = 0; index < questions.length; index++) {
+            let answer = null;
+            while (!answer) {
+                await dmChannel.send({
+                    embeds: [createEmbed({
+                        title: `Question ${index + 1}/${questions.length}`,
+                        description: questions[index],
+                    })],
+                });
+
+                const collected = await dmChannel.awaitMessages({
+                    filter: (message) => message.author.id === interaction.user.id && !message.author.bot,
+                    max: 1,
+                    time: 180_000,
+                }).catch(() => null);
+
+                if (!collected?.size) {
+                    await dmChannel.send('Application cancelled because the response timed out.');
+                    await InteractionHelper.safeEditReply(interaction, {
+                        embeds: [createEmbed({ title: 'Application Cancelled', description: 'The questionnaire timed out.', color: 'secondary' })],
+                    });
+                    return;
+                }
+
+                const response = collected.first().content.trim();
+                if (response.toLowerCase() === 'cancel') {
+                    await dmChannel.send('Application cancelled. No answers were submitted.');
+                    await InteractionHelper.safeEditReply(interaction, {
+                        embeds: [createEmbed({ title: 'Application Cancelled', description: 'No answers were submitted.', color: 'secondary' })],
+                    });
+                    return;
+                }
+
+                if (!response || response.length > 1000) {
+                    await dmChannel.send('Please provide an answer between 1 and 1000 characters.');
+                    continue;
+                }
+
+                answer = response;
+            }
+
+            answers.push({ question: questions[index], answer });
+        }
+
+        return submitApplicationAnswers(interaction, applicationRole.roleId, applicationRole, role, answers);
+    } finally {
+        activePrefixApplicationSessions.delete(sessionKey);
+    }
 }
 
 async function handleStatus(interaction) {

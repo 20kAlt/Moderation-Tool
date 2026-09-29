@@ -15,6 +15,7 @@ import {
   resetCategoryCommands,
 } from '../../../services/commandAccessService.js';
 import { getGuildConfig } from '../../../services/config/guildConfig.js';
+import { getCommandPrefix } from '../../../config/bot.js';
 
 export const DASHBOARD_CATEGORY_SELECT = 'cmdaccess_category';
 export const DASHBOARD_COMMAND_SELECT = 'cmdaccess_command';
@@ -73,7 +74,7 @@ function chunkLines(lines, maxLength = 980) {
   return chunks;
 }
 
-export function buildOverviewEmbed(snapshot, guild) {
+export function buildOverviewEmbed(snapshot, guild, prefix = getCommandPrefix()) {
   const fullyEnabled = snapshot.categories.filter((c) => !c.categoryDisabled && c.disabledCount === 0).length;
   const partial = snapshot.categories.filter((c) => !c.categoryDisabled && c.disabledCount > 0).length;
   const disabled = snapshot.categories.filter((c) => c.categoryDisabled).length;
@@ -113,8 +114,8 @@ export function buildOverviewEmbed(snapshot, guild) {
     name: 'How to Use',
     value: [
       '• Select a category below to manage commands and subcommands',
-      '• `/commands disable` — turn off a category or specific command',
-      '• `/commands enable` — turn something back on',
+      `• \`${prefix}commands disable\` — turn off a category or specific command`,
+      `• \`${prefix}commands enable\` — turn something back on`,
     ].join('\n'),
   });
 
@@ -275,7 +276,7 @@ export async function buildDashboardView(client, guildId, guild, view = 'overvie
     const category = snapshot.categories.find((entry) => entry.key === categoryKey);
     if (!category) {
       return {
-        embed: buildOverviewEmbed(snapshot, guild),
+        embed: buildOverviewEmbed(snapshot, guild, config.prefix || getCommandPrefix()),
         components: buildOverviewComponents(guildId, snapshot),
       };
     }
@@ -288,7 +289,7 @@ export async function buildDashboardView(client, guildId, guild, view = 'overvie
   }
 
   return {
-    embed: buildOverviewEmbed(snapshot, guild),
+    embed: buildOverviewEmbed(snapshot, guild, config.prefix || getCommandPrefix()),
     components: buildOverviewComponents(guildId, snapshot),
   };
 }

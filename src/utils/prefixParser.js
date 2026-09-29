@@ -56,7 +56,7 @@ function parseArguments(input) {
         }
         inQuote = true;
         quoteChar = char;
-      } else if (char === ' ') {
+      } else if (/\s/.test(char)) {
         
         if (current.trim()) {
           args.push(current.trim());
@@ -147,9 +147,14 @@ export function mapArgumentsToOptions(args, commandData) {
 
   for (let i = 0; i < Math.min(currentArgs.length, optionDefs.length); i++) {
     const optionDef = optionDefs[i];
-    const value = currentArgs[i];
+    const isFinalStringOption = optionDef.type === 3 && i === optionDefs.length - 1;
+    const value = isFinalStringOption ? currentArgs.slice(i).join(' ') : currentArgs[i];
     
     options[optionDef.name] = value;
+
+    if (isFinalStringOption) {
+      break;
+    }
   }
 
   const missing = [];
@@ -200,7 +205,12 @@ export function mapArgumentsToOptions(args, commandData) {
     getChannel: (name) => options[name] || null,
     getRole: (name) => options[name] || null,
     getInteger: (name) => options[name] ? parseInt(options[name]) : null,
-    getBoolean: (name) => options[name] === 'true',
+    getBoolean: (name) => {
+      const value = options[name]?.toLowerCase?.();
+      if (value === 'true') return true;
+      if (value === 'false') return false;
+      return null;
+    },
     getSubcommand: () => subcommandName,
     getSubcommandGroup: () => subcommandGroupName,
     validateRequired: () => ({

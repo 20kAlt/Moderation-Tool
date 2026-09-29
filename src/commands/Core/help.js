@@ -9,6 +9,9 @@ import { createEmbed } from "../../utils/embeds.js";
 import {
     createSelectMenu,
 } from "../../utils/components.js";
+import { getGuildConfig } from '../../services/config/guildConfig.js';
+import { getCommandPrefix } from '../../config/bot.js';
+import { logger } from '../../utils/logger.js';
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -49,7 +52,9 @@ function formatCategoryName(rawCategory) {
         .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-export async function createInitialHelpMenu(client) {
+export async function createInitialHelpMenu(client, guildId = null) {
+    const guildConfig = guildId ? await getGuildConfig(client, guildId) : null;
+    const prefix = guildConfig?.prefix || getCommandPrefix();
     const commandsPath = path.join(__dirname, "../../commands");
     const categoryDirs = (
         await fs.readdir(commandsPath, { withFileTypes: true })
@@ -78,15 +83,16 @@ export async function createInitialHelpMenu(client) {
     const botName = client?.user?.username || "Bot";
     const embed = createEmbed({
         title: `📖 ${botName} Help`,
-        description: 'Set up your server, pick what to enable, then browse commands below.',
+        description: `Set up your server, pick what to enable, then browse commands below. Prefix commands start with \`${prefix}\`.`,
         color: 'primary',
         thumbnail: client.user?.displayAvatarURL?.({ size: 1024 }),
         fields: [
             {
                 name: '🚀 Getting Started',
                 value: [
-                    '**1. Launch setup** — Run `/configwizard` to configure prefix, mod role, and logs.',
-                    '**2. Enable systems** — Use `/commands dashboard` to turn categories on or off.',                    '**3. Browse commands** — Use the menu below to view categories and commands.',
+                    `**1. Launch setup** — Run \`${prefix}configwizard\` to configure prefix, mod role, and logs.`,
+                    `**2. Enable systems** — Use \`${prefix}commands dashboard\` to turn categories on or off.`,
+                    '**3. Browse commands** — Use the menu below to view categories and commands.',
                 ].join('\n'),
                 inline: false,
             },
@@ -95,7 +101,8 @@ export async function createInitialHelpMenu(client) {
                 value: [
                     '• Dashboard commands manage each feature visually',
                     '• Settings are saved per server',
-                    '• Slash commands and prefixes both work once enabled',
+                    `• Prefix commands use \`${prefix}\` and follow your server settings`,
+                    '• Command access settings apply to both command styles',
                 ].join('\n'),
                 inline: false,
             },
@@ -140,17 +147,15 @@ export async function createInitialHelpMenu(client) {
 }
 
 export default {
-    slashOnly: true,
     data: new SlashCommandBuilder()
         .setName("help")
         .setDescription("Displays the help menu with all available commands"),
 
     async execute(interaction, guildConfig, client) {
         
-        const { MessageFlags } = await import('discord.js');
         await InteractionHelper.safeDefer(interaction);
         
-        const { embeds, components } = await createInitialHelpMenu(client);
+        const { embeds, components } = await createInitialHelpMenu(client, interaction.guildId);
 
         await InteractionHelper.safeEditReply(interaction, {
             embeds,
@@ -165,7 +170,7 @@ export default {
 
                 const closedEmbed = createEmbed({
                     title: "Help menu closed",
-                    description: "Help menu has been closed, use /help again.",
+                    description: `Help menu has been closed, use \`${guildConfig?.prefix || getCommandPrefix()}help\` again.`,
                     color: "secondary",
                 });
 

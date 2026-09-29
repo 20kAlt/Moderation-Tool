@@ -1,41 +1,19 @@
 /**
- * Prefix command restrictions — dashboard and advanced setup flows stay slash-only.
+ * Prefix command restrictions for interactions that cannot be represented by a message.
  */
 
 /** Top-level commands that cannot be invoked via prefix at all. */
 export const SLASH_ONLY_COMMANDS = new Set([
-  'configwizard',
-  'help',
-  'embedbuilder',
-  'wipedata',
-  'apply',
 ]);
 
 /** Subcommands blocked for every command when invoked via prefix. */
-export const GLOBAL_BLOCKED_SUBCOMMANDS = new Set([
-  'dashboard',
-  'setup',
-]);
+export const GLOBAL_BLOCKED_SUBCOMMANDS = new Set();
 
 /** Subcommand groups blocked for every command when invoked via prefix. */
-export const GLOBAL_BLOCKED_SUBCOMMAND_GROUPS = new Set([
-  'config',
-]);
+export const GLOBAL_BLOCKED_SUBCOMMAND_GROUPS = new Set();
 
 /** Per-command subcommands that stay slash-only (beyond the global block list). */
-export const COMMAND_BLOCKED_SUBCOMMANDS = {
-  music: new Set([
-    'shuffle',
-    'loop',
-    'seek',
-    'remove',
-    'move',
-    'clear',
-    '247',
-  ]),
-  birthday: new Set(['setchannel']),
-  report: new Set(['setchannel']),
-};
+export const COMMAND_BLOCKED_SUBCOMMANDS = {};
 
 function collectSubcommandNames(commandJson) {
   const subcommandGroup = commandJson.options?.find((opt) => opt.type === 2);

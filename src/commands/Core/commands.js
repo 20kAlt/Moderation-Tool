@@ -22,6 +22,7 @@ import {
   createDashboardCollectorFilter,
   isCommandAccessCustomId,
 } from './modules/commands_dashboard.js';
+import { createInitialHelpMenu } from './help.js';
 
 const DASHBOARD_TIMEOUT_MS = 10 * 60 * 1000;
 
@@ -101,6 +102,11 @@ export default {
         ),
     ),
   category: 'Core',
+
+  async prefixFallback(interaction, config, client) {
+    const { embeds, components } = await createInitialHelpMenu(client, interaction.guildId);
+    await InteractionHelper.safeReply(interaction, { embeds, components });
+  },
 
   async autocomplete(interaction) {
     const focused = interaction.options.getFocused(true);
@@ -227,7 +233,7 @@ export default {
     if (scope === 'category') {
       const category = resolveCategoryChoice(client, target);
       if (!category) {
-        return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `No category matched \`${target}\`. Use \`/commands dashboard\` to browse categories.` });
+        return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `No category matched \`${target}\`. Use \`${interaction._isPrefixCommand ? interaction.prefix : '/'}commands dashboard\` to browse categories.` });
       }
 
       if (isDisable) {
