@@ -3,7 +3,6 @@ import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { Collection } from 'discord.js';
 import { logger } from '../../utils/logger.js';
-import botConfig from '../../config/bot.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -223,20 +222,20 @@ function validateCommands(commands) {
 
 function prepareCommandsForRegistration(commands) {
     if (commands.length >= COMMAND_COUNT_WARN_THRESHOLD) {
-        logger.warn(`Command count (${commands.length}) is near Discord's ${MAX_COMMANDS} global command limit`);
+        logger.warn(`Command count (${commands.length}) is near Discord's ${MAX_COMMANDS} per-guild command limit`);
     }
 
     if (commands.length <= MAX_COMMANDS) {
         return commands;
     }
 
-    logger.warn(`Command count (${commands.length}) exceeds Discord limit (${MAX_COMMANDS}), truncating...`);
+    logger.warn(`Command count (${commands.length}) exceeds Discord's per-guild limit (${MAX_COMMANDS}), truncating...`);
     const truncated = commands.slice(0, MAX_COMMANDS);
     logger.info(`Truncated to ${truncated.length} commands for registration`);
     return truncated;
 }
 
-async function registerGlobalCommands(client, clientId, commands, totalSubcommands) {
+async function registerGuildCommandPayload(client, clientId, guildId, commands) {
     if (!clientId) {
         throw new Error('CLIENT_ID is required for slash command registration');
     }
@@ -245,22 +244,13 @@ async function registerGlobalCommands(client, clientId, commands, totalSubcomman
         throw new Error('Discord REST client is not available for slash command registration');
     }
 
-    logger.info(`Preparing to register ${totalSubcommands + commands.length} commands globally`);
-    logger.info('Validating commands before registration...');
-    validateCommands(commands);
-    logger.info('Command validation passed');
-
-    const commandsToRegister = prepareCommandsForRegistration(commands);
-
-    if (botConfig.commands?.deleteCommands) {
-        logger.info('Clearing existing global commands before registration...');
-        await client.rest.put(`/applications/${clientId}/commands`, { body: [] });
+    if (!guildId) {
+        throw new Error('Guild ID is required for per-guild slash command registration');
     }
 
-    logger.info(`Registering ${commandsToRegister.length} global commands...`);
-    await client.rest.put(`/applications/${clientId}/commands`, { body: commandsToRegister });
-    logger.info(`Successfully registered ${commandsToRegister.length} global commands`);
-    logger.info('Global commands may take up to an hour to appear in all servers on first deploy');
+    logger.info(`Registering ${commands.length} slash commands for guild ${guildId}`);
+    await client.rest.put(`/applications/${clientId}/guilds/${guildId}/commands`, { body: commands });
+    logger.info(`Successfully registered ${commands.length} slash commands for guild ${guildId}`);
 }
 
 export async function registerCommands(client, options = {}) {
@@ -268,11 +258,36 @@ export async function registerCommands(client, options = {}) {
 
     try {
         const { commands, totalSubcommands } = collectCommandPayloads(client);
-        await registerGlobalCommands(client, clientId, commands, totalSubcommands);
+        if (!clientId) {
+            throw new Error('CLIENT_ID is required for slash command registration');
+        }
+        if (!client.rest) {
+            throw new Error('Discord REST client is not available for slash command registration');
+        }
+
+        logger.info(`Preparing to register ${totalSubcommands + commands.length} commands per guild`);
+        validateCommands(commands);
+        const commandsToRegister = prepareCommandsForRegistration(commands);
+
+        for (const guild of client.guilds.cache.values()) {
+            await registerGuildCommandPayload(client, clientId, guild.id, commandsToRegister);
+        }
+
+        logger.info('Removing legacy global slash command registrations...');
+        await client.rest.put(`/applications/${clientId}/commands`, { body: [] });
+        logger.info(`Registered slash commands for ${client.guilds.cache.size} guild(s); global commands cleared`);
     } catch (error) {
         logger.error('Error registering commands:', error);
         throw error;
     }
+}
+
+export async function registerCommandsForGuild(client, guildId, options = {}) {
+    const clientId = options.clientId || client.config?.bot?.clientId;
+    const { commands } = collectCommandPayloads(client);
+    validateCommands(commands);
+    const commandsToRegister = prepareCommandsForRegistration(commands);
+    await registerGuildCommandPayload(client, clientId, guildId, commandsToRegister);
 }
 
 export async function reloadCommand(client, commandName) {

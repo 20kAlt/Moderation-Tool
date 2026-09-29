@@ -41,18 +41,15 @@ export const botConfig = {
     // Default wait time between command uses (in seconds).
     defaultCooldown: 3,
 
-    // If true, old commands are removed before re-registering.
-    deleteCommands: false,
-
     // Optional server ID retained for tutorial compatibility; not used for command registration.
     testGuildId: process.env.TEST_GUILD_ID,
 
     // When true (or MAINTENANCE_MODE=true), only bot owners can run commands.
     maintenanceMode: process.env.MAINTENANCE_MODE === "false",
 
-    // Command prefix for text-based commands (e.g., "!" for "!ping").
+    // Default command prefix for text-based commands (e.g., "?" for "?ping").
     // Supports both slash commands and prefix commands.
-    prefix: process.env.PREFIX || "!",
+    prefix: process.env.PREFIX || "?",
   },
 
   // =========================
