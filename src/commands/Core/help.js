@@ -106,11 +106,6 @@ export async function createInitialHelpMenu(client, guildId = null) {
                 ].join('\n'),
                 inline: false,
             },
-            {
-                name: '\u200B',
-                value: `-# ${botName} is [open source](https://youtu.be/1jCZX8s3bJE?si=NPOYx-vxVE1I5vJK)`,
-                inline: false,
-            },
         ],
     });
 
