@@ -255,6 +255,219 @@ async function updateLivePanel(client, guild, config, guildId) {
     }
 }
 
+const TICKET_SETUP_PANEL_MESSAGE = 'Click the button below to create a support ticket.';
+const TICKET_SETUP_BUTTON_LABEL = 'Create Ticket';
+
+function buildSetupWizardEmbed(guild, state) {
+    return new EmbedBuilder()
+        .setTitle('Set Up Tickets')
+        .setDescription(
+            'Choose the channel for your ticket panel. Optionally choose a category for new tickets and a staff role. Staff with that role can view new tickets.',
+        )
+        .setColor(getColor('info'))
+        .addFields(
+            { name: 'Panel Channel', value: state.panelChannelId ? `<#${state.panelChannelId}>` : '`Choose a channel`', inline: true },
+            { name: 'Ticket Category', value: state.categoryId ? `<#${state.categoryId}>` : '`Automatic: Tickets`', inline: true },
+            { name: 'Staff Role', value: state.staffRoleId ? `<@&${state.staffRoleId}>` : '`Not set`', inline: true },
+        )
+        .setFooter({ text: `${guild.name} • Settings apply to this server only` });
+}
+
+function buildSetupWizardComponents(guildId, state, disabled = false) {
+    const panelChannel = new ChannelSelectMenuBuilder()
+        .setCustomId(`ticket_setup_panel_${guildId}`)
+        .setPlaceholder('Choose the panel channel')
+        .addChannelTypes(ChannelType.GuildText);
+    const category = new ChannelSelectMenuBuilder()
+        .setCustomId(`ticket_setup_category_${guildId}`)
+        .setPlaceholder('Choose a ticket category (optional)')
+        .addChannelTypes(ChannelType.GuildCategory);
+    const staffRole = new RoleSelectMenuBuilder()
+        .setCustomId(`ticket_setup_staff_${guildId}`)
+        .setPlaceholder('Choose a staff role (optional)')
+        .setMinValues(1)
+        .setMaxValues(1);
+
+    return [
+        new ActionRowBuilder().addComponents(panelChannel),
+        new ActionRowBuilder().addComponents(category),
+        new ActionRowBuilder().addComponents(staffRole),
+        new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+                .setCustomId(`ticket_setup_finish_${guildId}`)
+                .setLabel('Create Ticket Panel')
+                .setStyle(ButtonStyle.Success)
+                .setDisabled(disabled || !state.panelChannelId),
+            new ButtonBuilder()
+                .setCustomId(`ticket_setup_cancel_${guildId}`)
+                .setLabel('Cancel')
+                .setStyle(ButtonStyle.Secondary)
+                .setDisabled(disabled),
+        ),
+    ];
+}
+
+export async function startTicketSetupWizard(interaction, client) {
+    const guild = interaction.guild;
+    const guildId = guild.id;
+    const state = { panelChannelId: null, categoryId: null, staffRoleId: null };
+    const customIds = {
+        panel: `ticket_setup_panel_${guildId}`,
+        category: `ticket_setup_category_${guildId}`,
+        staff: `ticket_setup_staff_${guildId}`,
+        finish: `ticket_setup_finish_${guildId}`,
+        cancel: `ticket_setup_cancel_${guildId}`,
+    };
+
+    await InteractionHelper.safeEditReply(interaction, {
+        embeds: [buildSetupWizardEmbed(guild, state)],
+        components: buildSetupWizardComponents(guildId, state),
+    });
+
+    const replyMessage = await interaction.fetchReply().catch(() => null);
+    if (!replyMessage || !interaction.channel) return;
+
+    const filter = component =>
+        component.user.id === interaction.user.id &&
+        component.message.id === replyMessage.id &&
+        component.guildId === guildId;
+    const panelCollector = interaction.channel.createMessageComponentCollector({
+        componentType: ComponentType.ChannelSelect,
+        filter: component => filter(component) && component.customId === customIds.panel,
+        time: 600_000,
+    });
+    const categoryCollector = interaction.channel.createMessageComponentCollector({
+        componentType: ComponentType.ChannelSelect,
+        filter: component => filter(component) && component.customId === customIds.category,
+        time: 600_000,
+    });
+    const roleCollector = interaction.channel.createMessageComponentCollector({
+        componentType: ComponentType.RoleSelect,
+        filter: component => filter(component) && component.customId === customIds.staff,
+        time: 600_000,
+    });
+    const buttonCollector = interaction.channel.createMessageComponentCollector({
+        componentType: ComponentType.Button,
+        filter: component => filter(component) && [customIds.finish, customIds.cancel].includes(component.customId),
+        time: 600_000,
+    });
+    const collectors = [panelCollector, categoryCollector, roleCollector, buttonCollector];
+    let closed = false;
+
+    const closeWizard = async (embed) => {
+        if (closed) return;
+        closed = true;
+        collectors.forEach(collector => collector.stop());
+        await InteractionHelper.safeEditReply(interaction, {
+            embeds: embed ? [embed] : [buildSetupWizardEmbed(guild, state)],
+            components: [],
+        });
+    };
+    const refreshWizard = async (component) => {
+        await component.deferUpdate();
+        await InteractionHelper.safeEditReply(interaction, {
+            embeds: [buildSetupWizardEmbed(guild, state)],
+            components: buildSetupWizardComponents(guildId, state),
+        });
+    };
+
+    panelCollector.on('collect', async component => {
+        state.panelChannelId = component.values[0];
+        await refreshWizard(component);
+    });
+    categoryCollector.on('collect', async component => {
+        state.categoryId = component.values[0];
+        await refreshWizard(component);
+    });
+    roleCollector.on('collect', async component => {
+        state.staffRoleId = component.values[0];
+        await refreshWizard(component);
+    });
+
+    buttonCollector.on('collect', async component => {
+        await component.deferUpdate();
+
+        if (component.customId === customIds.cancel) {
+            await closeWizard(infoEmbed('Setup Cancelled', 'No ticket panel was created.'));
+            return;
+        }
+
+        if (!state.panelChannelId) {
+            await InteractionHelper.safeEditReply(interaction, {
+                embeds: [infoEmbed('Choose a Panel Channel', 'Select where the ticket panel should be posted.')],
+                components: buildSetupWizardComponents(guildId, state),
+            });
+            return;
+        }
+
+        try {
+            const currentConfig = await getGuildConfig(client, guildId);
+            if (currentConfig.ticketPanelChannelId) {
+                await closeWizard(infoEmbed('Ticket System Already Set Up', `The existing panel is in <#${currentConfig.ticketPanelChannelId}>. Use the ticket dashboard to change it.`));
+                return;
+            }
+
+            if (!client.db) {
+                throw new TitanBotError('Ticket database unavailable', ErrorTypes.DATABASE, 'The database is unavailable. No ticket panel was created.');
+            }
+
+            const panelChannel = await guild.channels.fetch(state.panelChannelId).catch(() => null);
+            const botMember = guild.members.me;
+            const permissions = panelChannel?.permissionsFor(botMember);
+            if (!panelChannel || !permissions?.has(['ViewChannel', 'SendMessages', 'EmbedLinks'])) {
+                throw new TitanBotError('Ticket panel permissions missing', ErrorTypes.PERMISSION, `I need View Channel, Send Messages, and Embed Links in <#${state.panelChannelId}>.`);
+            }
+
+            const nextConfig = {
+                ...currentConfig,
+                ticketCategoryId: state.categoryId,
+                ticketClosedCategoryId: null,
+                ticketStaffRoleId: state.staffRoleId,
+                ticketPanelChannelId: panelChannel.id,
+                ticketPanelMessage: TICKET_SETUP_PANEL_MESSAGE,
+                ticketButtonLabel: TICKET_SETUP_BUTTON_LABEL,
+                maxTicketsPerUser: currentConfig.maxTicketsPerUser || 3,
+                dmOnClose: currentConfig.dmOnClose !== false,
+            };
+            const panelMessage = await panelChannel.send({
+                embeds: [buildPanelEmbed(nextConfig)],
+                components: [buildPanelButtonRow(nextConfig)],
+            });
+            nextConfig.ticketPanelMessageId = panelMessage.id;
+
+            try {
+                await setGuildConfig(client, guildId, nextConfig);
+            } catch (error) {
+                await panelMessage.delete().catch(() => {});
+                throw error;
+            }
+
+            const staffLine = state.staffRoleId
+                ? `\nStaff role <@&${state.staffRoleId}> can view new tickets.`
+                : '\nNo staff role is set; server managers can still manage tickets.';
+            await closeWizard(successEmbed(
+                'Ticket System Ready',
+                `The ticket panel is live in ${panelChannel}.${state.categoryId ? ` New tickets will be created under <#${state.categoryId}>.` : ' New tickets will use an automatically created Tickets category.'}${staffLine}\n\nUse \`/ticket dashboard\` to adjust settings.`,
+            ));
+        } catch (error) {
+            logger.error('Ticket setup wizard failed', { guildId, error: error.message });
+            const message = error instanceof TitanBotError
+                ? error.userMessage
+                : 'Could not create the ticket panel. Check the selected channel permissions and try again.';
+            await InteractionHelper.safeEditReply(interaction, {
+                embeds: [infoEmbed('Setup Could Not Finish', message)],
+                components: buildSetupWizardComponents(guildId, state),
+            });
+        }
+    });
+
+    buttonCollector.on('end', async (_collected, reason) => {
+        if (reason === 'time') {
+            await closeWizard(infoEmbed('Setup Timed Out', 'No ticket panel was created. Run `/ticket setup` to try again.'));
+        }
+    });
+}
+
 export default {
     prefixOnly: false,
     async execute(interaction, config, client) {
@@ -263,11 +476,7 @@ export default {
             const guildConfig = await getGuildConfig(client, guildId);
 
             if (!guildConfig.ticketPanelChannelId) {
-                throw new TitanBotError(
-                    'Ticket system not configured',
-                    ErrorTypes.CONFIGURATION,
-                    'The ticket system has not been set up yet. Run `/ticket setup` first to configure it.',
-                );
+                return startTicketSetupWizard(interaction, client);
             }
 
             const panelStatus = await getTicketPanelStatus(client, interaction.guild, guildConfig);

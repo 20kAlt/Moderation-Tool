@@ -6,7 +6,7 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { logger } from '../../utils/logger.js';
 import { handleInteractionError, replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
 
-import ticketConfig from './modules/ticket_dashboard.js';
+import ticketConfig, { startTicketSetupWizard } from './modules/ticket_dashboard.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -17,16 +17,16 @@ export default {
             subcommand
                 .setName("setup")
                 .setDescription(
-                    "Sets up the ticket creation panel in a specified channel.",
+                    "Start the guided setup, or post directly by specifying a panel channel.",
                 )
                 .addChannelOption((option) =>
                     option
 .setName("panel_channel")
                         .setDescription(
-                            "The channel where the ticket panel will be sent.",
+                            "Panel channel (omit to choose it from the setup UI).",
                         )
                         .addChannelTypes(ChannelType.GuildText)
-                        .setRequired(true),
+                        .setRequired(false),
                 )
 
                 .addStringOption((option) =>
@@ -122,6 +122,10 @@ export default {
             const existingConfig = await getGuildConfig(client, interaction.guildId);
             if (existingConfig?.ticketPanelChannelId) {
                 return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `This server already has a ticket system set up (panel in <#${existingConfig.ticketPanelChannelId}>).\n\nOnly one ticket system is supported per server. Use \`/ticket dashboard\` to edit or update the existing setup, or select **Delete System** from the dashboard to remove it and start fresh.` });
+            }
+
+            if (!interaction.options.getChannel("panel_channel")) {
+                return startTicketSetupWizard(interaction, client);
             }
 
             const panelChannel =
