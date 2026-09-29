@@ -2,8 +2,6 @@ import {
     SlashCommandBuilder,
     PermissionFlagsBits,
     ActionRowBuilder,
-    ButtonBuilder,
-    ButtonStyle,
     StringSelectMenuBuilder,
     StringSelectMenuOptionBuilder,
     MessageFlags,
@@ -18,13 +16,11 @@ import {
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { createEmbed, successEmbed } from '../../utils/embeds.js';
 import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
-import { getGuildConfig, setConfigValue } from '../../services/config/guildConfig.js';
-import ConfigService from '../../services/config/configService.js';
+import { getGuildConfig } from '../../services/config/guildConfig.js';
 import { logger } from '../../utils/logger.js';
 import { botConfig, getCommandPrefix } from '../../config/bot.js';
 
 const DASHBOARD_CUSTOM_ID = 'config_select';
-const WIZARD_BUTTON_ID = 'config_wizard';
 
 function formatChannelMention(guild, channelId) {
     if (!channelId) {
@@ -66,11 +62,9 @@ function getThemeColorLines() {
 }
 
 function buildDashboardEmbed(config, guild) {
-    const setupDone = config.setupWizardCompleted;
-
     return createEmbed({
         title: '⚙️ Server Configuration',
-        description: `Core settings for **${guild.name}**. Pick an option below or use quick setup.`,
+        description: `Core settings for **${guild.name}**. Select a setting below to edit it.`,
         color: 'info',
         fields: [
             {
@@ -103,13 +97,6 @@ function buildDashboardEmbed(config, guild) {
                 value: `Use \`${config.prefix || getCommandPrefix()}commands dashboard\` to enable or disable commands and subcommands.`,
                 inline: false,
             },
-            {
-                name: `${setupDone ? '✅' : '📝'} Setup`,
-                value: setupDone
-                    ? 'Quick setup completed — run it again anytime to update settings.'
-                    : 'Use quick setup to configure your server settings.',
-                inline: false,
-            },
         ],
         footer: 'Dashboard closes after 10 minutes of inactivity',
     });
@@ -138,124 +125,6 @@ function buildSettingsSelect(guildId) {
                     .setEmoji('📋'),
             ),
     );
-}
-
-function buildButtonRow(config, guildId) {
-    return new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-            .setCustomId(`${WIZARD_BUTTON_ID}:${guildId}`)
-            .setLabel(config.setupWizardCompleted ? 'Quick Setup' : 'Start Quick Setup')
-            .setEmoji('📝')
-            .setStyle(config.setupWizardCompleted ? ButtonStyle.Secondary : ButtonStyle.Success),
-    );
-}
-
-async function refreshDashboard(rootInteraction, config, guild) {
-    const embed = buildDashboardEmbed(config, guild);
-    const components = [buildButtonRow(config, guild.id), buildSettingsSelect(guild.id)];
-    await InteractionHelper.safeEditReply(rootInteraction, { embeds: [embed], components }).catch(() => {});
-}
-
-async function runSetupWizard(buttonInteraction, config, guild, client, rootInteraction) {
-    const modalCustomId = `config_quick_setup:${guild.id}`;
-    const modal = new ModalBuilder()
-        .setCustomId(modalCustomId)
-        .setTitle('Quick Server Setup');
-
-    const prefixInput = new TextInputBuilder()
-        .setCustomId('prefix')
-        .setStyle(TextInputStyle.Short)
-        .setPlaceholder(config.prefix || getCommandPrefix())
-        .setMinLength(1)
-        .setMaxLength(10)
-        .setRequired(false);
-    modal.addLabelComponents(
-        new LabelBuilder()
-            .setLabel('Server Prefix')
-            .setDescription('Leave blank to keep the current prefix')
-            .setTextInputComponent(prefixInput),
-    );
-
-    const channelSelect = new ChannelSelectMenuBuilder()
-        .setCustomId('log_channel')
-        .setPlaceholder('Choose a log channel')
-        .setMinValues(0)
-        .setMaxValues(1)
-        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement);
-    modal.addLabelComponents(
-        new LabelBuilder()
-            .setLabel('Log Channel')
-            .setDescription('Leave empty to keep the current channel')
-            .setChannelSelectMenuComponent(channelSelect),
-    );
-
-    const roleSelect = new RoleSelectMenuBuilder()
-        .setCustomId('mod_role')
-        .setPlaceholder('Choose a moderator role')
-        .setMinValues(0)
-        .setMaxValues(1);
-    modal.addLabelComponents(
-        new LabelBuilder()
-            .setLabel('Moderator Role')
-            .setDescription('Leave empty to keep the current role')
-            .setRoleSelectMenuComponent(roleSelect),
-    );
-
-    await buttonInteraction.showModal(modal);
-    const submitted = await buttonInteraction.awaitModalSubmit({
-        filter: (modalInteraction) =>
-            modalInteraction.customId === modalCustomId &&
-            modalInteraction.user.id === buttonInteraction.user.id,
-        time: 120_000,
-    }).catch(() => null);
-
-    if (!submitted) return;
-
-    try {
-        const prefix = submitted.fields.getTextInputValue('prefix').trim();
-        if (prefix && (/\s/.test(prefix) || prefix.length > 10)) {
-            await replyUserError(submitted, {
-                type: ErrorTypes.VALIDATION,
-                message: 'Prefix must be 1-10 characters with no spaces.',
-            });
-            return;
-        }
-
-        const logChannelId = submitted.fields.getField('log_channel')?.values?.[0];
-        const modRoleId = submitted.fields.getField('mod_role')?.values?.[0];
-        const changes = [];
-
-        if (prefix) {
-            await ConfigService.updateSetting(client, guild.id, 'prefix', prefix, submitted.user.id);
-            changes.push(`Prefix: \`${prefix}\``);
-        }
-        if (logChannelId) {
-            await ConfigService.updateSetting(client, guild.id, 'logChannelId', logChannelId, submitted.user.id);
-            changes.push(`Log channel: <#${logChannelId}>`);
-        }
-        if (modRoleId) {
-            await ConfigService.updateSetting(client, guild.id, 'modRole', modRoleId, submitted.user.id);
-            changes.push(`Moderator role: <@&${modRoleId}>`);
-        }
-
-        await setConfigValue(client, guild.id, 'setupWizardCompleted', true);
-        await submitted.reply({
-            embeds: [successEmbed(
-                'Setup Saved',
-                changes.length ? changes.join('\n') : 'No settings were changed.',
-            )],
-            flags: MessageFlags.Ephemeral,
-        });
-
-        const updatedConfig = await getGuildConfig(client, guild.id);
-        await refreshDashboard(rootInteraction, updatedConfig, guild);
-    } catch (error) {
-        logger.error('Quick setup modal submit error:', error);
-        await replyUserError(submitted, {
-            type: ErrorTypes.CONFIGURATION,
-            message: error.message || 'Please try again.',
-        }).catch(() => {});
-    }
 }
 
 async function showSettingModal(selectInteraction, guildId, setting) {
@@ -399,7 +268,7 @@ async function handleSettingModalSubmit(selectInteraction, rootInteraction, sett
 export default {
     data: new SlashCommandBuilder()
         .setName('configwizard')
-        .setDescription('Open the server configuration dashboard and quick setup form')
+        .setDescription('Open the server configuration dashboard')
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
         .setDMPermission(false),
     category: 'Core',
@@ -420,7 +289,7 @@ export default {
 
             const guildConfig = await getGuildConfig(interaction.client, interaction.guildId);
             const embed = buildDashboardEmbed(guildConfig, interaction.guild);
-            const components = [buildButtonRow(guildConfig, interaction.guildId), buildSettingsSelect(interaction.guildId)];
+            const components = [buildSettingsSelect(interaction.guildId)];
 
             await InteractionHelper.safeEditReply(interaction, { embeds: [embed], components });
 
@@ -431,7 +300,7 @@ export default {
 
             const collectorFilter = (componentInteraction) =>
                 componentInteraction.user.id === interaction.user.id &&
-                componentInteraction.customId.includes(`:${interaction.guildId}`);
+                componentInteraction.customId === `${DASHBOARD_CUSTOM_ID}:${interaction.guildId}`;
 
             const componentCollector = replyMessage.createMessageComponentCollector({
                 filter: collectorFilter,
@@ -440,16 +309,6 @@ export default {
 
             componentCollector.on('collect', async (componentInteraction) => {
                 try {
-                    if (componentInteraction.isButton()) {
-                        if (componentInteraction.customId.startsWith(`${WIZARD_BUTTON_ID}:`)) {
-                            const latestConfig = await getGuildConfig(interaction.client, interaction.guildId);
-                            await runSetupWizard(componentInteraction, latestConfig, interaction.guild, interaction.client, interaction);
-                        } else {
-                            await componentInteraction.deferUpdate();
-                        }
-                        return;
-                    }
-
                     if (componentInteraction.isStringSelectMenu()) {
                         const selected = componentInteraction.values[0];
                         await showSettingModal(componentInteraction, interaction.guildId, selected);
