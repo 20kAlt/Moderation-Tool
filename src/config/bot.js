@@ -48,7 +48,7 @@ export const botConfig = {
     testGuildId: process.env.TEST_GUILD_ID,
 
     // When true (or MAINTENANCE_MODE=true), only bot owners can run commands.
-    maintenanceMode: process.env.MAINTENANCE_MODE === "true",
+    maintenanceMode: process.env.MAINTENANCE_MODE === "false",
 
     // Command prefix for text-based commands (e.g., "!" for "!ping").
     // Supports both slash commands and prefix commands.
