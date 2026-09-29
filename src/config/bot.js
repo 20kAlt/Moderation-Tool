@@ -31,6 +31,16 @@ export const botConfig = {
   },
 
   // =========================
+  // BOT JOIN PROTECTION
+  // =========================
+  antiNuke: {
+    enabled: process.env.ANTI_NUKE_ENABLED !== "false",
+    allowedBotIds: process.env.ANTI_NUKE_ALLOWED_BOT_IDS?.split(",").map((id) => id.trim()).filter(Boolean) || [],
+    suspiciousNameTerms: ["nuke", "nuker", "raid", "server wipe", "server-wipe", "massban", "mass ban"],
+    blockDangerousPermissions: true,
+  },
+
+  // =========================
   // COMMAND BEHAVIOR
   // =========================
   commands: {
@@ -40,6 +50,9 @@ export const botConfig = {
 
     // Default wait time between command uses (in seconds).
     defaultCooldown: 3,
+
+    // If true, old commands are removed before re-registering.
+    deleteCommands: false,
 
     // Optional server ID retained for tutorial compatibility; not used for command registration.
     testGuildId: process.env.TEST_GUILD_ID,

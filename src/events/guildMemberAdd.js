@@ -15,6 +15,64 @@ export default {
   async execute(member) {
     try {
         const { guild, user } = member;
+
+        const antiNukeConfig = botConfig.antiNuke;
+        if (user.bot && antiNukeConfig?.enabled) {
+            const isAllowedBot = antiNukeConfig.allowedBotIds?.includes(user.id);
+            const botName = `${user.username} ${member.displayName}`.toLowerCase();
+            const suspiciousName = antiNukeConfig.suspiciousNameTerms?.some((term) =>
+                botName.includes(term.toLowerCase())
+            );
+            const dangerousPermissions = antiNukeConfig.blockDangerousPermissions
+                ? [
+                    PermissionFlagsBits.Administrator,
+                    PermissionFlagsBits.ManageGuild,
+                    PermissionFlagsBits.ManageRoles,
+                    PermissionFlagsBits.ManageChannels,
+                    PermissionFlagsBits.BanMembers,
+                    PermissionFlagsBits.ManageWebhooks,
+                ].filter((permission) => member.permissions.has(permission))
+                : [];
+
+            if (!isAllowedBot && (suspiciousName || dangerousPermissions.length > 0)) {
+                const reason = suspiciousName
+                    ? 'Bot name matched anti-nuke protection'
+                    : 'Bot was granted dangerous server permissions';
+                let kicked = false;
+
+                try {
+                    if (guild.members.me?.permissions.has(PermissionFlagsBits.KickMembers)) {
+                        await member.kick(reason);
+                        kicked = true;
+                    }
+                } catch (error) {
+                    logger.warn(`Anti-nuke protection could not kick bot ${user.id} in guild ${guild.id}:`, error);
+                }
+
+                logger.warn(`Anti-nuke protection ${kicked ? 'kicked' : 'could not kick'} bot ${user.tag} (${user.id}) in guild ${guild.id}: ${reason}`);
+                try {
+                    await logEvent({
+                        client: member.client,
+                        guildId: guild.id,
+                        eventType: EVENT_TYPES.MEMBER_JOIN,
+                        data: {
+                            title: kicked ? 'Anti-nuke protection kicked a bot' : 'Anti-nuke protection could not kick a bot',
+                            lines: [
+                                `**Bot:** ${user.tag} (${user.id})`,
+                                `**Reason:** ${reason}`,
+                                dangerousPermissions.length ? `**Dangerous permissions:** ${dangerousPermissions.length}` : null,
+                                `**Action:** ${kicked ? 'Kicked' : 'Manual removal required'}`,
+                            ].filter(Boolean),
+                            quoted: false,
+                            userId: user.id,
+                        },
+                    });
+                } catch (error) {
+                    logger.debug('Error logging anti-nuke bot screening:', error);
+                }
+                return;
+            }
+        }
         
         const config = await getGuildConfig(member.client, guild.id);
         

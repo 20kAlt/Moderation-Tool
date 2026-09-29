@@ -17,6 +17,7 @@ import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { createEmbed, successEmbed } from '../../utils/embeds.js';
 import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
 import { getGuildConfig } from '../../services/config/guildConfig.js';
+import ConfigService from '../../services/config/configService.js';
 import { logger } from '../../utils/logger.js';
 import { botConfig, getCommandPrefix } from '../../config/bot.js';
 
