@@ -123,8 +123,6 @@ class ApplicationService {
             
             this.validateApplicationSubmission(data);
 
-            this.checkApplicationCooldown(data.guildId, data.userId);
-
             const settings = await getApplicationSettings(client, data.guildId);
             if (!settings.enabled) {
                 throw createError(
@@ -132,6 +130,17 @@ class ApplicationService {
                     ErrorTypes.CONFIGURATION,
                     'Applications are currently disabled in this server.',
                     { guildId: data.guildId }
+                );
+            }
+
+            const applicationRoles = await getApplicationRoles(client, data.guildId);
+            const applicationRole = applicationRoles.find(role => role.roleId === data.roleId);
+            if (!applicationRole || applicationRole.enabled === false) {
+                throw createError(
+                    'Application is closed',
+                    ErrorTypes.CONFIGURATION,
+                    'This application is currently closed and is not accepting submissions.',
+                    { guildId: data.guildId, roleId: data.roleId }
                 );
             }
 
@@ -146,6 +155,8 @@ class ApplicationService {
                     { userId: data.userId, pendingAppId: pendingApp.id }
                 );
             }
+
+            this.checkApplicationCooldown(data.guildId, data.userId);
 
             const sanitizedData = {
                 ...data,

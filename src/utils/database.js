@@ -636,6 +636,8 @@ function buildApplicationSettingsDefaults() {
         enabled: false,
         applicationChannelId: null,
         logChannelId: null,
+        applicationPanelChannelId: null,
+        applicationResultsChannelId: null,
         questions: getDefaultApplicationQuestions(),
         roles: {
             admin: null,

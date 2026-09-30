@@ -8,7 +8,7 @@ import {
   isMaintenanceMode,
 } from '../config/bot.js';
 import botConfig from '../config/bot.js';
-import { handleApplicationModal } from '../commands/Community/apply.js';
+import { handleApplicationButton, handleApplicationModal } from '../commands/Community/apply.js';
 import { handleInteractionError, createError, ErrorTypes, ErrorCodes } from '../utils/errorHandler.js';
 import { InteractionHelper } from '../utils/interactionHelper.js';
 import { createInteractionTraceContext, runWithTraceContext } from '../utils/logger.js';
@@ -307,6 +307,19 @@ export default {
             }
           }
         } else if (interaction.isButton()) {
+          if (interaction.customId.startsWith('app_apply:')) {
+            try {
+              await handleApplicationButton(interaction);
+            } catch (error) {
+              await handleInteractionError(interaction, error, withTraceContext({
+                type: 'button',
+                customId: interaction.customId,
+                handler: 'application_panel'
+              }, interactionTraceContext));
+            }
+            return;
+          }
+
           if (interaction.customId.startsWith('shared_todo_')) {
             const parts = interaction.customId.split('_');
             const buttonType = parts.slice(0, 3).join('_');

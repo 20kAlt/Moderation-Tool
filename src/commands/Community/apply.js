@@ -155,6 +155,22 @@ export async function handleApplicationModal(interaction) {
     return submitApplicationAnswers(interaction, roleId, applicationRole, role, answers);
 }
 
+export async function handleApplicationButton(interaction) {
+    const roleId = interaction.customId.split(':')[1];
+    const settings = await getApplicationSettings(interaction.client, interaction.guild.id);
+    if (!settings.enabled) {
+        return replyUserError(interaction, { type: ErrorTypes.CONFIGURATION, message: 'Applications are currently disabled in this server.' });
+    }
+
+    const applicationRoles = await getApplicationRoles(interaction.client, interaction.guild.id);
+    const applicationRole = applicationRoles.find(appRole => appRole.roleId === roleId);
+    if (!applicationRole || applicationRole.enabled === false) {
+        return replyUserError(interaction, { type: ErrorTypes.CONFIGURATION, message: 'This application is currently closed and is not accepting submissions.' });
+    }
+
+    return startApplicationSubmission(interaction, settings, applicationRole);
+}
+
 async function submitApplicationAnswers(interaction, roleId, applicationRole, role, answers) {
     try {
         const application = await ApplicationService.submitApplication(interaction.client, {
@@ -229,7 +245,8 @@ async function submitApplicationAnswers(interaction, roleId, applicationRole, ro
 
 async function handleList(interaction) {
     try {
-        const applicationRoles = await getApplicationRoles(interaction.client, interaction.guild.id);
+        const applicationRoles = (await getApplicationRoles(interaction.client, interaction.guild.id))
+            .filter(appRole => appRole.enabled !== false);
         
         if (applicationRoles.length === 0) {
             return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: 'No applications are currently available.' });
@@ -285,50 +302,50 @@ async function handleSubmit(interaction, settings) {
         return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: `Use \`${interaction._isPrefixCommand ? interaction.prefix : '/'}apply list\` to see available applications.` });
     }
 
+    if (applicationRole.enabled === false) {
+        return await replyUserError(interaction, { type: ErrorTypes.CONFIGURATION, message: 'This application is currently closed and is not accepting submissions.' });
+    }
+
+    return startApplicationSubmission(interaction, settings, applicationRole);
+}
+
+async function startApplicationSubmission(interaction, settings, applicationRole) {
     const userApps = await getUserApplications(
         interaction.client,
         interaction.guild.id,
         interaction.user.id,
     );
-    const pendingApp = userApps.find((app) => app.status === "pending");
-
+    const pendingApp = userApps.find(app => app.status === 'pending');
     if (pendingApp) {
-        return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'You already have a pending application. Please wait for it to be reviewed.' });
+        return replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'You already have a pending application. Please wait for it to be reviewed.' });
     }
 
     const role = interaction.guild.roles.cache.get(applicationRole.roleId);
     if (!role) {
-        return await replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: 'The role for this application no longer exists.' });
+        return replyUserError(interaction, { type: ErrorTypes.USER_INPUT, message: 'The role for this application no longer exists.' });
     }
 
     const modal = new ModalBuilder()
         .setCustomId(`app_modal_${applicationRole.roleId}`)
         .setTitle(`Application for ${applicationRole.name}`);
-
     let questions = settings.questions?.length ? settings.questions : getDefaultApplicationQuestions();
     const roleSettings = await getApplicationRoleSettings(interaction.client, interaction.guild.id, applicationRole.roleId);
-    if (roleSettings.questions && roleSettings.questions.length > 0) {
-        questions = roleSettings.questions;
+    if (roleSettings.questions?.length) {
+        questions = roleSettings.questions.slice(0, 50);
     }
 
-    if (interaction._isPrefixCommand) {
+    if (interaction._isPrefixCommand || questions.length > 5) {
         return collectPrefixApplicationAnswers(interaction, applicationRole, role, questions);
     }
 
     questions.forEach((question, index) => {
         const input = new TextInputBuilder()
             .setCustomId(`q${index}`)
-            .setLabel(
-                question.length > 45
-                    ? `${question.substring(0, 42)}...`
-                    : question,
-            )
+            .setLabel(question.length > 45 ? `${question.substring(0, 42)}...` : question)
             .setStyle(TextInputStyle.Paragraph)
             .setRequired(true)
             .setMaxLength(1000);
-
-        const row = new ActionRowBuilder().addComponents(input);
-        modal.addComponents(row);
+        modal.addComponents(new ActionRowBuilder().addComponents(input));
     });
 
     await interaction.showModal(modal);
@@ -361,6 +378,7 @@ async function collectPrefixApplicationAnswers(interaction, applicationRole, rol
                 title: 'Application Started',
                 description: `Check your DMs to answer the questions for **${applicationRole.name}**. Type \`cancel\` to stop.`,
             })],
+            flags: ['Ephemeral'],
         });
         await dmChannel.send({
             embeds: [createEmbed({

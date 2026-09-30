@@ -242,6 +242,11 @@ async function handleSetup(interaction) {
     }
 
     const existingRoles = await getApplicationRoles(interaction.client, interaction.guild.id);
+    if (existingRoles.length >= 5) {
+        await replyUserError(submitted, { type: ErrorTypes.CONFIGURATION, message: 'This server already has the maximum of 5 applications. Remove an application before creating another.' });
+        return;
+    }
+
     if (existingRoles.some(r => r.roleId === roleId)) {
         await replyUserError(submitted, { type: ErrorTypes.CONFIGURATION, message: `The role ${role} is already configured as an application.` });
         return;
@@ -370,6 +375,11 @@ async function handlePrefixSetup(interaction) {
         }
 
         const existingRoles = await getApplicationRoles(interaction.client, interaction.guild.id);
+        if (existingRoles.length >= 5) {
+            await dmChannel.send('This server already has the maximum of 5 applications. Remove one from the dashboard before creating another.');
+            return;
+        }
+
         if (existingRoles.some((entry) => entry.roleId === roleId)) {
             await dmChannel.send(`The role ${role} is already configured as an application.`);
             return;
@@ -516,6 +526,33 @@ async function handleReview(interaction) {
                     userId: application.userId,
                     applicationId: appId
                 });
+            }
+
+            const applicationSettings = await getApplicationSettings(reasonSubmit.client, interaction.guild.id);
+            const resultsChannel = applicationSettings.applicationResultsChannelId
+                ? interaction.guild.channels.cache.get(applicationSettings.applicationResultsChannelId)
+                : null;
+            if (resultsChannel) {
+                try {
+                    const statusColor = getApplicationStatusColor(status);
+                    const reviewStatus = getApplicationStatusPresentation(status);
+                    const resultsEmbed = createEmbed({
+                        title: `Application ${reviewStatus.statusLabel}`,
+                        description:
+                            `**Applicant:** <@${application.userId}>\n` +
+                            `**Application:** ${application.roleName}\n` +
+                            `**Decision by:** <@${reasonSubmit.user.id}>\n` +
+                            `**Reason:** ${reason}\n` +
+                            `**Application ID:** \`${appId}\``,
+                    }).setColor(statusColor);
+                    await resultsChannel.send({ embeds: [resultsEmbed] });
+                } catch (error) {
+                    logger.warn('Failed to post application review result', {
+                        error: error.message,
+                        applicationId: appId,
+                        channelId: resultsChannel.id,
+                    });
+                }
             }
 
             if (application.logMessageId && application.logChannelId) {

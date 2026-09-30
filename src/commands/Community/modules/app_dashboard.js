@@ -41,6 +41,8 @@ async function buildDashboardEmbed(settings, roles, guild, client) {
     const guildConfig = await getGuildConfig(client, guild.id);
     const applicationsChannel = resolveLogChannel(guildConfig, 'applications') || settings.logChannelId;
     const logChannel = applicationsChannel ? `<#${applicationsChannel}>` : '`Not set`';
+    const panelChannel = settings.applicationPanelChannelId ? `<#${settings.applicationPanelChannelId}>` : '`Not set`';
+    const resultsChannel = settings.applicationResultsChannelId ? `<#${settings.applicationResultsChannelId}>` : '`Not set`';
     const managerRoleList =
         settings.managerRoles?.length > 0
             ? settings.managerRoles.map(id => `<@&${id}>`).join(',')
@@ -62,7 +64,8 @@ async function buildDashboardEmbed(settings, roles, guild, client) {
         .addFields(
             { name: 'Application Status', value: settings.enabled ? 'Enabled' : 'Disabled', inline: true },
             { name: 'Log Channel', value: logChannel, inline: true },
-            { name: '\u200B', value: '\u200B', inline: true },
+            { name: 'Panel Channel', value: panelChannel, inline: true },
+            { name: 'Results Channel', value: resultsChannel, inline: true },
             { name: 'Manager Roles', value: managerRoleList, inline: false },
             { name: 'Questions', value: `${questionCount} configured — first: ${firstQ}`, inline: false },
             { name: 'Application Roles', value: roleList, inline: false },
@@ -86,6 +89,16 @@ function buildSelectMenu(guildId) {
                 .setDescription('Set the channel where new applications are logged')
                 .setValue('log_channel')
                 .setEmoji('📢'),
+            new StringSelectMenuOptionBuilder()
+                .setLabel('Panel Channel')
+                .setDescription('Choose where application embeds and Apply buttons are posted')
+                .setValue('panel_channel')
+                .setEmoji('📨'),
+            new StringSelectMenuOptionBuilder()
+                .setLabel('Results Channel')
+                .setDescription('Choose where application decisions are posted')
+                .setValue('results_channel')
+                .setEmoji('📋'),
             new StringSelectMenuOptionBuilder()
                 .setLabel('Manager Roles')
                 .setDescription('Add or remove a role that can manage applications')
@@ -277,7 +290,7 @@ async function showApplicationDashboard(rootInteraction, selectedRole, settings,
         : '`Inherits global log channel`';
     
     const questionsDisplay = questions.length > 0
-        ? questions.map((q, i) => `${i + 1}. \`${q.length > 60 ? q.substring(0, 60) + '…' : q}\``).join('\n')
+        ? `${questions.slice(0, 8).map((q, i) => `${i + 1}. \`${q.length > 60 ? q.substring(0, 60) + '…' : q}\``).join('\n')}${questions.length > 8 ? `\n…and ${questions.length - 8} more` : ''}`
         : '`Inherits global questions`';
     
     const managerRolesDisplay = settings.managerRoles && settings.managerRoles.length > 0
@@ -310,6 +323,16 @@ async function showApplicationDashboard(rootInteraction, selectedRole, settings,
                 value: logChannelDisplay,
                 inline: true 
             },
+            {
+                name: 'Panel Channel',
+                value: settings.applicationPanelChannelId ? `<#${settings.applicationPanelChannelId}>` : '`Not set`',
+                inline: true,
+            },
+            {
+                name: 'Results Channel',
+                value: settings.applicationResultsChannelId ? `<#${settings.applicationResultsChannelId}>` : '`Not set`',
+                inline: true,
+            },
             { 
                 name: 'Manager Roles',
                 value: managerRolesDisplay,
@@ -331,6 +354,14 @@ async function showApplicationDashboard(rootInteraction, selectedRole, settings,
             .setCustomId(`app_toggle_${selectedRole.roleId}`)
             .setLabel(isEnabled ? 'Disable Application' : 'Enable Application')
             .setStyle(isEnabled ? ButtonStyle.Danger : ButtonStyle.Success),
+        new ButtonBuilder()
+            .setCustomId(`app_title_${selectedRole.roleId}`)
+            .setLabel('Edit Title')
+            .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+            .setCustomId(`app_panel_${selectedRole.roleId}`)
+            .setLabel('Post Panel')
+            .setStyle(ButtonStyle.Primary),
         new ButtonBuilder()
             .setCustomId(`app_delete_${selectedRole.roleId}`)
             .setLabel('Delete Application')
@@ -371,6 +402,12 @@ function setupCollectors(interaction, settings, roles, guildId, client, selected
             switch (selectedOption) {
                 case 'log_channel':
                     await handleLogChannel(selectInteraction, interaction, settings, roles, guildId, client, selectedRoleId);
+                    break;
+                case 'panel_channel':
+                    await handleOutputChannel(selectInteraction, interaction, settings, roles, guildId, client, 'applicationPanelChannelId', 'Panel');
+                    break;
+                case 'results_channel':
+                    await handleOutputChannel(selectInteraction, interaction, settings, roles, guildId, client, 'applicationResultsChannelId', 'Results');
                     break;
                 case 'manager_role':
                     await handleManagerRole(selectInteraction, interaction, settings, roles, guildId, client, selectedRoleId);
@@ -485,6 +522,104 @@ function setupCollectors(interaction, settings, roles, guildId, client, selected
     }
 
     if (selectedRoleId) {
+        const titleAndPanelCollector = interaction.channel.createMessageComponentCollector({
+            componentType: ComponentType.Button,
+            filter: i =>
+                i.user.id === interaction.user.id &&
+                (i.customId === `app_title_${selectedRoleId}` || i.customId === `app_panel_${selectedRoleId}`),
+            time: 600_000,
+        });
+
+        titleAndPanelCollector.on('collect', async actionInteraction => {
+            if (actionInteraction.customId === `app_panel_${selectedRoleId}`) {
+                try {
+                    const panelChannel = settings.applicationPanelChannelId
+                        ? rootInteraction.guild.channels.cache.get(settings.applicationPanelChannelId)
+                        : null;
+                    if (!panelChannel) {
+                        await replyUserError(actionInteraction, {
+                            type: ErrorTypes.CONFIGURATION,
+                            message: 'Set a Panel Channel in the dashboard before posting an application panel.',
+                        });
+                        return;
+                    }
+
+                    const panelEmbed = new EmbedBuilder()
+                        .setTitle(selectedRole.name)
+                        .setDescription(`Apply for ${roleObj ? roleObj.toString() : `<@&${selectedRoleId}>`} by selecting the button below.`)
+                        .setColor(getColor('info'));
+                    await panelChannel.send({
+                        embeds: [panelEmbed],
+                        components: [new ActionRowBuilder().addComponents(
+                            new ButtonBuilder()
+                                .setCustomId(`app_apply:${selectedRoleId}`)
+                                .setLabel(`Apply: ${selectedRole.name}`.slice(0, 80))
+                                .setStyle(ButtonStyle.Primary),
+                        )],
+                    });
+                    await actionInteraction.reply({
+                        embeds: [successEmbed('Panel Posted', `The **${selectedRole.name}** application panel was posted in <#${panelChannel.id}>.`)],
+                        flags: MessageFlags.Ephemeral,
+                    });
+                } catch (error) {
+                    logger.error('Error posting application panel:', error);
+                    await replyUserError(actionInteraction, {
+                        type: ErrorTypes.UNKNOWN,
+                        message: 'Could not post the application panel in this channel.',
+                    }).catch(() => {});
+                }
+                return;
+            }
+
+            const renameModal = new ModalBuilder()
+                .setCustomId(`app_title_modal_${selectedRoleId}`)
+                .setTitle('Edit Application Title')
+                .addComponents(new ActionRowBuilder().addComponents(
+                    new TextInputBuilder()
+                        .setCustomId('app_title')
+                        .setLabel('Application title')
+                        .setStyle(TextInputStyle.Short)
+                        .setMaxLength(50)
+                        .setMinLength(1)
+                        .setValue(selectedRole.name)
+                        .setRequired(true),
+                ));
+
+            try {
+                await actionInteraction.showModal(renameModal);
+                const submitted = await actionInteraction.awaitModalSubmit({
+                    time: 120_000,
+                    filter: i => i.user.id === actionInteraction.user.id && i.customId === `app_title_modal_${selectedRoleId}`,
+                }).catch(() => null);
+                if (!submitted) return;
+
+                const newName = submitted.fields.getTextInputValue('app_title').trim();
+                if (!newName) {
+                    await replyUserError(submitted, { type: ErrorTypes.USER_INPUT, message: 'The application title cannot be empty.' });
+                    return;
+                }
+
+                const roleIndex = roles.findIndex(role => role.roleId === selectedRoleId);
+                if (roleIndex === -1) {
+                    await replyUserError(submitted, { type: ErrorTypes.USER_INPUT, message: 'Application not found.' });
+                    return;
+                }
+                roles[roleIndex].name = newName;
+                await saveApplicationRoles(client, guildId, roles);
+                await submitted.reply({
+                    embeds: [successEmbed('Title Updated', `Application title changed to **${newName}**.`)],
+                    flags: MessageFlags.Ephemeral,
+                });
+                await showApplicationDashboard(rootInteraction, roles[roleIndex], settings, roles, guildId, client);
+            } catch (error) {
+                logger.error('Error renaming application:', error);
+                await replyUserError(actionInteraction, {
+                    type: ErrorTypes.UNKNOWN,
+                    message: 'An error occurred while updating the application title.',
+                }).catch(() => {});
+            }
+        });
+
         const btnCollector = interaction.channel.createMessageComponentCollector({
             componentType: ComponentType.Button,
             filter: i =>
@@ -656,6 +791,16 @@ function buildApplicationSelectMenu(guildId, roleId) {
                 .setValue('log_channel')
                 .setEmoji('📢'),
             new StringSelectMenuOptionBuilder()
+                .setLabel('Panel Channel')
+                .setDescription('Choose where application embeds and Apply buttons are posted')
+                .setValue('panel_channel')
+                .setEmoji('📨'),
+            new StringSelectMenuOptionBuilder()
+                .setLabel('Results Channel')
+                .setDescription('Choose where application decisions are posted')
+                .setValue('results_channel')
+                .setEmoji('📋'),
+            new StringSelectMenuOptionBuilder()
                 .setLabel('Manager Roles')
                 .setDescription('Add or remove a role that can manage applications')
                 .setValue('manager_role')
@@ -736,6 +881,47 @@ async function handleLogChannel(selectInteraction, rootInteraction, settings, ro
     }
 }
 
+async function handleOutputChannel(selectInteraction, rootInteraction, settings, roles, guildId, client, settingKey, label) {
+    const customId = `app_cfg_${settingKey}_modal_${guildId}`;
+    const modal = new ModalBuilder()
+        .setCustomId(customId)
+        .setTitle(`Configure ${label} Channel`);
+    const channelSelect = new ChannelSelectMenuBuilder()
+        .setCustomId('output_channel')
+        .setPlaceholder('Select a text channel...')
+        .setMinValues(1)
+        .setMaxValues(1)
+        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
+        .setRequired(true);
+    modal.addLabelComponents(new LabelBuilder()
+        .setLabel(`${label} Channel`)
+        .setDescription(`Channel where application ${label.toLowerCase()} messages will be posted`)
+        .setChannelSelectMenuComponent(channelSelect));
+
+    await selectInteraction.showModal(modal);
+    try {
+        const submission = await selectInteraction.awaitModalSubmit({
+            time: 5 * 60 * 1000,
+            filter: i => i.user.id === selectInteraction.user.id && i.customId === customId,
+        });
+        const channelId = submission.fields.getField('output_channel').values[0];
+        settings[settingKey] = channelId;
+        await saveApplicationSettings(client, guildId, settings);
+        await submission.reply({
+            embeds: [successEmbed(`${label} Channel Updated`, `${label} messages will now be posted in <#${channelId}>.`)],
+            flags: MessageFlags.Ephemeral,
+        });
+        await refreshDashboard(rootInteraction, settings, roles, guildId, client);
+    } catch (error) {
+        if (error.code === 'INTERACTION_TIMEOUT') return;
+        logger.error(`Error configuring application ${label.toLowerCase()} channel:`, error);
+        await replyUserError(selectInteraction, {
+            type: ErrorTypes.UNKNOWN,
+            message: `An error occurred while updating the ${label.toLowerCase()} channel.`,
+        });
+    }
+}
+
 async function handleManagerRole(selectInteraction, rootInteraction, settings, roles, guildId, client) {
     const modal = new ModalBuilder()
         .setCustomId(`app_cfg_manager_role_modal_${guildId}`)
@@ -805,73 +991,66 @@ async function handleQuestions(selectInteraction, rootInteraction, settings, rol
         currentQuestions = roleSettings.questions ?? currentQuestions;
     }
 
-    const modal = new ModalBuilder()
-        .setCustomId('app_cfg_questions')
-        .setTitle('Edit Application Questions')
-        .addComponents(
-            new ActionRowBuilder().addComponents(
-                new TextInputBuilder()
-                    .setCustomId('q1')
-                    .setLabel('Question 1 (required)')
-                    .setStyle(TextInputStyle.Short)
-                    .setValue(currentQuestions[0] ?? '')
-                    .setMaxLength(100)
-                    .setMinLength(1)
-                    .setRequired(true),
-            ),
-            new ActionRowBuilder().addComponents(
-                new TextInputBuilder()
-                    .setCustomId('q2')
-                    .setLabel('Question 2 (optional)')
-                    .setStyle(TextInputStyle.Short)
-                    .setValue(currentQuestions[1] ?? '')
-                    .setMaxLength(100)
-                    .setRequired(false),
-            ),
-            new ActionRowBuilder().addComponents(
-                new TextInputBuilder()
-                    .setCustomId('q3')
-                    .setLabel('Question 3 (optional)')
-                    .setStyle(TextInputStyle.Short)
-                    .setValue(currentQuestions[2] ?? '')
-                    .setMaxLength(100)
-                    .setRequired(false),
-            ),
-            new ActionRowBuilder().addComponents(
-                new TextInputBuilder()
-                    .setCustomId('q4')
-                    .setLabel('Question 4 (optional)')
-                    .setStyle(TextInputStyle.Short)
-                    .setValue(currentQuestions[3] ?? '')
-                    .setMaxLength(100)
-                    .setRequired(false),
-            ),
-            new ActionRowBuilder().addComponents(
-                new TextInputBuilder()
-                    .setCustomId('q5')
-                    .setLabel('Question 5 (optional)')
-                    .setStyle(TextInputStyle.Short)
-                    .setValue(currentQuestions[4] ?? '')
-                    .setMaxLength(100)
-                    .setRequired(false),
-            ),
-        );
+    currentQuestions = currentQuestions.slice(0, 50);
+    const newQuestions = [];
+    let modalInteraction = selectInteraction;
+    let submitted = null;
 
-    await selectInteraction.showModal(modal);
+    for (let page = 0; page < 10; page++) {
+        const customId = `app_cfg_questions_${guildId}_${selectedRoleId || 'global'}_${page}`;
+        const modal = new ModalBuilder()
+            .setCustomId(customId)
+            .setTitle(`Questions ${page * 5 + 1}-${page * 5 + 5} of 50`);
 
-    const submitted = await selectInteraction
-        .awaitModalSubmit({
-            filter: i =>
-                i.customId === 'app_cfg_questions' && i.user.id === selectInteraction.user.id,
+        for (let offset = 0; offset < 5; offset++) {
+            const questionIndex = page * 5 + offset;
+            const input = new TextInputBuilder()
+                .setCustomId(`q${questionIndex}`)
+                .setLabel(`Question ${questionIndex + 1}`)
+                .setStyle(TextInputStyle.Short)
+                .setMaxLength(100)
+                .setRequired(questionIndex === 0);
+            if (currentQuestions[questionIndex]) {
+                input.setValue(currentQuestions[questionIndex]);
+            }
+            modal.addComponents(new ActionRowBuilder().addComponents(input));
+        }
+
+        await modalInteraction.showModal(modal);
+        submitted = await modalInteraction.awaitModalSubmit({
+            filter: i => i.customId === customId && i.user.id === selectInteraction.user.id,
             time: 120_000,
-        })
-        .catch(() => null);
+        }).catch(() => null);
+        if (!submitted) return;
 
-    if (!submitted) return;
+        const pageQuestions = Array.from({ length: 5 }, (_, offset) =>
+            submitted.fields.getTextInputValue(`q${page * 5 + offset}`).trim(),
+        );
+        newQuestions.push(...pageQuestions.filter(Boolean));
 
-    const newQuestions = ['q1', 'q2', 'q3', 'q4', 'q5']
-        .map(key => submitted.fields.getTextInputValue(key).trim())
-        .filter(Boolean);
+        if (pageQuestions.every(question => !question) || page === 9) {
+            break;
+        }
+
+        const nextButtonId = `app_cfg_questions_next_${guildId}_${selectedRoleId || 'global'}_${page + 1}`;
+        await submitted.reply({
+            content: `Questions ${page * 5 + 1}-${page * 5 + 5} saved. Continue with the next five questions, or leave them blank to finish.`,
+            components: [new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId(nextButtonId)
+                    .setLabel('Next 5 Questions')
+                    .setStyle(ButtonStyle.Primary),
+            )],
+            flags: MessageFlags.Ephemeral,
+        });
+        const continueMessage = await submitted.fetchReply();
+        modalInteraction = await continueMessage.awaitMessageComponent({
+            componentType: ComponentType.Button,
+            filter: i => i.user.id === selectInteraction.user.id && i.customId === nextButtonId,
+            time: 120_000,
+        }).catch(() => null);
+        if (!modalInteraction) return;
+    }
 
     if (newQuestions.length === 0) {
         await replyUserError(submitted, { type: ErrorTypes.USER_INPUT, message: 'At least one question is required.' });
@@ -903,6 +1082,14 @@ async function handleQuestions(selectInteraction, rootInteraction, settings, rol
 }
 
 async function handleRoleAdd(selectInteraction, rootInteraction, settings, roles, guildId, client) {
+    if (roles.length >= 5) {
+        await replyUserError(selectInteraction, {
+            type: ErrorTypes.CONFIGURATION,
+            message: 'This server already has the maximum of 5 applications. Remove one before adding another.',
+        });
+        return;
+    }
+
     const modal = new ModalBuilder()
         .setCustomId(`app_cfg_role_add_modal_${guildId}`)
         .setTitle('Add Application Role');
