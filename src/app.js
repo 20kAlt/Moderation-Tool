@@ -95,8 +95,12 @@ class ModerationToolBot extends Client {
       }
 
       startupLog('Registering slash commands for each server...');
-      await this.registerCommands();
-      startupLog('Slash commands registration complete');
+      const slashCommandsRegistered = await this.registerCommands();
+      if (slashCommandsRegistered) {
+        startupLog('Slash commands registration complete');
+      } else {
+        logger.error('Slash command registration failed. Prefix commands remain available, but slash commands may not appear until configuration or Discord API errors are fixed.');
+      }
       
       const databaseMode = dbStatus.isDegraded
         ? 'Optional in-memory mode (data resets after restart)'
@@ -329,8 +333,10 @@ class ModerationToolBot extends Client {
   async registerCommands() {
     try {
       await registerSlashCommands(this, { clientId: this.config.bot.clientId });
+      return true;
     } catch (error) {
       logger.error('Error registering commands:', error);
+      return false;
     }
   }
 

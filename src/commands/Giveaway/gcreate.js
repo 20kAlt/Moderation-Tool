@@ -162,10 +162,46 @@ export async function createGiveawayFromInput(interaction, { durationString, win
     });
 }
 
+async function executePrefix(interaction, _guildConfig, client) {
+    ensureGiveawayPermission(interaction);
+
+    const args = (interaction.options._hoistedOptions || interaction._hoistedOptions || [])
+        .map(option => String(option.value));
+    const usage = `Usage: \`${interaction.prefix}gcreate <duration> "<prize>" [winners] [#channel]\`\nExample: \`${interaction.prefix}gcreate 1h "Nitro" 1 #giveaways\``;
+    if (args.length < 2) {
+        return InteractionHelper.safeReply(interaction, { content: usage });
+    }
+
+    const durationString = args[0];
+    const prize = args[1];
+    const extraArgs = args.slice(2);
+    const channelArgument = extraArgs.find(argument => /^<#\d+>$/.test(argument) || /^\d{15,22}$/.test(argument));
+    const winnerArgument = extraArgs.find(argument => argument !== channelArgument && /^\d+$/.test(argument));
+    const unexpectedArguments = extraArgs.filter(argument => argument !== winnerArgument && argument !== channelArgument);
+    if (unexpectedArguments.length > 0) {
+        return InteractionHelper.safeReply(interaction, { content: usage });
+    }
+
+    const winnerCount = winnerArgument ? Number(winnerArgument) : GIVEAWAY_MIN_WINNERS;
+    const channelId = channelArgument?.match(/^<#(\d+)>$/)?.[1] || channelArgument;
+    const targetChannel = channelId
+        ? await interaction.guild.channels.fetch(channelId).catch(() => null)
+        : interaction.channel;
+
+    if (!targetChannel?.isTextBased()) {
+        return InteractionHelper.safeReply(interaction, {
+            content: 'Choose a text channel, or omit it to post the giveaway here.',
+        });
+    }
+
+    await InteractionHelper.safeDefer(interaction);
+    await createGiveawayFromInput(interaction, { durationString, winnerCount, prize, targetChannel });
+}
+
 export default {
     data: new SlashCommandBuilder()
         .setName("gcreate")
-        .setDescription("Create a giveaway using the form or modal.")
+        .setDescription('Create a giveaway. Prefix: ?gcreate <duration> "<prize>" [winners] [#channel].')
         .addStringOption((option) =>
             option
                 .setName("duration")
@@ -215,4 +251,6 @@ export default {
         await InteractionHelper.safeDefer(interaction);
         await createGiveawayFromInput(interaction, { durationString, winnerCount, prize, targetChannel });
     },
+
+    prefixExecute: executePrefix,
 };

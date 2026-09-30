@@ -1,7 +1,8 @@
 import { EmbedBuilder, MessageFlags } from 'discord.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
+import { createBugReportStatusRow } from '../../../services/bugReportService.js';
 
-const BUG_REPORT_CHANNEL_ID = '1554888243663732908';
+export const BUG_REPORT_CHANNEL_ID = '1554888243663732908';
 
 export default {
     name: 'help_bug_report_modal',
@@ -25,24 +26,28 @@ export default {
 
         const reportChannel = await client.channels.fetch(BUG_REPORT_CHANNEL_ID).catch(() => null);
         if (!reportChannel?.isTextBased() || typeof reportChannel.send !== 'function') {
-            throw new Error('The bug-report channel is unavailable. Please contact a server admin.');
+            throw new Error('The bot-owner bug-report channel is unavailable. Please try again later.');
         }
 
         const embed = new EmbedBuilder()
             .setColor(0xD64545)
-            .setTitle('Bug Report')
+            .setTitle('Bot Bug Report')
             .setDescription(bug)
             .addFields(
+                { name: 'Status', value: '🕓 Pending', inline: true },
                 { name: 'Server', value: `${interaction.guild.name}\n\`${interaction.guildId}\``, inline: true },
-                { name: 'Server owner', value: `<@${interaction.guild.ownerId}>`, inline: true },
                 { name: 'Reported by', value: `<@${interaction.user.id}> (\`${interaction.user.id}\`)`, inline: false },
                 { name: 'Proof', value: proof || 'Not provided', inline: false },
             )
             .setTimestamp();
 
-        await reportChannel.send({ embeds: [embed], allowedMentions: { parse: [] } });
+        await reportChannel.send({
+            embeds: [embed],
+            components: [createBugReportStatusRow()],
+            allowedMentions: { parse: [] },
+        });
         await InteractionHelper.safeEditReply(interaction, {
-            content: 'Your bug report was sent. Thanks for including details and any optional proof.',
+            content: 'Your bug report was sent privately to the bot owner for review. Thanks for including details and any optional proof.',
         });
     },
 };

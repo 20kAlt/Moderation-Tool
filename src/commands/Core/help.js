@@ -125,7 +125,7 @@ export async function createInitialHelpMenu(client, guildId = null) {
 
     const reportBugButton = new ButtonBuilder()
         .setCustomId('help-report-bug')
-        .setLabel('Report a bug to server owner')
+        .setLabel('Report bot bug to bot owner')
         .setEmoji('🐞')
         .setStyle(ButtonStyle.Danger);
 

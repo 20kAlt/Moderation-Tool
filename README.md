@@ -215,10 +215,10 @@ docker pull ghcr.io/codebymitch/titanbot:main
 
 ### Multiple servers
 
-Slash commands are registered **globally** on startup (via `CLIENT_ID`), so the bot works in every server it is invited to. `GUILD_ID` stays in the tutorial `.env` for setup steps but is not used for command registration.
+Slash commands are synchronized **per server** on startup using the logged-in Discord application's ID. `GUILD_ID` stays in the tutorial `.env` for setup steps but is not used for command registration. Restart the bot after updates; commands appear in each server where the bot is installed.
 
 Notes:
-- Global slash commands may take up to about an hour to propagate on first deploy
+- The bot must be invited with both the `bot` and `applications.commands` OAuth2 scopes for slash commands to appear
 - Each server has **isolated** data: config, economy, tickets, leveling, dashboards, warnings, etc. (all keys are scoped as `guild:{guildId}:...`)
 - In the [Discord Developer Portal](https://discord.com/developers/applications), ensure your bot is not restricted to a single guild if you plan to invite it elsewhere
 - Generate an OAuth2 invite URL from the [Discord Developer Portal](https://discord.com/developers/applications) (OAuth2 → URL Generator, scopes: `bot` and `applications.commands`)

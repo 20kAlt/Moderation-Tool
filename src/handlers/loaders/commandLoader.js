@@ -9,6 +9,19 @@ const __dirname = path.dirname(__filename);
 const MAX_COMMANDS = 100;
 const COMMAND_COUNT_WARN_THRESHOLD = 90;
 
+function resolveApplicationId(client, configuredClientId) {
+    const authenticatedApplicationId = client.application?.id;
+
+    if (authenticatedApplicationId && configuredClientId && authenticatedApplicationId !== configuredClientId) {
+        logger.warn('Configured CLIENT_ID does not match the logged-in Discord application; using the authenticated application ID.', {
+            configuredClientId,
+            authenticatedApplicationId,
+        });
+    }
+
+    return authenticatedApplicationId || configuredClientId;
+}
+
 function getSubcommandInfo(commandData) {
     const subcommands = [];
     
@@ -254,7 +267,7 @@ async function registerGuildCommandPayload(client, clientId, guildId, commands) 
 }
 
 export async function registerCommands(client, options = {}) {
-    const { clientId = null } = options;
+    const clientId = resolveApplicationId(client, options.clientId || client.config?.bot?.clientId || null);
 
     try {
         const { commands, totalSubcommands } = collectCommandPayloads(client);
@@ -283,7 +296,7 @@ export async function registerCommands(client, options = {}) {
 }
 
 export async function registerCommandsForGuild(client, guildId, options = {}) {
-    const clientId = options.clientId || client.config?.bot?.clientId;
+    const clientId = resolveApplicationId(client, options.clientId || client.config?.bot?.clientId || null);
     const { commands } = collectCommandPayloads(client);
     validateCommands(commands);
     const commandsToRegister = prepareCommandsForRegistration(commands);
