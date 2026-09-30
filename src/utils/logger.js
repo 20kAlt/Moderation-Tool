@@ -76,6 +76,7 @@ const pendingInvalidLevelWarning = requestedLogLevel && !validLogLevels.has(requ
   : null;
 
 const shouldPromoteUserFacingLogs = process.env.NODE_ENV === 'production' && resolvedLogLevel === 'warn';
+const fileLoggingEnabled = process.env.LOG_TO_FILE === 'true';
 
 const LOG_SCHEMA_DEFAULTS = Object.freeze({
   event: 'application.log',
@@ -164,7 +165,7 @@ const logger = createLogger({
     format.json()
   ),
   defaultMeta: { service: 'titan-bot' },
-  transports: [
+  transports: fileLoggingEnabled ? [
     new transports.DailyRotateFile({
       filename: path.join(__dirname, '../../logs/error-%DATE%.log'),
       level: 'error',
@@ -178,8 +179,8 @@ const logger = createLogger({
       maxFiles: '7d',
       zippedArchive: true,
     }),
-  ],
-  exceptionHandlers: [
+  ] : [],
+  ...(fileLoggingEnabled ? { exceptionHandlers: [
     new transports.DailyRotateFile({
       filename: path.join(__dirname, '../../logs/exceptions-%DATE%.log'),
       maxSize: '20m',
@@ -194,7 +195,7 @@ const logger = createLogger({
       maxFiles: '14d',
       zippedArchive: true,
     }),
-  ],
+  ] } : {}),
 });
 
 if (process.env.NODE_ENV !== 'production') {

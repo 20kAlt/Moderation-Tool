@@ -191,7 +191,7 @@ export async function joinVoiceChannel(client, interaction) {
 
     return successEmbed(
         'Joined Voice Channel',
-        `Connected to **${channel.name}**. Use /play to start music, or /music for playback controls.`,
+        `Connected to **${channel.name}**. Use /play to start music and the player buttons for playback controls.`,
     );
 }
 
@@ -295,34 +295,6 @@ export async function skipTrack(client, interaction) {
     }
     player.stop();
     return successEmbed('Skipped', `Skipped **${title}**.`);
-}
-
-export async function stopPlayback(client, interaction) {
-    const player = getPlayer(client, interaction.guild.id);
-    if (!player) {
-        throw new ModerationToolError('No player', ErrorTypes.USER_INPUT, 'No active music player.');
-    }
-    assertCanControl(interaction.member, player);
-
-    const guildData = getGuildMusicData(interaction.guild.id);
-    const queueLength = player.queue?.length || 0;
-
-    if (queueLength >= 5 && guildData.stopConfirmPending !== interaction.user.id) {
-        guildData.stopConfirmPending = interaction.user.id;
-        setTimeout(() => {
-            if (guildData.stopConfirmPending === interaction.user.id) {
-                guildData.stopConfirmPending = null;
-            }
-        }, 15000);
-        return successEmbed(
-            'Confirm Stop',
-            `There are **${queueLength}** tracks in the queue. Run **/music stop** again within 15 seconds to confirm.`,
-        );
-    }
-
-    guildData.stopConfirmPending = null;
-    await destroyPlayerSession(client, interaction.guild.id, player, guildData);
-    return successEmbed('Stopped', 'Playback stopped and the queue was cleared.');
 }
 
 export async function applyPause(client, guildId) {
@@ -556,7 +528,6 @@ export async function destroyPlayerSession(client, guildId, player, guildData, {
     }
 
     guildData.previousTracks = [];
-    guildData.stopConfirmPending = null;
     guildData.autoPaused = false;
     guildData.queuePages?.clear();
 
