@@ -20,7 +20,6 @@ export default {
         if (proof && proof.length > 1000) {
             throw new Error('Proof links must be 1,000 characters or fewer.');
         }
-
         const deferred = await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
         if (!deferred) return;
 
