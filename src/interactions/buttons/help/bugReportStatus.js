@@ -5,7 +5,10 @@ import { InteractionHelper } from '../../../utils/interactionHelper.js';
 import { BUG_REPORT_CHANNEL_ID } from '../../modals/help/bugReport.js';
 
 function isAuthorizedBotOwner(interaction, client) {
-    return isBotOwner(interaction.user.id) || client.application?.owner?.id === interaction.user.id;
+    const applicationOwner = client.application?.owner;
+    return isBotOwner(interaction.user.id)
+        || applicationOwner?.id === interaction.user.id
+        || applicationOwner?.ownerId === interaction.user.id;
 }
 
 export default {
@@ -19,9 +22,16 @@ export default {
             });
         }
 
-        if (!isAuthorizedBotOwner(interaction, client) || interaction.channelId !== BUG_REPORT_CHANNEL_ID) {
+        if (!isAuthorizedBotOwner(interaction, client)) {
             return InteractionHelper.safeReply(interaction, {
-                content: 'Only the bot owner can update reports in the private bug-report channel.',
+                content: `Your account is not configured as a bot owner. Add your Discord user ID (${interaction.user.id}) to OWNER_IDS and restart the bot.`,
+                flags: MessageFlags.Ephemeral,
+            });
+        }
+
+        if (interaction.channelId !== BUG_REPORT_CHANNEL_ID) {
+            return InteractionHelper.safeReply(interaction, {
+                content: 'Bug reports can only be updated in the configured private bug-report channel.',
                 flags: MessageFlags.Ephemeral,
             });
         }
