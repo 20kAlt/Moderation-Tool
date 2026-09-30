@@ -41,8 +41,23 @@ export default {
             embeds: [updateBugReportStatusEmbed(reportEmbed, status)],
             components: [createBugReportStatusRow(status)],
         });
+
+        let submitterNotified = false;
+        if (status === 'complete') {
+            const reportedBy = reportEmbed.fields?.find(field => field.name === 'Reported by')?.value || '';
+            const submitterId = reportedBy.match(/<@!?(\d+)>/)?.[1] || reportedBy.match(/\b\d{17,20}\b/)?.[0];
+            if (submitterId) {
+                const submitter = await client.users.fetch(submitterId).catch(() => null);
+                if (submitter) {
+                    submitterNotified = await submitter.send({
+                        content: 'Thank you for taking the time to report a bug. We have reviewed your report and marked it as complete. Your feedback helps us improve the bot, and we appreciate your help making it better for everyone.',
+                    }).then(() => true).catch(() => false);
+                }
+            }
+        }
+
         await InteractionHelper.safeEditReply(interaction, {
-            content: `Bug report marked ${status === 'complete' ? 'complete' : 'pending'}.`,
+            content: `Bug report marked ${status === 'complete' ? 'complete' : 'pending'}.${status === 'complete' && !submitterNotified ? ' The submitter could not be notified by DM.' : ''}`,
         });
     },
 };
