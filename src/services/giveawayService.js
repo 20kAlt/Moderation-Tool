@@ -143,6 +143,7 @@ export function createGiveawayEmbed(giveaway, status, winners = []) {
             .setDescription('React with the button below to enter!')
             .setColor(color)
             .addFields(
+                { name: '🆔 Giveaway ID', value: giveaway.messageId || 'Pending', inline: true },
                 { name: '👤 Hosted by', value: `<@${giveaway.hostId}>`, inline: true },
                 { name: '🏆 Winners', value: giveaway.winnerCount.toString(), inline: true },
                 { name: '👥 Entries', value: giveaway.participants?.length?.toString() || '0', inline: true }
@@ -155,7 +156,7 @@ export function createGiveawayEmbed(giveaway, status, winners = []) {
             embed.addFields({ name: '🎯 Winners', value: winnerDisplay, inline: false });
         } else {
             const endTime = giveaway.endsAt || giveaway.endTime;
-            embed.addFields({ name: '⏰ Ends', value: `<t:${Math.floor(endTime / 1000)}:R>`, inline: false });
+            embed.addFields({ name: '⏳ Time left', value: `<t:${Math.floor(endTime / 1000)}:R>`, inline: false });
         }
 
         embed.setTimestamp();

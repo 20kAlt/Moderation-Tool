@@ -5,6 +5,7 @@ import { reconcileReactionRoleMessages } from "../services/reactionRoleService.j
 import { reconcileTicketPanels, reconcileVerificationPanels, reconcileReactionRolePanelHealth } from "../services/panelHealthService.js";
 import { reconcileLevelRoles } from "../services/leveling/levelRoleSyncService.js";
 import { initRiffyAfterReady } from "../services/music/riffySetup.js";
+import { resumePolls } from "../services/pollService.js";
 
 export default {
   name: Events.ClientReady,
@@ -21,6 +22,8 @@ export default {
       if (client.config?.features?.music) {
         initRiffyAfterReady(client);
       }
+
+      await resumePolls(client);
 
       const reconciliationSummary = await reconcileReactionRoleMessages(client);
       startupLog(

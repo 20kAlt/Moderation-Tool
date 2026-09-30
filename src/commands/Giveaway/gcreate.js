@@ -124,6 +124,10 @@ export async function createGiveawayFromInput(interaction, { durationString, win
 
     giveawayData.messageId = giveawayMessage.id;
     const saved = await saveGiveaway(interaction.client, interaction.guildId, giveawayData);
+    await giveawayMessage.edit({
+        embeds: [createGiveawayEmbed(giveawayData, 'active')],
+        components: [createGiveawayButtons(false)],
+    });
     if (!saved) {
         logger.warn(`Failed to save giveaway to database: ${giveawayMessage.id}`);
     }
