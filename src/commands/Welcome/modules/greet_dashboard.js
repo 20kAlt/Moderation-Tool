@@ -61,7 +61,7 @@ function buildDashboardEmbed(cfg, guild) {
     return new EmbedBuilder()
         .setTitle('👋 Greet System Dashboard')
         .setDescription(
-            `Manage welcome & goodbye settings for **${guild.name}**.\nUse the toggles to enable/disable each side, then select an option to edit.`,
+            `Manage welcome & goodbye settings for **${guild.name}**.\nChoose a channel and message for each side; images and pings are optional.`,
         )
         .setColor(getColor('info'))
         .addFields(
@@ -85,32 +85,32 @@ function buildSelectMenu(guildId) {
         .addOptions(
             new StringSelectMenuOptionBuilder()
                 .setLabel('Welcome Channel')
-                .setDescription('Set the channel where welcome messages are sent')
+                .setDescription('Required: choose where welcome messages are sent')
                 .setValue('welcome_channel')
                 .setEmoji('🟢'),
             new StringSelectMenuOptionBuilder()
                 .setLabel('Welcome Message')
-                .setDescription('Edit the text shown when a member joins')
+                .setDescription('Required: edit the text shown when a member joins')
                 .setValue('welcome_message')
                 .setEmoji('💬'),
             new StringSelectMenuOptionBuilder()
                 .setLabel('Welcome Image')
-                .setDescription('Set the image for welcome messages')
+                .setDescription('Optional: add or remove a welcome image')
                 .setValue('welcome_image')
                 .setEmoji('🖼️'),
             new StringSelectMenuOptionBuilder()
                 .setLabel('Goodbye Channel')
-                .setDescription('Set the channel where goodbye messages are sent')
+                .setDescription('Required: choose where goodbye messages are sent')
                 .setValue('goodbye_channel')
                 .setEmoji('🔴'),
             new StringSelectMenuOptionBuilder()
                 .setLabel('Goodbye Message')
-                .setDescription('Edit the text shown when a member leaves')
+                .setDescription('Required: edit the text shown when a member leaves')
                 .setValue('goodbye_message')
                 .setEmoji('💬'),
             new StringSelectMenuOptionBuilder()
                 .setLabel('Goodbye Image')
-                .setDescription('Set the image for goodbye messages')
+                .setDescription('Optional: add or remove a goodbye image')
                 .setValue('goodbye_image')
                 .setEmoji('🖼️'),
         );
@@ -175,14 +175,6 @@ export default {
         try {
             const guildId = interaction.guild.id;
             const cfg = await getWelcomeConfig(client, guildId);
-
-            if (!cfg.channelId && !cfg.goodbyeChannelId) {
-                throw new ModerationToolError(
-                    'Greet system not configured',
-                    ErrorTypes.CONFIGURATION,
-                    'Neither Welcome nor Goodbye has been set up yet. Run `/welcome setup` or `/goodbye setup` first.',
-                );
-            }
 
             await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
             if (!interaction.deferred) {
@@ -272,6 +264,15 @@ export default {
                     const customId = btnInteraction.customId;
 
                     if (customId === `greet_cfg_toggle_welcome_${guildId}`) {
+                        if (!cfg.enabled && (!cfg.channelId || !cfg.welcomeMessage?.trim())) {
+                            await sendEphemeralFollowUp(btnInteraction, {
+                                embeds: [new EmbedBuilder()
+                                    .setColor(getColor('error'))
+                                    .setTitle('Welcome Setup Required')
+                                    .setDescription('Choose a welcome channel and enter a welcome message before enabling welcome messages.')],
+                            });
+                            return;
+                        }
                         cfg.enabled = !cfg.enabled;
                         await saveWelcomeConfig(client, guildId, cfg);
                         await sendEphemeralFollowUp(btnInteraction, {
@@ -283,6 +284,15 @@ export default {
                             ],
                         });
                     } else if (customId === `greet_cfg_toggle_goodbye_${guildId}`) {
+                        if (!cfg.goodbyeEnabled && (!cfg.goodbyeChannelId || !cfg.leaveMessage?.trim())) {
+                            await sendEphemeralFollowUp(btnInteraction, {
+                                embeds: [new EmbedBuilder()
+                                    .setColor(getColor('error'))
+                                    .setTitle('Goodbye Setup Required')
+                                    .setDescription('Choose a goodbye channel and enter a goodbye message before enabling goodbye messages.')],
+                            });
+                            return;
+                        }
                         cfg.goodbyeEnabled = !cfg.goodbyeEnabled;
                         await saveWelcomeConfig(client, guildId, cfg);
                         await sendEphemeralFollowUp(btnInteraction, {
@@ -451,7 +461,16 @@ async function handleWelcomeMessage(selectInteraction, rootInteraction, cfg, gui
 
     if (!submitted) return;
 
-    cfg.welcomeMessage = submitted.fields.getTextInputValue('message_input').trim();
+    const message = submitted.fields.getTextInputValue('message_input').trim();
+    if (!message) {
+        await replyUserError(submitted, {
+            type: ErrorTypes.VALIDATION,
+            message: 'Welcome message cannot be empty.',
+        });
+        return;
+    }
+
+    cfg.welcomeMessage = message;
     await saveWelcomeConfig(client, guildId, cfg);
 
     await submitted.reply({
@@ -654,7 +673,16 @@ async function handleGoodbyeMessage(selectInteraction, rootInteraction, cfg, gui
 
     if (!submitted) return;
 
-    cfg.leaveMessage = submitted.fields.getTextInputValue('message_input').trim();
+    const message = submitted.fields.getTextInputValue('message_input').trim();
+    if (!message) {
+        await replyUserError(submitted, {
+            type: ErrorTypes.VALIDATION,
+            message: 'Goodbye message cannot be empty.',
+        });
+        return;
+    }
+
+    cfg.leaveMessage = message;
     await saveWelcomeConfig(client, guildId, cfg);
 
     await submitted.reply({
