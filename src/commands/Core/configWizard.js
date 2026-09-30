@@ -6,8 +6,6 @@ import {
     StringSelectMenuOptionBuilder,
     MessageFlags,
     ModalBuilder,
-    TextInputBuilder,
-    TextInputStyle,
     ChannelSelectMenuBuilder,
     RoleSelectMenuBuilder,
     LabelBuilder,
@@ -69,8 +67,8 @@ function buildDashboardEmbed(config, guild) {
         color: 'info',
         fields: [
             {
-                name: '⌨️ Server Prefix',
-                value: `\`${config.prefix || getCommandPrefix()}\``,
+                name: '⌨️ Command Prefix',
+                value: `\`${getCommandPrefix()}\``,
                 inline: true,
             },
             {
@@ -95,7 +93,7 @@ function buildDashboardEmbed(config, guild) {
             },
             {
                 name: '⚡ Command Access',
-                value: `Optional command categories start disabled on new servers. Use \`${config.prefix || getCommandPrefix()}commands dashboard\` to enable the features you want. Setup controls stay available.`,
+                value: `Optional command categories start disabled on new servers. Use \`${getCommandPrefix()}commands dashboard\` to enable the features you want. Setup controls stay available.`,
                 inline: false,
             },
         ],
@@ -109,11 +107,6 @@ function buildSettingsSelect(guildId) {
             .setCustomId(`${DASHBOARD_CUSTOM_ID}:${guildId}`)
             .setPlaceholder('⚙️ Select a setting to edit...')
             .addOptions(
-                new StringSelectMenuOptionBuilder()
-                    .setLabel('Server Prefix')
-                    .setDescription('Change the text command prefix')
-                    .setValue('prefix')
-                    .setEmoji('⌨️'),
                 new StringSelectMenuOptionBuilder()
                     .setLabel('Moderator Role')
                     .setDescription('Role used for moderation commands')
@@ -176,20 +169,7 @@ async function showSettingModal(selectInteraction, guildId, setting) {
         return;
     }
 
-    const modal = new ModalBuilder()
-        .setCustomId(modalCustomId)
-        .setTitle('Update Server Prefix');
-
-    const textInput = new TextInputBuilder()
-        .setCustomId('value')
-        .setLabel('New prefix (1-10 characters, no spaces)')
-        .setStyle(TextInputStyle.Short)
-        .setRequired(true)
-        .setMinLength(1)
-        .setMaxLength(10);
-
-    modal.addComponents(new ActionRowBuilder().addComponents(textInput));
-    await selectInteraction.showModal(modal);
+    throw new Error('Unknown server setting.');
 }
 
 function resolveSettingModalValue(setting, submitted) {
@@ -209,11 +189,7 @@ function resolveSettingModalValue(setting, submitted) {
         return roleId;
     }
 
-    const prefix = submitted.fields.getTextInputValue('value')?.trim();
-    if (!prefix || prefix.length < 1 || prefix.length > 10 || /\s/.test(prefix)) {
-        throw new Error('Prefix must be 1-10 characters with no spaces.');
-    }
-    return prefix;
+    throw new Error('Unknown server setting.');
 }
 
 function buildSettingSuccessMessage(setting, value, guild) {
@@ -227,7 +203,7 @@ function buildSettingSuccessMessage(setting, value, guild) {
         return `Moderator role set to ${role ?? `<@&${value}>`}.`;
     }
 
-    return `Server prefix set to \`${value}\`.`;
+    throw new Error('Unknown server setting.');
 }
 
 async function handleSettingModalSubmit(selectInteraction, rootInteraction, setting, guildId, client) {

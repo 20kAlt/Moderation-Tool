@@ -1,3 +1,5 @@
+import { LabelBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
+import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { createAllCommandsMenu } from './helpSelectMenus.js';
 import { createInitialHelpMenu } from '../../commands/Core/help.js';
 import { logger } from '../../utils/logger.js';
@@ -49,6 +51,40 @@ export const helpCommandAccessButton = {
     name: COMMAND_ACCESS_BUTTON_ID,
     async execute(interaction, client) {
         await openCommandAccessDashboard(interaction, client);
+    },
+};
+
+export const helpReportBugButton = {
+    name: 'help-report-bug',
+    async execute(interaction) {
+        if (!interaction.inGuild()) {
+            return InteractionHelper.safeReply(interaction, {
+                content: 'Please open `/help` in a server to report a bug.',
+            });
+        }
+
+        const bugInput = new TextInputBuilder()
+            .setCustomId('bug')
+            .setStyle(TextInputStyle.Paragraph)
+            .setPlaceholder('What happened, and what did you expect to happen?')
+            .setMinLength(10)
+            .setMaxLength(1800)
+            .setRequired(true);
+        const proofInput = new TextInputBuilder()
+            .setCustomId('proof')
+            .setStyle(TextInputStyle.Paragraph)
+            .setPlaceholder('Optional screenshot, video, or other proof link')
+            .setMaxLength(1000)
+            .setRequired(false);
+        const modal = new ModalBuilder()
+            .setCustomId('help_bug_report_modal')
+            .setTitle('Report a Bug')
+            .addLabelComponents(
+                new LabelBuilder().setLabel('Bug details').setDescription('Include what you did and what went wrong.').setTextInputComponent(bugInput),
+                new LabelBuilder().setLabel('Proof (optional)').setDescription('Paste a link to a screenshot, video, or other evidence.').setTextInputComponent(proofInput),
+            );
+
+        await InteractionHelper.safeShowModal(interaction, modal);
     },
 };
 

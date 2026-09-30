@@ -9,7 +9,6 @@ import { createEmbed } from "../../utils/embeds.js";
 import {
     createSelectMenu,
 } from "../../utils/components.js";
-import { getGuildConfig } from '../../services/config/guildConfig.js';
 import { getCommandPrefix } from '../../config/bot.js';
 import { logger } from '../../utils/logger.js';
 import fs from "fs/promises";
@@ -54,8 +53,7 @@ function formatCategoryName(rawCategory) {
 }
 
 export async function createInitialHelpMenu(client, guildId = null) {
-    const guildConfig = guildId ? await getGuildConfig(client, guildId) : null;
-    const prefix = guildConfig?.prefix || getCommandPrefix();
+    const prefix = getCommandPrefix();
     const commandsPath = path.join(__dirname, "../../commands");
     const categoryDirs = (
         await fs.readdir(commandsPath, { withFileTypes: true })
@@ -84,26 +82,24 @@ export async function createInitialHelpMenu(client, guildId = null) {
     const botName = client?.user?.username || "Bot";
     const embed = createEmbed({
         title: `📖 ${botName} Help`,
-        description: `Set up your server, pick what to enable, then browse commands below. Prefix commands start with \`${prefix}\`.`,
+        description: `Find commands for this server below. Prefix commands start with \`${prefix}\`; for slash commands, type \`/\` in chat and choose a command from the list.`,
         color: 'primary',
         thumbnail: client.user?.displayAvatarURL?.({ size: 1024 }),
         fields: [
             {
-                name: '🚀 Getting Started',
+                name: '📚 Finding Commands',
                 value: [
-                    '**1. Configure your server** — Open Server Settings below to set prefix, mod role, and logs.',
-                    '**2. Configure commands** — Open Command Access below to enable or disable commands.',
-                    '**3. Browse commands** — Use the menu below to view commands by category.',
+                    '**Browse by category** — Choose a category below to see available commands and examples.',
+                    `**Use a prefix command** — Type the server prefix first, then the command (for example, \`${prefix}help\`).`,
+                    '**Use a slash command** — Type `/` in chat and select a command from the Discord command list.',
                 ].join('\n'),
                 inline: false,
             },
             {
-                name: 'ℹ️ How It Works',
+                name: 'ℹ️ Server Access',
                 value: [
-                    '• Dashboard commands manage each feature visually',
-                    '• Settings are saved per server',
-                    `• Prefix commands use \`${prefix}\` and follow your server settings`,
-                    '• Command access settings apply to both command styles',
+                    'Some command categories may be disabled by this server. Ask a server admin to enable them with `/commands dashboard`.',
+                    'Server Settings and Command Access below are admin controls; members can still browse and use enabled commands.',
                 ].join('\n'),
                 inline: false,
             },
@@ -117,15 +113,21 @@ export async function createInitialHelpMenu(client, guildId = null) {
 
     const serverSettingsButton = new ButtonBuilder()
         .setCustomId(SERVER_SETTINGS_BUTTON_ID)
-        .setLabel("Server Settings")
+        .setLabel("Server Settings (Admins)")
         .setEmoji("⚙️")
         .setStyle(ButtonStyle.Primary);
 
     const commandAccessButton = new ButtonBuilder()
         .setCustomId(COMMAND_ACCESS_BUTTON_ID)
-        .setLabel("Command Access")
+        .setLabel("Command Access (Admins)")
         .setEmoji("🛡️")
         .setStyle(ButtonStyle.Secondary);
+
+    const reportBugButton = new ButtonBuilder()
+        .setCustomId('help-report-bug')
+        .setLabel('Report a bug to server owner')
+        .setEmoji('🐞')
+        .setStyle(ButtonStyle.Danger);
 
     const selectRow = createSelectMenu(
         CATEGORY_SELECT_ID,
@@ -133,7 +135,7 @@ export async function createInitialHelpMenu(client, guildId = null) {
         options,
     );
 
-    const buttonRow = new ActionRowBuilder().addComponents(serverSettingsButton, commandAccessButton);
+    const buttonRow = new ActionRowBuilder().addComponents(serverSettingsButton, commandAccessButton, reportBugButton);
 
     return {
         embeds: [embed],
@@ -165,7 +167,7 @@ export default {
 
                 const closedEmbed = createEmbed({
                     title: "Help menu closed",
-                    description: `Help menu has been closed, use \`${guildConfig?.prefix || getCommandPrefix()}help\` again.`,
+                    description: `Help menu has been closed, use \`${getCommandPrefix()}help\` again.`,
                     color: "secondary",
                 });
 

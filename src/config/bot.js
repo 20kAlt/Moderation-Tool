@@ -62,7 +62,7 @@ export const botConfig = {
 
     // Default command prefix for text-based commands (e.g., "?" for "?ping").
     // Supports both slash commands and prefix commands.
-    prefix: process.env.PREFIX || "?",
+    prefix: "?",
   },
 
   // =========================
@@ -565,7 +565,7 @@ function normalizeCategoryKey(category) {
 }
 
 export function getCommandPrefix() {
-  return botConfig.commands?.prefix ?? "!";
+  return "?";
 }
 
 export function getBotOwners() {

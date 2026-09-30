@@ -99,7 +99,7 @@ async function handleAfkStatuses(message) {
 async function handlePrefixCommand(message, client) {
   try {
     const guildConfig = await getGuildConfig(client, message.guild.id);
-    const prefix = guildConfig?.prefix || getCommandPrefix();
+    const prefix = getCommandPrefix();
     const parsed = parsePrefixCommand(message.content, prefix);
     
     if (!parsed) {

@@ -6,7 +6,6 @@ import { fileURLToPath } from 'url';
 import { ActionRowBuilder } from 'discord.js';
 import { logger } from '../../utils/logger.js';
 import { handleInteractionError } from '../../utils/errorHandler.js';
-import { getGuildConfig } from '../../services/config/guildConfig.js';
 import { getCommandPrefix } from '../../config/bot.js';
 import { supportsPrefixExecution } from '../../utils/messageAdapter.js';
 import { getPrefixRestriction } from '../../config/commands/prefixRestrictions.js';
@@ -118,8 +117,7 @@ function buildPrefixHelpEntries(command, category) {
 }
 
 async function getConfiguredPrefix(client, guildId) {
-    const config = guildId ? await getGuildConfig(client, guildId) : null;
-    return config?.prefix || getCommandPrefix();
+    return getCommandPrefix();
 }
 
 function normalizeCommandData(command) {

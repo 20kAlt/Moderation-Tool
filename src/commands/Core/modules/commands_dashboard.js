@@ -74,7 +74,8 @@ function chunkLines(lines, maxLength = 980) {
   return chunks;
 }
 
-export function buildOverviewEmbed(snapshot, guild, prefix = getCommandPrefix()) {
+export function buildOverviewEmbed(snapshot, guild) {
+  const prefix = getCommandPrefix();
   const fullyEnabled = snapshot.categories.filter((c) => !c.categoryDisabled && c.disabledCount === 0).length;
   const partial = snapshot.categories.filter((c) => !c.categoryDisabled && c.disabledCount > 0).length;
   const disabled = snapshot.categories.filter((c) => c.categoryDisabled).length;
@@ -276,7 +277,7 @@ export async function buildDashboardView(client, guildId, guild, view = 'overvie
     const category = snapshot.categories.find((entry) => entry.key === categoryKey);
     if (!category) {
       return {
-        embed: buildOverviewEmbed(snapshot, guild, config.prefix || getCommandPrefix()),
+        embed: buildOverviewEmbed(snapshot, guild),
         components: buildOverviewComponents(guildId, snapshot),
       };
     }
@@ -289,7 +290,7 @@ export async function buildDashboardView(client, guildId, guild, view = 'overvie
   }
 
   return {
-    embed: buildOverviewEmbed(snapshot, guild, config.prefix || getCommandPrefix()),
+    embed: buildOverviewEmbed(snapshot, guild),
     components: buildOverviewComponents(guildId, snapshot),
   };
 }

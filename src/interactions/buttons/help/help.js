@@ -2,6 +2,7 @@ import {
   helpBackButton,
   helpServerSettingsButton,
   helpCommandAccessButton,
+  helpReportBugButton,
   helpPaginationButton,
 } from '../../../handlers/help/helpButtons.js';
 
@@ -21,5 +22,6 @@ export default [
   helpBackButton,
   helpServerSettingsButton,
   helpCommandAccessButton,
+  helpReportBugButton,
   ...paginationInteractions,
 ];
