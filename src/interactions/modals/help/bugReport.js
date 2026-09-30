@@ -2,7 +2,7 @@ import { EmbedBuilder, MessageFlags } from 'discord.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
 import { createBugReportStatusRow } from '../../../services/bugReportService.js';
 
-export const BUG_REPORT_CHANNEL_ID = '1554888243663732908';
+export const BUG_REPORT_CHANNEL_ID = '1554888243663732908'; // server chanel (bot owner only)
 
 export default {
     name: 'help_bug_report_modal',
