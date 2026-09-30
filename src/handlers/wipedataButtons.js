@@ -96,7 +96,8 @@ const wipedataConfirmHandler = {
 
           const additionalUserKeys = [...discoveredKeys].filter((key) => {
             if (dataKeyPatterns.includes(key)) return false;
-            return typeof key === 'string' && key.includes(`${guildId}:${userId}`);
+            return typeof key === 'string' &&
+              (key === `${guildId}:${userId}` || key.startsWith(`${guildId}:${userId}:`));
           });
 
           for (const key of additionalUserKeys) {
