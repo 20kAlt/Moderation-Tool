@@ -73,7 +73,7 @@ export const helpReportBugButton = {
         const proofInput = new TextInputBuilder()
             .setCustomId('proof')
             .setStyle(TextInputStyle.Paragraph)
-            .setPlaceholder('Optional screenshot, video, or other proof link')
+            .setPlaceholder('Optional image URL or link to a screenshot/video')
             .setMaxLength(1000)
             .setRequired(false);
         const modal = new ModalBuilder()
@@ -81,7 +81,7 @@ export const helpReportBugButton = {
             .setTitle('Report a Bug')
             .addLabelComponents(
                 new LabelBuilder().setLabel('Bug details').setDescription('Include what you did and what went wrong.').setTextInputComponent(bugInput),
-                new LabelBuilder().setLabel('Proof (optional)').setDescription('Paste a link to a screenshot, video, or other evidence.').setTextInputComponent(proofInput),
+                new LabelBuilder().setLabel('Proof (optional)').setDescription('Paste an image URL for a preview, or any link to open as proof.').setTextInputComponent(proofInput),
             );
 
         await InteractionHelper.safeShowModal(interaction, modal);

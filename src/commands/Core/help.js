@@ -22,7 +22,7 @@ const CATEGORY_SELECT_ID = "help-category-select";
 const ALL_COMMANDS_ID = "help-all-commands";
 const SERVER_SETTINGS_BUTTON_ID = "help-server-settings";
 const COMMAND_ACCESS_BUTTON_ID = "help-command-access";
-const HELP_MENU_TIMEOUT_MS = 5 * 60 * 1000;
+const HELP_MENU_TIMEOUT_MS = 10 * 60 * 1000;
 
 const CATEGORY_ICONS = {
     Core: "ℹ️",
@@ -166,8 +166,8 @@ export default {
                 }
 
                 const closedEmbed = createEmbed({
-                    title: "Help menu closed",
-                    description: `Help menu has been closed, use \`${getCommandPrefix()}help\` again.`,
+                    title: "Help menu expired",
+                    description: `This menu closes after 10 minutes. To browse commands again, run \`${getCommandPrefix()}help\` or use \`/help\`.\n\nYour server settings and commands are unchanged.`,
                     color: "secondary",
                 });
 

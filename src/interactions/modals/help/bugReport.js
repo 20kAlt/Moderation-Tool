@@ -1,6 +1,6 @@
 import { EmbedBuilder, MessageFlags } from 'discord.js';
 import { InteractionHelper } from '../../../utils/interactionHelper.js';
-import { createBugReportStatusRow } from '../../../services/bugReportService.js';
+import { createBugReportStatusRow, formatBugReportProof } from '../../../services/bugReportService.js';
 
 export const BUG_REPORT_CHANNEL_ID = '1554888243663732908'; // server chanel (bot owner only)
 
@@ -20,6 +20,7 @@ export default {
         if (proof && proof.length > 1000) {
             throw new Error('Proof links must be 1,000 characters or fewer.');
         }
+        const formattedProof = formatBugReportProof(proof);
         const deferred = await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
         if (!deferred) return;
 
@@ -29,16 +30,18 @@ export default {
         }
 
         const embed = new EmbedBuilder()
-            .setColor(0xD64545)
+            .setColor(0xE0A23B)
             .setTitle('Bot Bug Report')
             .setDescription(bug)
             .addFields(
-                { name: 'Status', value: '🕓 Pending', inline: true },
+                { name: 'Status', value: '🕓 Pending review', inline: true },
                 { name: 'Server', value: `${interaction.guild.name}\n\`${interaction.guildId}\``, inline: true },
                 { name: 'Reported by', value: `<@${interaction.user.id}> (\`${interaction.user.id}\`)`, inline: false },
-                { name: 'Proof', value: proof || 'Not provided', inline: false },
+                { name: 'Proof', value: formattedProof.value, inline: false },
             )
             .setTimestamp();
+
+        if (formattedProof.imageUrl) embed.setImage(formattedProof.imageUrl);
 
         await reportChannel.send({
             embeds: [embed],
