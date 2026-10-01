@@ -7,6 +7,7 @@ import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 import { getServerCounters, updateCounter } from '../services/serverstatsService.js';
 import { setBirthday as dbSetBirthday } from '../utils/database.js';
 import { logger } from '../utils/logger.js';
+import { evaluateRaidProtection } from '../services/protectionService.js';
 
 export default {
   name: Events.GuildMemberAdd,
@@ -75,6 +76,7 @@ export default {
         }
         
         const config = await getGuildConfig(member.client, guild.id);
+        await evaluateRaidProtection(member.client, guild, user, config);
         
         const welcomeConfig = await getWelcomeConfig(member.client, guild.id);
         

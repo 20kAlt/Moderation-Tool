@@ -2,6 +2,7 @@ import { Events } from 'discord.js';
 import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 import { logger } from '../utils/logger.js';
 import { buildRoleAuditLines } from '../utils/logging/logEmbeds.js';
+import { recordAntiNukeAction } from '../services/protectionService.js';
 
 export default {
   name: Events.GuildRoleDelete,
@@ -10,6 +11,14 @@ export default {
   async execute(role) {
     try {
       if (!role.guild) return;
+
+      await recordAntiNukeAction(
+        role.client,
+        role.guild,
+        role.guild.ownerId,
+        'Role deleted',
+        `A role was deleted: ${role.name} (${role.id})`,
+      );
 
       const lines = buildRoleAuditLines(role, { includeMemberCount: true });
 

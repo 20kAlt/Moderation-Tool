@@ -87,15 +87,17 @@ function deepMergeGuildConfig(base, patch) {
     const result = { ...base };
 
     for (const [key, value] of Object.entries(patch)) {
+        const currentValue = result[key];
+
         if (
             value &&
             typeof value === 'object' &&
             !Array.isArray(value) &&
-            base[key] &&
-            typeof base[key] === 'object' &&
-            !Array.isArray(base[key])
+            currentValue &&
+            typeof currentValue === 'object' &&
+            !Array.isArray(currentValue)
         ) {
-            result[key] = { ...base[key], ...value };
+            result[key] = deepMergeGuildConfig(currentValue, value);
         } else {
             result[key] = value;
         }

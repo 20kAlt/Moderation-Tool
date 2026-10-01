@@ -57,6 +57,25 @@ const VerificationConfigSchema = z
   })
   .optional();
 
+const ProtectionConfigSchema = z
+  .object({
+    enabled: z.boolean().default(false),
+    alertChannelId: z.string().nullable().default(null),
+    raid: z.object({
+      enabled: z.boolean().default(true),
+      joinThreshold: z.number().int().min(2).max(50).default(8),
+      windowSeconds: z.number().int().min(5).max(60).default(10),
+    }).default({}),
+    antiNuke: z.object({
+      enabled: z.boolean().default(true),
+      actionThreshold: z.number().int().min(2).max(20).default(3),
+      windowSeconds: z.number().int().min(5).max(60).default(10),
+      timeoutMinutes: z.number().int().min(1).max(60).default(30),
+      trustedUserIds: z.array(z.string()).max(100).default([]),
+    }).default({}),
+  })
+  .default({});
+
 export const GuildConfigSchema = z
   .object({
     prefix: z.string().optional(),
@@ -76,7 +95,8 @@ export const GuildConfigSchema = z
     logging: LoggingConfigSchema.optional(),
     ticketLogging: TicketLoggingSchema.optional(),
     enableLogging: z.boolean().optional(),
-    verification: VerificationConfigSchema
+    verification: VerificationConfigSchema,
+    protection: ProtectionConfigSchema,
   })
   .passthrough();
 

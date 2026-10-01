@@ -38,6 +38,22 @@ export const DEFAULT_GUILD_CONFIG = {
     },
     verification: {
         enabled: false
+    },
+    protection: {
+        enabled: false,
+        alertChannelId: null,
+        raid: {
+            enabled: true,
+            joinThreshold: 8,
+            windowSeconds: 10,
+        },
+        antiNuke: {
+            enabled: true,
+            actionThreshold: 3,
+            windowSeconds: 10,
+            timeoutMinutes: 30,
+            trustedUserIds: [],
+        },
     }
 };
 

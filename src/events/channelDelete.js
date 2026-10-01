@@ -7,6 +7,7 @@ import {
 } from '../utils/database.js';
 import { getServerCounters, saveServerCounters } from '../services/serverstatsService.js';
 import { logger } from '../utils/logger.js';
+import { recordAntiNukeAction } from '../services/protectionService.js';
 
 export default {
     name: 'channelDelete',
@@ -33,6 +34,13 @@ if (channel.type !== 2 && channel.type !== 4) {
         const guildId = channel.guild.id;
 
         try {
+            await recordAntiNukeAction(
+                client,
+                channel.guild,
+                channel.guild.ownerId,
+                'Channel deleted',
+                `A channel was deleted: ${channel.name} (${channel.id})`,
+            );
             
             const counters = await getServerCounters(client, guildId);
             const orphanedCounter = counters.find(c => c.channelId === channel.id);
