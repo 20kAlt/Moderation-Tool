@@ -433,7 +433,7 @@ async function handleSettingModalSubmit(selectInteraction, rootInteraction, sett
 export default {
     data: new SlashCommandBuilder()
         .setName('configwizard')
-        .setDescription('Open the server configuration dashboard')
+        .setDescription('Configure server settings, including raid and anti-nuke protection')
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
         .setDMPermission(false),
     category: 'Core',

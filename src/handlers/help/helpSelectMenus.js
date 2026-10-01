@@ -108,12 +108,26 @@ function buildPrefixHelpEntries(command, category) {
         return [];
     }
 
-    return buildHelpEntries(command, category).filter((entry) => {
+    const entries = buildHelpEntries(command, category).filter((entry) => {
         const args = entry.displayName === entry.baseName
             ? []
             : entry.displayName.slice(entry.baseName.length).trim().split(/\s+/);
         return !getPrefixRestriction(command, args, resolveSubcommandAlias).blocked;
     });
+
+    return entries.map((entry) => entry.baseName === 'configwizard'
+        ? {
+            ...entry,
+            invocation: 'slash',
+            description: 'Configure server settings, including raid and anti-nuke protection.',
+        }
+        : entry);
+}
+
+function formatCommandInvocation(command, prefix) {
+    return command.invocation === 'slash'
+        ? `/${command.displayName}`
+        : `${prefix}${command.displayName}`;
 }
 
 async function getConfiguredPrefix(client, guildId) {
@@ -182,13 +196,13 @@ async function createCategoryCommandsMenu(category, client, guildId) {
     const embed = createEmbed({
         title: `${icon} ${categoryName} Commands`,
         description: categoryCommands.length > 0
-            ? `Use the server prefix \`${prefix}\` before a command.`
+            ? `Use \`${prefix}\` for prefix commands; slash commands start with \`/\`.`
             : `No commands found in the **${categoryName}** category.`
     });
 
     if (categoryCommands.length > 0) {
         const commandMentions = categoryCommands
-            .map((cmd) => `\`${prefix}${cmd.displayName}\` · ${cmd.description}`)
+            .map((cmd) => `\`${formatCommandInvocation(cmd, prefix)}\` · ${cmd.description}`)
             .join("\n");
 
         const maxLength = 1000;
@@ -301,14 +315,14 @@ export async function createAllCommandsMenu(page = 1, client, guildId) {
 
     const embed = createEmbed({
         title: "📋 All Commands",
-        description: `Browse prefix-compatible commands. Use \`${prefix}\` before each command.`,
+        description: `Browse commands. Prefix commands start with \`${prefix}\`; slash commands start with \`/\`.`,
     });
 
     embed.setFooter({ text: FOOTER_TEXT });
     embed.setTimestamp();
 
     if (pageCommands.length > 0) {
-        const commandMentions = pageCommands.map((cmd) => `\`${prefix}${cmd.displayName}\` · ${cmd.category}`);
+        const commandMentions = pageCommands.map((cmd) => `\`${formatCommandInvocation(cmd, prefix)}\` · ${cmd.category}`);
 
         const columnCount = pageCommands.length > 20 ? 3 : (pageCommands.length > 10 ? 2 : 1);
         const chunkSize = Math.ceil(commandMentions.length / columnCount);
