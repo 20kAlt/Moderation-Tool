@@ -81,7 +81,7 @@ async function persistPanelMessageId(client, guildId, guildConfig, messageId) {
 
 function buildPanelEmbed(config) {
     return new EmbedBuilder()
-        .setTitle('Support Tickets')
+        .setTitle(config.ticketPanelTitle || 'Support Tickets')
         .setDescription(config.ticketPanelMessage || 'Click the button below to create a support ticket.')
         .setColor(getColor('info'));
 }
@@ -137,6 +137,7 @@ function buildDashboardEmbed(config, guild, panelStatus = null, ticketStats = nu
 
     const rawMsg = config.ticketPanelMessage || 'Click the button below to create a support ticket.';
     const panelMsg = `\`${rawMsg.length > 60 ? rawMsg.substring(0, 60) + '…' : rawMsg}\``;
+    const panelTitle = `\`${config.ticketPanelTitle || 'Support Tickets'}\``;
     const btnLabel = `\`${config.ticketButtonLabel || 'Create Ticket'}\``;
 
     let panelStatusValue = formatPanelStatusField(panelStatus);
@@ -160,6 +161,7 @@ function buildDashboardEmbed(config, guild, panelStatus = null, ticketStats = nu
             { name: 'Closed Tickets Category', value: closedCategory, inline: true },
             { name: '\u200B', value: '\u200B', inline: true },
             { name: 'Panel Message', value: panelMsg, inline: false },
+            { name: 'Panel Title', value: panelTitle, inline: true },
             { name: 'Button Label', value: btnLabel, inline: true },
             { name: 'Max Tickets/User', value: String(config.maxTicketsPerUser || 3), inline: true },
             { name: 'DM on Close', value: config.dmOnClose !== false ? 'Enabled' : 'Disabled', inline: true },
@@ -179,6 +181,11 @@ function buildSelectMenu(guildId) {
         .setCustomId(`ticket_config_${guildId}`)
         .setPlaceholder('Select a setting to configure...')
         .addOptions(
+            new StringSelectMenuOptionBuilder()
+                .setLabel('Edit Panel Title')
+                .setDescription('Change the title displayed on the ticket creation panel')
+                .setValue('panel_title')
+                .setEmoji('🏷️'),
             new StringSelectMenuOptionBuilder()
                 .setLabel('Edit Panel Message')
                 .setDescription('Change the message displayed on the ticket creation panel')
@@ -424,6 +431,7 @@ export async function startTicketSetupWizard(interaction, client) {
                 ticketClosedCategoryId: null,
                 ticketStaffRoleId: state.staffRoleId,
                 ticketPanelChannelId: panelChannel.id,
+                ticketPanelTitle: currentConfig.ticketPanelTitle || 'Support Tickets',
                 ticketPanelMessage: TICKET_SETUP_PANEL_MESSAGE,
                 ticketButtonLabel: TICKET_SETUP_BUTTON_LABEL,
                 maxTicketsPerUser: currentConfig.maxTicketsPerUser || 3,
@@ -502,6 +510,9 @@ export default {
                 onSelect: async (selectInteraction) => {
                     const selectedOption = selectInteraction.values[0];
                     switch (selectedOption) {
+                        case 'panel_title':
+                            await handlePanelTitle(selectInteraction, interaction, guildConfig, guildId, client);
+                            break;
                         case 'panel_message':
                             await handlePanelMessage(selectInteraction, interaction, guildConfig, guildId, client);
                             break;
@@ -596,6 +607,59 @@ async function handlePanelMessage(selectInteraction, rootInteraction, guildConfi
             successEmbed(
                 '✅ Panel Message Updated',
                 `The panel message has been updated.${
+                    panelUpdated
+                        ? '\nThe live ticket panel has also been refreshed.'
+                        : '\n> **Note:** The live panel could not be located. Use **Repost Panel** on the dashboard to restore it.'
+                }`,
+            ),
+        ],
+        flags: MessageFlags.Ephemeral,
+    });
+
+    await refreshDashboard(rootInteraction, guildConfig, guildId, client);
+}
+
+async function handlePanelTitle(selectInteraction, rootInteraction, guildConfig, guildId, client) {
+    const modal = new ModalBuilder()
+        .setCustomId('ticket_cfg_panel_title')
+        .setTitle('Edit Panel Title')
+        .addComponents(
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId('panel_title_input')
+                    .setLabel('Panel Title')
+                    .setStyle(TextInputStyle.Short)
+                    .setValue(guildConfig.ticketPanelTitle || 'Support Tickets')
+                    .setMaxLength(256)
+                    .setMinLength(1)
+                    .setRequired(true)
+                    .setPlaceholder('Support Tickets'),
+            ),
+        );
+
+    await selectInteraction.showModal(modal);
+
+    const submitted = await selectInteraction
+        .awaitModalSubmit({
+            filter: i =>
+                i.customId === 'ticket_cfg_panel_title' && i.user.id === selectInteraction.user.id,
+            time: 120_000,
+        })
+        .catch(() => null);
+
+    if (!submitted) return;
+
+    const newTitle = submitted.fields.getTextInputValue('panel_title_input').trim();
+    guildConfig.ticketPanelTitle = newTitle;
+    await setGuildConfig(client, guildId, guildConfig);
+
+    const panelUpdated = await updateLivePanel(client, rootInteraction.guild, guildConfig, guildId);
+
+    await submitted.reply({
+        embeds: [
+            successEmbed(
+                'Panel Title Updated',
+                `The panel title is now \`${newTitle}\`.${
                     panelUpdated
                         ? '\nThe live ticket panel has also been refreshed.'
                         : '\n> **Note:** The live panel could not be located. Use **Repost Panel** on the dashboard to restore it.'
@@ -1157,6 +1221,7 @@ async function handleDeleteSystem(btnInteraction, rootInteraction, guildConfig, 
     const keysToDelete = [
         'ticketPanelChannelId',
         'ticketPanelMessageId',
+        'ticketPanelTitle',
         'ticketStaffRoleId',
         'ticketCategoryId',
         'ticketClosedCategoryId',

@@ -28,7 +28,13 @@ export default {
                         .addChannelTypes(ChannelType.GuildText)
                         .setRequired(false),
                 )
-
+                .addStringOption((option) =>
+                    option
+                        .setName("panel_title")
+                        .setDescription("The title displayed on the ticket panel (default: Support Tickets).")
+                        .setMaxLength(256)
+                        .setRequired(false),
+                )
                 .addStringOption((option) =>
                     option
                         .setName("panel_message")
@@ -133,7 +139,8 @@ export default {
             const categoryChannel = interaction.options.getChannel("category");
             const closedCategoryChannel = interaction.options.getChannel("closed_category");
             const staffRole = interaction.options.getRole("staff_role");
-const panelMessage = interaction.options.getString("panel_message") || "Click the button below to create a support ticket.";
+            const panelTitle = interaction.options.getString("panel_title") || "Support Tickets";
+            const panelMessage = interaction.options.getString("panel_message") || "Click the button below to create a support ticket.";
             const buttonLabel =
                 interaction.options.getString("button_label") ||
 "Create Ticket";
@@ -141,7 +148,7 @@ const panelMessage = interaction.options.getString("panel_message") || "Click th
 const dmOnClose = interaction.options.getBoolean("dm_on_close") !== false;
 
             const setupEmbed = createEmbed({ 
-                title: "Support Tickets", 
+                title: panelTitle,
 description: panelMessage,
                 color: getColor('info')
             });
@@ -167,6 +174,7 @@ description: panelMessage,
                     currentConfig.ticketStaffRoleId = staffRole ? staffRole.id : null;
                     currentConfig.ticketPanelChannelId = panelChannel.id;
                     currentConfig.ticketPanelMessageId = sentPanel?.id || null;
+                    currentConfig.ticketPanelTitle = panelTitle;
                     currentConfig.ticketPanelMessage = panelMessage;
                     currentConfig.ticketButtonLabel = buttonLabel;
                     currentConfig.maxTicketsPerUser = maxTicketsPerUser;

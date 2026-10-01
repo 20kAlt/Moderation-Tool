@@ -185,7 +185,7 @@ export async function createTicket(guild, member, categoryId, reason = 'No reaso
     
     const row = buildTicketControlRow();
     
-    if (ticketConfig.enablePriority) {
+    if (ticketConfig.enablePriority !== false) {
       row.addComponents(
         new ButtonBuilder()
           .setCustomId('ticket_priority:low')
