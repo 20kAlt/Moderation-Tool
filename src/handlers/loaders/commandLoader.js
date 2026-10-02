@@ -248,6 +248,14 @@ function prepareCommandsForRegistration(commands) {
     return truncated;
 }
 
+function buildGlobalCommandBadge(commands) {
+    const preferredNames = new Set(['help', 'ping', 'stats', 'support', 'uptime', 'commands', 'credits']);
+    const preferredCommands = commands.filter((command) => preferredNames.has(command.name));
+    const globalCommands = preferredCommands.length > 0 ? preferredCommands : commands;
+
+    return globalCommands.slice(0, 10);
+}
+
 async function registerGuildCommandPayload(client, clientId, guildId, commands) {
     if (!clientId) {
         throw new Error('CLIENT_ID is required for slash command registration');
@@ -282,13 +290,18 @@ export async function registerCommands(client, options = {}) {
         validateCommands(commands);
         const commandsToRegister = prepareCommandsForRegistration(commands);
 
+        const globalBadgeCommands = buildGlobalCommandBadge(commandsToRegister);
+
+        if (globalBadgeCommands.length > 0) {
+            logger.info(`Registering ${globalBadgeCommands.length} global slash commands to keep the Discord command badge visible`);
+            await client.rest.put(`/applications/${clientId}/commands`, { body: globalBadgeCommands });
+        }
+
         for (const guild of client.guilds.cache.values()) {
             await registerGuildCommandPayload(client, clientId, guild.id, commandsToRegister);
         }
 
-        logger.info('Removing legacy global slash command registrations...');
-        await client.rest.put(`/applications/${clientId}/commands`, { body: [] });
-        logger.info(`Registered slash commands for ${client.guilds.cache.size} guild(s); global commands cleared`);
+        logger.info(`Registered slash commands for ${client.guilds.cache.size} guild(s); command badge is maintained via global registration`);
     } catch (error) {
         logger.error('Error registering commands:', error);
         throw error;
