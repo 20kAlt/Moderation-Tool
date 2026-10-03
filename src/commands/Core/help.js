@@ -11,6 +11,7 @@ import {
 } from "../../utils/components.js";
 import { getCommandPrefix } from '../../config/bot.js';
 import { logger } from '../../utils/logger.js';
+import { createBugReportButton } from '../../services/bugReportService.js';
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -120,19 +121,13 @@ export async function createInitialHelpMenu(client, guildId = null) {
         .setEmoji("🛡️")
         .setStyle(ButtonStyle.Secondary);
 
-    const reportBugButton = new ButtonBuilder()
-        .setCustomId('help-report-bug')
-        .setLabel('Report Bot Bug')
-        .setEmoji('🐞')
-        .setStyle(ButtonStyle.Danger);
-
     const selectRow = createSelectMenu(
         CATEGORY_SELECT_ID,
         "Select to view the commands",
         options,
     );
 
-    const publicButtonRow = new ActionRowBuilder().addComponents(reportBugButton);
+    const publicButtonRow = new ActionRowBuilder().addComponents(createBugReportButton());
     const adminButtonRow = new ActionRowBuilder().addComponents(serverSettingsButton, commandAccessButton);
 
     return {

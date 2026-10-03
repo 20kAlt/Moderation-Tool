@@ -10,6 +10,7 @@ import { getCommandPrefix } from '../../config/bot.js';
 import { supportsPrefixExecution } from '../../utils/messageAdapter.js';
 import { getPrefixRestriction } from '../../config/commands/prefixRestrictions.js';
 import { resolveSubcommandAlias } from '../../config/commands/commandAliases.js';
+import { createBugReportButton } from '../../services/bugReportService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -246,7 +247,7 @@ async function createCategoryCommandsMenu(category, client, guildId) {
         false,
     );
 
-    const buttonRow = new ActionRowBuilder().addComponents(backButton);
+    const buttonRow = new ActionRowBuilder().addComponents(createBugReportButton(), backButton);
 
     return {
         embeds: [embed],
@@ -358,7 +359,7 @@ export async function createAllCommandsMenu(page = 1, client, guildId) {
         false,
     );
 
-    const buttonRow = new ActionRowBuilder().addComponents(backButton);
+    const buttonRow = new ActionRowBuilder().addComponents(createBugReportButton(), backButton);
     components.push(buttonRow);
 
     return {

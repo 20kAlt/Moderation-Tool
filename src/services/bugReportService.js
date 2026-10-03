@@ -34,6 +34,14 @@ export function formatBugReportProof(proof) {
     };
 }
 
+export function createBugReportButton() {
+    return new ButtonBuilder()
+        .setCustomId('help-report-bug')
+        .setLabel('Report Bot Bug')
+        .setEmoji('🐞')
+        .setStyle(ButtonStyle.Danger);
+}
+
 export function createBugReportStatusRow(status = 'pending') {
     return new ActionRowBuilder().addComponents(
         new ButtonBuilder()
