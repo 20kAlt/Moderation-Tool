@@ -125,7 +125,7 @@ export async function createInitialHelpMenu(client, guildId = null) {
 
     const reportBugButton = new ButtonBuilder()
         .setCustomId('help-report-bug')
-        .setLabel('Report bot bug to bot owner')
+        .setLabel('Report Bot Bug')
         .setEmoji('🐞')
         .setStyle(ButtonStyle.Danger);
 
@@ -135,11 +135,12 @@ export async function createInitialHelpMenu(client, guildId = null) {
         options,
     );
 
-    const buttonRow = new ActionRowBuilder().addComponents(serverSettingsButton, commandAccessButton, reportBugButton);
+    const publicButtonRow = new ActionRowBuilder().addComponents(reportBugButton);
+    const adminButtonRow = new ActionRowBuilder().addComponents(serverSettingsButton, commandAccessButton);
 
     return {
         embeds: [embed],
-        components: [buttonRow, selectRow],
+        components: [publicButtonRow, adminButtonRow, selectRow],
     };
 }
 
