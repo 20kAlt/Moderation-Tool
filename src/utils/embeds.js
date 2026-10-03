@@ -90,6 +90,7 @@ function isImportantFooter(footerText) {
 const originalSetDescription = EmbedBuilder.prototype.setDescription;
 const originalSetFooter = EmbedBuilder.prototype.setFooter;
 const originalSetTimestamp = EmbedBuilder.prototype.setTimestamp;
+const originalToJSON = EmbedBuilder.prototype.toJSON;
 
 EmbedBuilder.prototype.setDescription = function(description = '') {
   const descString = sanitizeEmbedText(description || '');
@@ -111,6 +112,29 @@ EmbedBuilder.prototype.setFooter = function(footer) {
 
 EmbedBuilder.prototype.setTimestamp = function() {
   return this;
+};
+
+EmbedBuilder.prototype.toJSON = function(...args) {
+  const embed = originalToJSON.apply(this, args);
+  const brandText = botConfig.embeds?.footer?.text?.trim();
+
+  if (!brandText) {
+    return embed;
+  }
+
+  const footerText = embed.footer?.text?.trim();
+  if (!footerText) {
+    embed.footer = {
+      text: brandText,
+      ...(botConfig.embeds.footer.icon ? { icon_url: botConfig.embeds.footer.icon } : {}),
+    };
+  } else if (!footerText.toLowerCase().includes(brandText.toLowerCase())) {
+    const separator = ' • ';
+    const brandedText = `${brandText}${separator}${footerText}`;
+    embed.footer.text = brandedText.slice(0, 2048);
+  }
+
+  return embed;
 };
 
 export function createEmbed({

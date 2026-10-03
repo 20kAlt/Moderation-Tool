@@ -18,7 +18,6 @@ const BACK_BUTTON_ID = "help-back-to-main";
 const ALL_COMMANDS_ID = "help-all-commands";
 const PAGINATION_PREFIX = "help-page";
 const CATEGORY_SELECT_ID = "help-category-select";
-const FOOTER_TEXT = "Made with ❤️";
 const SUBCOMMAND_TYPE = 1;
 const SUBCOMMAND_GROUP_TYPE = 2;
 
@@ -237,7 +236,6 @@ async function createCategoryCommandsMenu(category, client, guildId) {
         }
     }
 
-    embed.setFooter({ text: FOOTER_TEXT });
     embed.setTimestamp();
 
     const backButton = createButton(
@@ -318,7 +316,6 @@ export async function createAllCommandsMenu(page = 1, client, guildId) {
         description: `Browse commands. Prefix commands start with \`${prefix}\`; slash commands start with \`/\`.`,
     });
 
-    embed.setFooter({ text: FOOTER_TEXT });
     embed.setTimestamp();
 
     if (pageCommands.length > 0) {

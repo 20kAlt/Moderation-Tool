@@ -106,9 +106,6 @@ export async function createInitialHelpMenu(client, guildId = null) {
         ],
     });
 
-    embed.setFooter({ 
-        text: "Made with ❤️" 
-    });
     embed.setTimestamp();
 
     const serverSettingsButton = new ButtonBuilder()
