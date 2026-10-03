@@ -99,7 +99,9 @@ EmbedBuilder.prototype.setDescription = function(description = '') {
 
 EmbedBuilder.prototype.setFooter = function(footer) {
   const footerText = sanitizeEmbedText(normalizeFooterText(footer));
-  if (!footerText || !isImportantFooter(footerText)) {
+  const isBrandFooter = footerText.toLowerCase() === (botConfig.embeds?.footer?.text || '').trim().toLowerCase();
+
+  if (!footerText || (!isImportantFooter(footerText) && !isBrandFooter)) {
     return this;
   }
 

@@ -79,21 +79,24 @@ export async function getTicketCounter(guildId) {
 
     const key = getTicketCounterKey(guildId);
     const counter = await db.get(key);
-    return counter || 0;
+    return Number(counter) || 0;
 }
 
-export async function incrementTicketCounter(guildId) {
+export async function incrementTicketCounter(guildId, minimumCounter = 0) {
     if (!db.initialized) {
         await db.initialize();
     }
 
     const key = getTicketCounterKey(guildId);
     const currentCounter = await getTicketCounter(guildId);
-    const nextCounter = currentCounter + 1;
+    const startingPoint = Math.max(currentCounter, Number(minimumCounter) || 0);
 
-    await db.set(key, nextCounter);
+    if (startingPoint > currentCounter) {
+        await db.set(key, startingPoint);
+    }
 
-    return nextCounter.toString().padStart(3, '0');
+    const nextCounter = await db.increment(key, 1);
+    return String(Number(nextCounter) || startingPoint + 1).padStart(3, '0');
 }
 
 async function listGuildTickets(guildId) {

@@ -10,7 +10,7 @@ import {
 } from 'discord.js';
 import { buildStandardLogEmbed, formatLogLine } from '../utils/logging/logEmbeds.js';
 import { getGuildConfig } from './config/guildConfig.js';
-import { getTicketData, saveTicketData, deleteTicketData, getOpenTicketCountForUser, incrementTicketCounter } from '../utils/database.js';
+import { getTicketData, saveTicketData, deleteTicketData, getOpenTicketCountForUser, getTicketCounter, incrementTicketCounter } from '../utils/database.js';
 import { logger } from '../utils/logger.js';
 import { createEmbed, errorEmbed } from '../utils/embeds.js';
 import { logTicketEvent } from '../utils/ticket/ticketLogging.js';
@@ -116,7 +116,7 @@ export async function createTicket(guild, member, categoryId, reason = 'No reaso
       });
     }
     
-    const ticketNumber = await getNextTicketNumber(guild.id);
+    const ticketNumber = await getNextTicketNumber(guild);
     
     let channelName = `ticket-${ticketNumber}`;
     
@@ -954,8 +954,22 @@ export async function unclaimTicket(channel, unclaimer) {
   }
 }
 
-async function getNextTicketNumber(guildId) {
-  return await incrementTicketCounter(guildId);
+async function getNextTicketNumber(guild) {
+  let highestNumber = await getTicketCounter(guild.id);
+
+  if (highestNumber === 0) {
+    const channels = await guild.channels.fetch().catch(() => guild.channels.cache);
+    for (const channel of channels.values()) {
+      if (channel && channel.type === ChannelType.GuildText) {
+        const match = channel.name?.match(/ticket-(\d+)$/i);
+        if (match) {
+          highestNumber = Math.max(highestNumber, Number(match[1]));
+        }
+      }
+    }
+  }
+
+  return await incrementTicketCounter(guild.id, highestNumber);
 }
 
 export async function updateTicketPriority(channel, priority, updater) {

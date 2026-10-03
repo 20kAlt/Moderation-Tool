@@ -151,7 +151,7 @@ export const botConfig = {
     },
     footer: {
       // Default footer text used in bot embeds.
-      text: "Moderation Tool",
+      text: "Moderation Team",
       // Footer icon URL (null = no icon).
       icon: null,
     },

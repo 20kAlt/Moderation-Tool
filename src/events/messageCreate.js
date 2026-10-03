@@ -27,7 +27,12 @@ export default {
   name: Events.MessageCreate,
   async execute(message, client) {
     try {
-      if (message.author.bot || !message.guild) return;
+      if (message.author.bot) return;
+
+      if (!message.guild) {
+        await handleSupportDm(message);
+        return;
+      }
 
       logger.debug(`Message received from ${message.author.tag}: ${message.content}`);
 
@@ -46,6 +51,26 @@ export default {
     }
   }
 };
+
+async function handleSupportDm(message) {
+  const content = message.content.trim().toLowerCase();
+  const replyText = content
+    ? /\b(help|hello|hi|commands?|ticket|support|moderation|ban|kick|warn|timeout|bug|error|issue)\b/.test(content)
+      ? "Hello. I can help with commands, ticket setup, moderation tools, and troubleshooting. Tell me what you need help with, or use `/help` in a server for the full command list."
+      : "I’m the Moderation Team support assistant. I can guide you through commands, ticket setup, moderation tools, and troubleshooting. Please tell me what you need help with."
+    : "Please send a quick message describing what you need help with. I can guide you through commands, tickets, moderation tools, and troubleshooting.";
+
+  await message.reply({
+    embeds: [createEmbed({
+      title: 'Moderation Team Support',
+      description: replyText,
+      color: 'info',
+    })],
+    allowedMentions: { parse: [] },
+  }).catch((error) => {
+    logger.warn('Could not reply to support DM:', error.message);
+  });
+}
 
 async function handleAfkStatuses(message) {
   try {

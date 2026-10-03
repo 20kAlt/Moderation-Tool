@@ -1,5 +1,5 @@
 ﻿import 'dotenv/config';
-import { Client, Collection, Events, GatewayIntentBits } from 'discord.js';
+import { Client, Collection, Events, GatewayIntentBits, Partials } from 'discord.js';
 import { REST } from '@discordjs/rest';
 import express from 'express';
 import cron from 'node-cron';
@@ -22,19 +22,16 @@ class ModerationToolBot extends Client {
   constructor() {
     super({
       intents: [
-        
-        GatewayIntentBits.Guilds,                        
-        GatewayIntentBits.GuildMembers,                 
-
-        GatewayIntentBits.GuildMessages,                
-        GatewayIntentBits.GuildMessageReactions,        
-        GatewayIntentBits.MessageContent,               
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.GuildMessageReactions,
+        GatewayIntentBits.MessageContent,
         GatewayIntentBits.DirectMessages,
-
-        GatewayIntentBits.GuildVoiceStates,             
-
-        GatewayIntentBits.GuildBans,                    
+        GatewayIntentBits.GuildVoiceStates,
+        GatewayIntentBits.GuildBans,
       ],
+      partials: [Partials.Channel],
     });
 
     this.config = config;
