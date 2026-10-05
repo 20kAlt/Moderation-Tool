@@ -1,5 +1,4 @@
 import { Events } from 'discord.js';
-import { readFile } from 'node:fs/promises';
 import { logger } from '../utils/logger.js';
 import { getLevelingConfig, getUserLevelData } from '../services/leveling/leveling.js';
 import { addXp } from '../services/leveling/xpSystem.js';
@@ -20,9 +19,6 @@ import {
   isValidCountingMessage,
   recordCorrectCount,
 } from '../services/countingGameService.js';
-import { answerBotQuestion, createBotKnowledge } from '../utils/botDmResponse.js';
-
-const CREDITS_FILE = new URL('../../credits.json', import.meta.url);
 
 const MESSAGE_XP_RATE_LIMIT_ATTEMPTS = 12;
 const MESSAGE_XP_RATE_LIMIT_WINDOW_MS = 10000;
@@ -34,7 +30,6 @@ export default {
       if (message.author.bot) return;
 
       if (!message.guild) {
-        await handleSupportDm(message);
         return;
       }
 
@@ -55,47 +50,6 @@ export default {
     }
   }
 };
-
-async function handleSupportDm(message) {
-  const content = message.content.trim().toLowerCase();
-  let replyText;
-
-  if (!content) {
-    replyText = 'Hi! Ask me anything about Moderation Tool, its features, commands, or how to get started.';
-  } else if (!process.env.OPENAI_API_KEY) {
-    replyText = 'The AI assistant is not configured yet. Please ask the bot owner to set the `OPENAI_API_KEY` environment variable.';
-  } else if (!(await checkRateLimit(`bot-assistant:${message.author.id}`, 5, 60_000))) {
-    replyText = 'You have reached the DM assistant’s short-term question limit. Please wait a minute and try again.';
-  } else {
-    try {
-      const credits = JSON.parse(await readFile(CREDITS_FILE, 'utf8'));
-      const commands = Array.from(message.client.commands?.values?.() || []);
-      const knowledge = createBotKnowledge(credits, commands);
-      replyText = await answerBotQuestion({ question: message.content, knowledge });
-    } catch (error) {
-      if (error.code === 'AI_SENSITIVE_INPUT') {
-        replyText = 'For your privacy, please do not send passwords, API keys, or tokens in DMs. I did not send that message to the AI service.';
-      } else if (error.code === 'AI_NOT_CONFIGURED') {
-        logger.warn('Bot DM assistant is unavailable because OPENAI_API_KEY is not configured.');
-        replyText = 'The AI assistant is not configured yet. Please ask the bot owner to set the `OPENAI_API_KEY` environment variable.';
-      } else {
-        logger.error('Could not answer bot DM question:', error);
-        replyText = 'I’m having trouble answering right now. Please try again shortly, or ask the server staff for help.';
-      }
-    }
-  }
-
-  await message.reply({
-    embeds: [createEmbed({
-      title: 'Moderation Tool Assistant',
-      description: replyText,
-      color: 'info',
-    })],
-    allowedMentions: { parse: [] },
-  }).catch((error) => {
-    logger.warn('Could not reply to support DM:', error.message);
-  });
-}
 
 async function handleAfkStatuses(message) {
   try {

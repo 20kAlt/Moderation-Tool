@@ -91,10 +91,6 @@ Moderation Tool offers a complete suite of tools for Discord server management a
 </tr>
 </table>
 
-### DM Assistant
-
-The bot can answer direct-message questions about its documented features, commands, and credits using OpenAI. Set `OPENAI_API_KEY` in the bot's environment; optionally set `OPENAI_MODEL` to choose another supported model (default: `gpt-4o-mini`). The assistant only has access to the bot's documented information and cannot inspect server-specific settings. When enabled, the user's DM question and bot information are sent to OpenAI to generate the response. Do not send passwords, tokens, or API keys in DMs; obvious credential patterns are blocked before a request is made.
-
 <a name="quick-setup"></a>
 ## Quick Setup (Recommended for non-coders)
 
