@@ -1,4 +1,5 @@
 import { Events } from 'discord.js';
+import { readFile } from 'node:fs/promises';
 import { logger } from '../utils/logger.js';
 import { getLevelingConfig, getUserLevelData } from '../services/leveling/leveling.js';
 import { addXp } from '../services/leveling/xpSystem.js';
@@ -19,6 +20,9 @@ import {
   isValidCountingMessage,
   recordCorrectCount,
 } from '../services/countingGameService.js';
+import { createBotInfoReply, getBotInfoTopic } from '../utils/botDmResponse.js';
+
+const CREDITS_FILE = new URL('../../credits.json', import.meta.url);
 
 const MESSAGE_XP_RATE_LIMIT_ATTEMPTS = 12;
 const MESSAGE_XP_RATE_LIMIT_WINDOW_MS = 10000;
@@ -54,15 +58,28 @@ export default {
 
 async function handleSupportDm(message) {
   const content = message.content.trim().toLowerCase();
-  const replyText = content
-    ? /\b(help|hello|hi|commands?|ticket|support|moderation|ban|kick|warn|timeout|bug|error|issue)\b/.test(content)
-      ? "Hello. I can help with commands, ticket setup, moderation tools, and troubleshooting. Tell me what you need help with, or use `/help` in a server for the full command list."
-      : "I’m the Moderation Team support assistant. I can guide you through commands, ticket setup, moderation tools, and troubleshooting. Please tell me what you need help with."
-    : "Please send a quick message describing what you need help with. I can guide you through commands, tickets, moderation tools, and troubleshooting.";
+  const infoTopic = getBotInfoTopic(message.content);
+  let replyText;
+
+  if (infoTopic) {
+    try {
+      const credits = JSON.parse(await readFile(CREDITS_FILE, 'utf8'));
+      replyText = createBotInfoReply(infoTopic, credits);
+    } catch (error) {
+      logger.error('Could not load bot credits for DM response:', error);
+      replyText = 'I’m unable to access the bot’s credits right now. Please try again later.';
+    }
+  } else {
+    replyText = content
+      ? /\b(help|hello|hi|commands?|ticket|support|moderation|ban|kick|warn|timeout|bug|error|issue)\b/.test(content)
+        ? "Hello. I can help with commands, ticket setup, moderation tools, and troubleshooting. Tell me what you need help with, or use `/help` in a server for the full command list."
+        : "I’m the Moderation Team support assistant. I can guide you through commands, ticket setup, moderation tools, and troubleshooting. Please tell me what you need help with."
+      : "Please send a quick message describing what you need help with. I can guide you through commands, tickets, moderation tools, and troubleshooting.";
+  }
 
   await message.reply({
     embeds: [createEmbed({
-      title: 'Moderation Team Support',
+      title: infoTopic ? 'Bot Information' : 'Moderation Team Support',
       description: replyText,
       color: 'info',
     })],
