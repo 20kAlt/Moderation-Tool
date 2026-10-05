@@ -20,7 +20,7 @@ import {
   isValidCountingMessage,
   recordCorrectCount,
 } from '../services/countingGameService.js';
-import { createBotInfoReply, getBotInfoTopic } from '../utils/botDmResponse.js';
+import { answerBotQuestion, createBotKnowledge } from '../utils/botDmResponse.js';
 
 const CREDITS_FILE = new URL('../../credits.json', import.meta.url);
 
@@ -58,28 +58,36 @@ export default {
 
 async function handleSupportDm(message) {
   const content = message.content.trim().toLowerCase();
-  const infoTopic = getBotInfoTopic(message.content);
   let replyText;
 
-  if (infoTopic) {
+  if (!content) {
+    replyText = 'Hi! Ask me anything about Moderation Tool, its features, commands, or how to get started.';
+  } else if (!process.env.OPENAI_API_KEY) {
+    replyText = 'The AI assistant is not configured yet. Please ask the bot owner to set the `OPENAI_API_KEY` environment variable.';
+  } else if (!(await checkRateLimit(`bot-assistant:${message.author.id}`, 5, 60_000))) {
+    replyText = 'You have reached the DM assistant’s short-term question limit. Please wait a minute and try again.';
+  } else {
     try {
       const credits = JSON.parse(await readFile(CREDITS_FILE, 'utf8'));
-      replyText = createBotInfoReply(infoTopic, credits);
+      const commands = Array.from(message.client.commands?.values?.() || []);
+      const knowledge = createBotKnowledge(credits, commands);
+      replyText = await answerBotQuestion({ question: message.content, knowledge });
     } catch (error) {
-      logger.error('Could not load bot credits for DM response:', error);
-      replyText = 'I’m unable to access the bot’s credits right now. Please try again later.';
+      if (error.code === 'AI_SENSITIVE_INPUT') {
+        replyText = 'For your privacy, please do not send passwords, API keys, or tokens in DMs. I did not send that message to the AI service.';
+      } else if (error.code === 'AI_NOT_CONFIGURED') {
+        logger.warn('Bot DM assistant is unavailable because OPENAI_API_KEY is not configured.');
+        replyText = 'The AI assistant is not configured yet. Please ask the bot owner to set the `OPENAI_API_KEY` environment variable.';
+      } else {
+        logger.error('Could not answer bot DM question:', error);
+        replyText = 'I’m having trouble answering right now. Please try again shortly, or ask the server staff for help.';
+      }
     }
-  } else {
-    replyText = content
-      ? /\b(help|hello|hi|commands?|ticket|support|moderation|ban|kick|warn|timeout|bug|error|issue)\b/.test(content)
-        ? "Hello. I can help with commands, ticket setup, moderation tools, and troubleshooting. Tell me what you need help with, or use `/help` in a server for the full command list."
-        : "I’m the Moderation Team support assistant. I can guide you through commands, ticket setup, moderation tools, and troubleshooting. Please tell me what you need help with."
-      : "Please send a quick message describing what you need help with. I can guide you through commands, tickets, moderation tools, and troubleshooting.";
   }
 
   await message.reply({
     embeds: [createEmbed({
-      title: infoTopic ? 'Bot Information' : 'Moderation Team Support',
+      title: 'Moderation Tool Assistant',
       description: replyText,
       color: 'info',
     })],
