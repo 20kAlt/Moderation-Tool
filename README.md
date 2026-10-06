@@ -141,7 +141,7 @@ Music uses [Lavalink v4](https://github.com/lavalink-devs/Lavalink) via [Riffy](
    ```
    Remove or rename `lavalink/nodes.json` so the bot falls back to those env vars.
 3. Override nodes inline with `LAVALINK_NODES` (JSON array) or point at another file with `LAVALINK_NODES_FILE`.
-4. Use `/play <song>` from a voice channel, or `/join` to connect without playing. Prefix shortcuts: `join`, `np`, `leave`, `pause`, `resume`, `skip`, `stop`, and `volume <0-100>`. Use `/nowplaying` and `/queue` for status; use the player buttons for playback controls.
+4. Use `/play <song>` from a voice channel and type a song title or artist to see up to 25 matching suggestions with their artists, or use `/join` to connect without playing. Suggestions come from the configured Lavalink search source; there is no complete searchable catalog of every song ever released. Prefix shortcuts: `join`, `np`, `leave`, `pause`, `resume`, `skip`, `stop`, and `volume <0-100>`. Use `/nowplaying` and `/queue` for status; use the player buttons for playback controls.
 
 ### Using GitHub Container Registry
 

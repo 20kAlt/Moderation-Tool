@@ -303,7 +303,7 @@ export async function applyPause(client, guildId) {
         return false;
     }
 
-    player.pause(true);
+    await setPlaybackPaused(player, true);
     await refreshPlayerMessage(client, guildId);
     return true;
 }
@@ -314,9 +314,28 @@ export async function applyResume(client, guildId) {
         return false;
     }
 
-    player.pause(false);
+    await setPlaybackPaused(player, false);
     await refreshPlayerMessage(client, guildId);
     return true;
+}
+
+async function setPlaybackPaused(player, paused) {
+    const updatePlayer = player.node?.rest?.updatePlayer;
+    if (typeof updatePlayer !== 'function') {
+        throw new ModerationToolError(
+            'Music control unavailable',
+            ErrorTypes.CONFIGURATION,
+            'The music connection is unavailable. Please try again after the player reconnects.',
+        );
+    }
+
+    await updatePlayer.call(player.node.rest, {
+        guildId: player.guildId,
+        data: { paused },
+    });
+
+    player.paused = paused;
+    player.playing = !paused && Boolean(player.current);
 }
 
 export async function pausePlayback(client, interaction) {
