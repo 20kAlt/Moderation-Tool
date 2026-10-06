@@ -88,15 +88,8 @@ export async function incrementTicketCounter(guildId, minimumCounter = 0) {
     }
 
     const key = getTicketCounterKey(guildId);
-    const currentCounter = await getTicketCounter(guildId);
-    const startingPoint = Math.max(currentCounter, Number(minimumCounter) || 0);
-
-    if (startingPoint > currentCounter) {
-        await db.set(key, startingPoint);
-    }
-
-    const nextCounter = await db.increment(key, 1);
-    return String(Number(nextCounter) || startingPoint + 1).padStart(3, '0');
+    const nextCounter = await db.incrementAtLeast(key, minimumCounter, 1);
+    return String(nextCounter).padStart(3, '0');
 }
 
 async function listGuildTickets(guildId) {

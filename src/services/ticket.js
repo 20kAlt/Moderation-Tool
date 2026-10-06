@@ -159,6 +159,7 @@ export async function createTicket(guild, member, categoryId, reason = 'No reaso
     
     const ticketData = {
       id: channel.id,
+      ticketNumber,
       userId: member.id,
       guildId: guild.id,
       createdAt: new Date().toISOString(),

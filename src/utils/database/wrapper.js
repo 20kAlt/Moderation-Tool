@@ -108,6 +108,16 @@ class DatabaseWrapper {
         return newValue;
     }
 
+    async incrementAtLeast(key, minimumValue = 0, amount = 1) {
+        if (this.useFallback) {
+            logger.debug(`[DEGRADED] Incrementing in memory: ${key}`);
+        }
+        if (typeof this.db.incrementAtLeast === 'function') {
+            return this.db.incrementAtLeast(key, minimumValue, amount);
+        }
+        throw new Error(`Database backend does not support atomic minimum increments for ${key}`);
+    }
+
     async decrement(key, amount = 1) {
         if (this.useFallback) {
             logger.debug(`[DEGRADED] Decrementing in memory: ${key}`);

@@ -79,6 +79,17 @@ class MemoryStorage {
         return newValue;
     }
 
+    async incrementAtLeast(key, minimumValue = 0, amount = 1) {
+        const expiresAt = this.expirationTimes.get(key);
+        const isExpired = expiresAt !== undefined && Date.now() > expiresAt;
+        const currentValue = isExpired ? 0 : Number(this.data.get(key)) || 0;
+        const nextValue = Math.max(currentValue, Number(minimumValue) || 0) + amount;
+
+        this.data.set(key, nextValue);
+        this.expirationTimes.delete(key);
+        return nextValue;
+    }
+
     async decrement(key, amount = 1) {
         const current = await this.get(key, 0);
         const newValue = current - amount;

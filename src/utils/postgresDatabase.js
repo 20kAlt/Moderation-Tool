@@ -596,6 +596,53 @@ class PostgreSQLDatabase {
         }
     }
 
+    async incrementAtLeast(key, minimumValue = 0, amount = 1) {
+        if (!this.isAvailable()) {
+            throw new Error('PostgreSQL is unavailable; cannot persist ticket counter');
+        }
+
+        const canonicalKey = canonicalizeKey(key);
+        const parsedKey = parseKey(canonicalKey);
+        if (parsedKey.type !== 'ticket_counter') {
+            throw new Error(`Atomic minimum increment is not supported for ${parsedKey.type}`);
+        }
+
+        const minimum = Math.max(0, Math.floor(Number(minimumValue) || 0));
+        const incrementBy = Math.max(1, Math.floor(Number(amount) || 1));
+
+        try {
+            const result = await this.pool.query(
+                `INSERT INTO ${pgConfig.tables.temp_data} (key, value, expires_at)
+                 VALUES ($1, to_jsonb($2::bigint + $3::bigint), NULL)
+                 ON CONFLICT (key) DO UPDATE
+                 SET value = to_jsonb(
+                     GREATEST(
+                         CASE
+                             WHEN ${pgConfig.tables.temp_data}.expires_at IS NOT NULL
+                                  AND ${pgConfig.tables.temp_data}.expires_at <= NOW() THEN 0
+                             WHEN jsonb_typeof(${pgConfig.tables.temp_data}.value) = 'number'
+                                 THEN (${pgConfig.tables.temp_data}.value #>> '{}')::bigint
+                             ELSE 0
+                         END,
+                         $2::bigint
+                     ) + $3::bigint
+                 ),
+                 expires_at = NULL
+                 RETURNING value #>> '{}' AS value`,
+                [canonicalKey, minimum, incrementBy],
+            );
+
+            const nextValue = Number(result.rows[0]?.value);
+            if (!Number.isSafeInteger(nextValue) || nextValue < 1) {
+                throw new Error(`Database returned an invalid ticket counter for ${canonicalKey}`);
+            }
+            return nextValue;
+        } catch (error) {
+            logger.error(`Error atomically incrementing ticket counter ${canonicalKey}:`, error);
+            throw error;
+        }
+    }
+
     async decrement(key, amount = 1) {
         try {
             if (!this.isAvailable()) {
