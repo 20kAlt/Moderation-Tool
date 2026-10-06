@@ -14,7 +14,6 @@ import {
 } from './musicEmbeds.js';
 import { refreshPlayerMessage } from './playerHandler.js';
 
-const YOUTUBE_URL_PATTERN = /(?:youtube\.com|youtu\.be)/i;
 const PLAYER_CONNECT_TIMEOUT_MS = 12_000;
 
 function getConnectedLavalinkNodes(client) {
@@ -124,6 +123,97 @@ export function assertCanControl(member, player) {
     }
 }
 
+export async function resolveMusicSearch(client, query, requester) {
+    if (/^https?:\/\//i.test(query)) {
+        return client.riffy.resolve({ query, requester });
+    }
+
+    const sources = [...new Set([
+        'ytsearch',
+        'ytmsearch',
+        'scsearch',
+        client.riffy.defaultSearchPlatform,
+    ].filter(Boolean))];
+    let lastResult = null;
+    const results = await Promise.all(sources.map(async (source) => {
+        try {
+            const result = await client.riffy.resolve({ query, source, requester });
+            if (result) {
+                lastResult = result;
+            }
+            return result;
+        } catch (error) {
+            return { error };
+        }
+    }));
+
+    const successfulResults = results.filter((result) => result && !result.error);
+    const tracks = successfulResults.flatMap((result) => result.tracks || []);
+    if (tracks.length) {
+        const seen = new Set();
+        const uniqueTracks = tracks.filter((track) => {
+            const key = track?.info?.uri || `${track?.info?.title || ''}:${track?.info?.author || ''}`;
+            if (seen.has(key)) {
+                return false;
+            }
+            seen.add(key);
+            return true;
+        });
+        return {
+            loadType: 'search',
+            tracks: uniqueTracks,
+            playlistInfo: null,
+        };
+    }
+
+    if (successfulResults.length === 0) {
+        const error = results.find((result) => result?.error)?.error;
+        if (error) {
+            throw error;
+        }
+    }
+
+    return lastResult || { loadType: 'empty', tracks: [] };
+}
+
+function normalizeSearchText(value) {
+    return String(value || '')
+        .toLocaleLowerCase()
+        .replace(/\b(feat(?:uring)?|official|audio|video|lyrics?)\b/g, ' ')
+        .replace(/[^\p{L}\p{N}]+/gu, ' ')
+        .trim()
+        .replace(/\s+/g, ' ');
+}
+
+export function rankMusicTracks(query, tracks) {
+    const normalizedQuery = normalizeSearchText(query);
+    const queryWords = [...new Set(normalizedQuery.split(' ').filter(Boolean))];
+    if (!queryWords.length) {
+        return tracks;
+    }
+
+    return tracks
+        .map((track, index) => {
+            const title = normalizeSearchText(track?.info?.title);
+            const author = normalizeSearchText(track?.info?.author);
+            const combined = `${title} ${author}`.trim();
+            const combinedWords = new Set(combined.split(' '));
+            const titleWords = new Set(title.split(' '));
+            const authorWords = new Set(author.split(' '));
+            const matchedWords = queryWords.filter((word) => combinedWords.has(word)).length;
+            const titleMatches = queryWords.filter((word) => titleWords.has(word)).length;
+            const authorMatches = queryWords.filter((word) => authorWords.has(word)).length;
+            const score = (matchedWords / queryWords.length) * 5
+                + (titleMatches / queryWords.length) * 2
+                + (authorMatches / queryWords.length) * 2
+                + (combined === normalizedQuery ? 5 : 0)
+                + (title === normalizedQuery || author === normalizedQuery ? 3 : 0);
+            return { track, index, score };
+        })
+        .sort((left, right) => right.score - left.score || left.index - right.index)
+        .map(({ track }) => track);
+}
+
 export async function ensurePlayer(client, interaction) {
     assertRiffyAvailable(client);
     assertLavalinkNodeAvailable(client);
@@ -195,21 +285,12 @@ export async function joinVoiceChannel(client, interaction) {
     );
 }
 
-export async function playQuery(client, interaction, query) {
-    if (YOUTUBE_URL_PATTERN.test(query)) {
-        throw new ModerationToolError(
-            'YouTube URL blocked',
-            ErrorTypes.USER_INPUT,
-            'YouTube links are not supported. Try a song name instead.',
-        );
-    }
-
+export async function playQuery(client, interaction, query, { selectedTrack } = {}) {
     const { player, guildData } = await ensurePlayer(client, interaction);
 
-    const result = await client.riffy.resolve({
-        query,
-        requester: interaction.user,
-    });
+    const result = selectedTrack
+        ? { loadType: 'track', tracks: [selectedTrack] }
+        : await resolveMusicSearch(client, query, interaction.user);
 
     const { loadType, tracks, playlistInfo } = result;
 
@@ -245,7 +326,7 @@ export async function playQuery(client, interaction, query) {
         || loadType === 'SEARCH_RESULT'
         || loadType === 'TRACK_LOADED'
     ) {
-        const track = tracks?.[0];
+        const track = selectedTrack || rankMusicTracks(query, tracks || [])[0];
         if (!track) {
             throw new ModerationToolError('No results', ErrorTypes.USER_INPUT, 'No results found for that query.');
         }

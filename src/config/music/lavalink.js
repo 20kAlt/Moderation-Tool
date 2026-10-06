@@ -78,7 +78,7 @@ export function getLavalinkNodes() {
 
 export const lavalinkConfig = {
     nodes: getLavalinkNodes(),
-    defaultSearchPlatform: process.env.LAVALINK_SEARCH_PLATFORM || 'ytmsearch',
+    defaultSearchPlatform: process.env.LAVALINK_SEARCH_PLATFORM || 'ytsearch',
     restVersion: process.env.LAVALINK_REST_VERSION || 'v4',
 };
 

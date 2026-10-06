@@ -1,7 +1,66 @@
+import { randomUUID } from 'node:crypto';
 import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
-import { playQuery, replyMusicSuccess } from '../../services/music/musicActions.js';
+import {
+    playQuery,
+    rankMusicTracks,
+    replyMusicSuccess,
+    resolveMusicSearch,
+} from '../../services/music/musicActions.js';
+import { ErrorTypes, ModerationToolError } from '../../utils/errorHandler.js';
 import { logger } from '../../utils/logger.js';
+
+const TRACK_SUGGESTION_PREFIX = 'music-track:';
+const TRACK_SUGGESTION_TTL_MS = 10 * 60 * 1000;
+const MAX_TRACK_SUGGESTIONS = 500;
+const trackSuggestions = new Map();
+
+function pruneTrackSuggestions() {
+    const now = Date.now();
+    for (const [token, suggestion] of trackSuggestions) {
+        if (suggestion.expiresAt <= now) {
+            trackSuggestions.delete(token);
+        }
+    }
+
+    while (trackSuggestions.size > MAX_TRACK_SUGGESTIONS) {
+        trackSuggestions.delete(trackSuggestions.keys().next().value);
+    }
+}
+
+function createTrackSuggestion(track, interaction) {
+    pruneTrackSuggestions();
+    const token = `${TRACK_SUGGESTION_PREFIX}${randomUUID()}`;
+    trackSuggestions.set(token, {
+        track,
+        userId: interaction.user.id,
+        guildId: interaction.guildId,
+        expiresAt: Date.now() + TRACK_SUGGESTION_TTL_MS,
+    });
+    return token;
+}
+
+function consumeTrackSuggestion(token, interaction) {
+    const suggestion = trackSuggestions.get(token);
+    if (suggestion) {
+        trackSuggestions.delete(token);
+    }
+
+    if (
+        !suggestion
+        || suggestion.expiresAt <= Date.now()
+        || suggestion.userId !== interaction.user.id
+        || suggestion.guildId !== interaction.guildId
+    ) {
+        throw new ModerationToolError(
+            'Search suggestion expired',
+            ErrorTypes.USER_INPUT,
+            'That song suggestion expired. Search again and select a result.',
+        );
+    }
+
+    return suggestion.track;
+}
 
 export default {
     category: 'Music',
@@ -21,7 +80,11 @@ export default {
             return;
         }
 
-        const result = await playQuery(client, interaction, interaction.options.getString('query'));
+        const query = interaction.options.getString('query');
+        const selectedTrack = query.startsWith(TRACK_SUGGESTION_PREFIX)
+            ? consumeTrackSuggestion(query, interaction)
+            : undefined;
+        const result = await playQuery(client, interaction, query, { selectedTrack });
         await replyMusicSuccess(interaction, result.embed);
     },
 
@@ -33,28 +96,25 @@ export default {
         }
 
         try {
-            const result = await client.riffy.resolve({
-                query,
-                requester: interaction.user,
-            });
+            const result = await resolveMusicSearch(client, query, interaction.user);
             const choices = [];
             const seen = new Set();
 
-            for (const track of result?.tracks || []) {
+            for (const track of rankMusicTracks(query, result?.tracks || [])) {
                 const title = track?.info?.title?.trim();
-                const author = track?.info?.author?.trim();
-                if (!title || !author) {
+                const author = track?.info?.author?.trim() || 'Unknown artist';
+                if (!title) {
                     continue;
                 }
 
-                const value = `${title.slice(0, Math.max(1, 99 - author.length))} ${author}`.slice(0, 100);
-                if (seen.has(value)) {
+                const key = track.info?.uri || `${title}:${author}`;
+                if (seen.has(key)) {
                     continue;
                 }
-                seen.add(value);
+                seen.add(key);
                 choices.push({
-                    name: `${title.slice(0, Math.max(1, 97 - author.length))} — ${author}`.slice(0, 100),
-                    value,
+                    name: `${title} — ${author}`.slice(0, 100),
+                    value: createTrackSuggestion(track, interaction),
                 });
 
                 if (choices.length === 25) {
