@@ -89,7 +89,6 @@ function isImportantFooter(footerText) {
 
 const originalSetDescription = EmbedBuilder.prototype.setDescription;
 const originalSetFooter = EmbedBuilder.prototype.setFooter;
-const originalSetTimestamp = EmbedBuilder.prototype.setTimestamp;
 const originalToJSON = EmbedBuilder.prototype.toJSON;
 
 EmbedBuilder.prototype.setDescription = function(description = '') {
@@ -110,13 +109,13 @@ EmbedBuilder.prototype.setFooter = function(footer) {
   return originalSetFooter.call(this, { text: footerText });
 };
 
-EmbedBuilder.prototype.setTimestamp = function() {
-  return this;
-};
-
 EmbedBuilder.prototype.toJSON = function(...args) {
   const embed = originalToJSON.apply(this, args);
   const brandText = botConfig.embeds?.footer?.text?.trim();
+
+  if (!embed.timestamp) {
+    embed.timestamp = new Date().toISOString();
+  }
 
   if (!brandText) {
     return embed;

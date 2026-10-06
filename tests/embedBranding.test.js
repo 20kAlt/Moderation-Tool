@@ -26,3 +26,20 @@ test('embed serialization does not duplicate the team name', () => {
 
   assert.equal(embed.toJSON().footer.text, 'Powered by Moderation Tool');
 });
+
+test('embed serialization includes the current time in the footer', () => {
+  const beforeSerialization = Date.now();
+  const serialized = new EmbedBuilder().setTitle('Menu').toJSON();
+  const afterSerialization = Date.now();
+
+  const timestamp = Date.parse(serialized.timestamp);
+  assert.ok(timestamp >= beforeSerialization);
+  assert.ok(timestamp <= afterSerialization);
+});
+
+test('embed serialization preserves an explicitly set timestamp', () => {
+  const timestamp = new Date('2026-01-10T13:11:00.000Z');
+  const embed = createEmbed({ title: 'Menu', timestamp });
+
+  assert.equal(embed.toJSON().timestamp, timestamp.toISOString());
+});
