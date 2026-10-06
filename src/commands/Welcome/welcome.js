@@ -33,6 +33,17 @@ export default {
                         .setDescription('Whether to ping the user in the welcome message')
                         .setRequired(false))),
 
+    async prefixFallback(interaction, config, client) {
+        if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
+            return await replyUserError(interaction, {
+                type: ErrorTypes.PERMISSION,
+                message: 'You need the **Manage Server** permission to use `?welcome`.',
+            });
+        }
+
+        return await greetDashboard.execute(interaction, config, client);
+    },
+
     async execute(interaction) {
         try {
             const deferSuccess = await InteractionHelper.safeDefer(interaction);

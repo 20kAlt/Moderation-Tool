@@ -418,31 +418,6 @@ export async function validateVerificationSetup(guild, verificationConfig) {
         );
     }
 
-    if (verificationConfig.channelId) {
-        const channel = guild.channels.cache.get(verificationConfig.channelId);
-        if (!channel) {
-            throw createError(
-                "Verification channel not found",
-                ErrorTypes.CONFIGURATION,
-                "The verification channel was deleted.",
-                { channelId: verificationConfig.channelId, guildId: guild.id }
-            );
-        }
-
-        const botPerms = channel.permissionsFor(botMember);
-        const requiredPerms = ['ViewChannel', 'SendMessages', 'EmbedLinks'];
-        const missingPerms = requiredPerms.filter(perm => !botPerms.has(perm));
-
-        if (missingPerms.length > 0) {
-            throw createError(
-                "Bot missing permissions in verification channel",
-                ErrorTypes.PERMISSION,
-                `I'm missing permissions in the verification channel: ${missingPerms.join(', ')}`,
-                { missingPerms, channelId: channel.id }
-            );
-        }
-    }
-
     return true;
 }
 
