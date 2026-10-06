@@ -90,7 +90,7 @@ export default {
 
     async autocomplete(interaction, client) {
         const query = interaction.options.getFocused().trim();
-        if (query.length < 2 || query.includes('://') || !client.riffy) {
+        if (!query || query.includes('://') || !client.riffy) {
             await interaction.respond([]);
             return;
         }

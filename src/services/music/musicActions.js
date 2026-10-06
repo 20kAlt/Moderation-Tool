@@ -197,15 +197,21 @@ export function rankMusicTracks(query, tracks) {
             const title = normalizeSearchText(track?.info?.title);
             const author = normalizeSearchText(track?.info?.author);
             const combined = `${title} ${author}`.trim();
-            const combinedWords = new Set(combined.split(' '));
-            const titleWords = new Set(title.split(' '));
-            const authorWords = new Set(author.split(' '));
-            const matchedWords = queryWords.filter((word) => combinedWords.has(word)).length;
-            const titleMatches = queryWords.filter((word) => titleWords.has(word)).length;
-            const authorMatches = queryWords.filter((word) => authorWords.has(word)).length;
+            const combinedWords = combined.split(' ');
+            const titleWords = title.split(' ');
+            const authorWords = author.split(' ');
+            const matchesWords = (words) => queryWords.filter((word) =>
+                words.some((candidate) => candidate.startsWith(word)),
+            ).length;
+            const matchedWords = matchesWords(combinedWords);
+            const titleMatches = matchesWords(titleWords);
+            const authorMatches = matchesWords(authorWords);
+            const singleCharacterPrefix = queryWords.length === 1 && queryWords[0].length === 1;
             const score = (matchedWords / queryWords.length) * 5
                 + (titleMatches / queryWords.length) * 2
                 + (authorMatches / queryWords.length) * 2
+                + (singleCharacterPrefix && title.startsWith(normalizedQuery) ? 4 : 0)
+                + (singleCharacterPrefix && author.startsWith(normalizedQuery) ? 2 : 0)
                 + (combined === normalizedQuery ? 5 : 0)
                 + (title === normalizedQuery || author === normalizedQuery ? 3 : 0);
             return { track, index, score };
