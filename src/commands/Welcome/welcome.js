@@ -33,6 +33,8 @@ export default {
                         .setDescription('Whether to ping the user in the welcome message')
                         .setRequired(false))),
 
+    prefixFallbackSubcommands: ['setup'],
+
     async prefixFallback(interaction, config, client) {
         if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
             return await replyUserError(interaction, {

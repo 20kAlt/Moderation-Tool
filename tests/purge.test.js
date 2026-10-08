@@ -3,6 +3,10 @@ import assert from 'node:assert/strict';
 import { Collection } from 'discord.js';
 
 import purgeCommand, { purgeChannelMessages } from '../src/commands/Moderation/purge.js';
+import { resolveCommandAlias } from '../src/config/commands/commandAliases.js';
+import { getPrefixRestriction } from '../src/config/commands/prefixRestrictions.js';
+import { resolvePrefixAccessKey, supportsPrefixExecution } from '../src/utils/messageAdapter.js';
+import { resolveSubcommandAlias } from '../src/config/commands/commandAliases.js';
 
 test('purge command supports an amount up to 500 and requires Manage Messages', () => {
   const command = purgeCommand.data.toJSON();
@@ -11,6 +15,13 @@ test('purge command supports an amount up to 500 and requires Manage Messages', 
   assert.equal(amount.min_value, 1);
   assert.equal(amount.max_value, 500);
   assert.equal(command.default_member_permissions, '8192');
+});
+
+test('purge is available through prefix commands and resolves to the same command as slash', () => {
+  assert.equal(resolveCommandAlias('purge'), 'purge');
+  assert.equal(supportsPrefixExecution(purgeCommand), true);
+  assert.equal(getPrefixRestriction(purgeCommand, [], resolveSubcommandAlias).blocked, false);
+  assert.equal(resolvePrefixAccessKey(purgeCommand.data, ['25']), 'purge');
 });
 
 test('purge deletes the requested amount in batches no larger than 100', async () => {

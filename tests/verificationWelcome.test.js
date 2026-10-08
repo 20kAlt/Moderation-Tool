@@ -34,6 +34,7 @@ test('bare ?welcome can open the welcome dashboard and image URLs are optional',
   const image = setup.options.find((option) => option.name === 'image');
 
   assert.equal(typeof welcomeCommand.prefixFallback, 'function');
+  assert.deepEqual(welcomeCommand.prefixFallbackSubcommands, ['setup']);
   assert.equal(image.required, false);
   assert.equal(command.default_member_permissions, PermissionFlagsBits.ManageGuild.toString());
 });

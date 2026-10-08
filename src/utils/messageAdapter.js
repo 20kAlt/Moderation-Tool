@@ -193,7 +193,10 @@ export async function executePrefixCommand(command, message, args, client, prefi
 
   try {
     const validation = mockInteraction.options.validateRequired();
-    const usePrefixFallback = !validation.valid && Boolean(command.prefixFallback) && args.length === 0;
+    const usePrefixFallback =
+      Boolean(command.prefixFallback) &&
+      ((!validation.valid && args.length === 0) ||
+        command.prefixFallbackSubcommands?.includes(args[0]?.toLowerCase()));
 
     if (!usePrefixFallback) {
       const permissionAllowed = await enforceDefaultCommandPermissions(mockInteraction, command, {
@@ -205,11 +208,12 @@ export async function executePrefixCommand(command, message, args, client, prefi
       }
     }
 
+    if (usePrefixFallback) {
+      await command.prefixFallback(mockInteraction, guildConfig, client);
+      return;
+    }
+
     if (!validation.valid) {
-      if (usePrefixFallback) {
-        await command.prefixFallback(mockInteraction, guildConfig, client);
-        return;
-      }
       await coordinator.respondUsageFromCommand(prefix, command.data, validation);
       return;
     }
