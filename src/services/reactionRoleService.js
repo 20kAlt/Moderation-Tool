@@ -4,7 +4,7 @@ import { logger } from '../utils/logger.js';
 import { createError, ErrorTypes } from '../utils/errorHandler.js';
 import { getReactionRoleKey, getReactionRolesPrefix } from '../utils/database/keys.js';
 
-const MAX_ROLES_PER_MESSAGE = 25;
+const MAX_ROLES_PER_MESSAGE = 20;
 
 const DANGEROUS_PERMISSIONS = [
     'Administrator',
