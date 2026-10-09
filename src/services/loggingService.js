@@ -358,8 +358,12 @@ export async function getLoggingStatus(client, guildId) {
 
   return {
     enabled: logging.enabled || false,
-    channels: logging.channels || { audit: null, applications: null, reports: null },
-    channelId: logging.channels?.audit ?? null,
+    channels: {
+      audit: resolveLogChannel(config, 'audit'),
+      applications: resolveLogChannel(config, 'applications'),
+      reports: resolveLogChannel(config, 'reports'),
+    },
+    channelId: resolveLogChannel(config, 'audit'),
     ignore: getIgnoreList(config),
     enabledEvents: logging.enabledEvents || {},
     allEventTypes: EVENT_TYPES,

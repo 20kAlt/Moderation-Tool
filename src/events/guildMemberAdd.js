@@ -17,6 +17,7 @@ export default {
   async execute(member) {
     try {
         const { guild, user } = member;
+        const memberCount = guild.memberCount;
 
         const antiNukeConfig = botConfig.antiNuke;
         if (user.bot && antiNukeConfig?.enabled) {
@@ -84,13 +85,17 @@ export default {
         const welcomeChannelId = welcomeConfig?.channelId;
 
         if (welcomeConfig?.enabled && welcomeChannelId) {
-            const channel = guild.channels.cache.get(welcomeChannelId);
+            const channel = guild.channels.cache.get(welcomeChannelId)
+                ?? await guild.channels.fetch(welcomeChannelId).catch(error => {
+                    logger.warn(`Could not fetch welcome channel ${welcomeChannelId} in guild ${guild.id}:`, error);
+                    return null;
+                });
             const me = guild.members.me;
             const permissions = channel?.isTextBased?.() && me ? channel.permissionsFor(me) : null;
             // Skip only the welcome message if permissions are missing; the rest of the
             // join pipeline (auto-role, verification, logging, counters) must still run.
             if (permissions?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages])) {
-                const formatData = { user, guild, member };
+                const formatData = { user, guild, member, memberCount };
                 const welcomeMessage = formatWelcomeMessage(
                     welcomeConfig.welcomeMessage || welcomeConfig.welcomeEmbed?.description || botConfig.welcome?.defaultWelcomeMessage || 'Welcome {user} to {server}!',
                     formatData
@@ -120,7 +125,7 @@ export default {
                         .setThumbnail(user.displayAvatarURL())
                         .addFields(
                             { name: 'User', value: `${user.tag} (${user.id})`, inline: true },
-                            { name: 'Member Count', value: guild.memberCount.toString(), inline: true }
+                            { name: 'Member Count', value: memberCount.toString(), inline: true }
                         )
                         .setTimestamp()
                         .setFooter({ text: embedFooter });
@@ -136,6 +141,8 @@ export default {
                         embeds: [embed] 
                     });
                 }
+            } else {
+                logger.warn(`Cannot send welcome message in channel ${welcomeChannelId} for guild ${guild.id}: channel is unavailable or required permissions are missing.`);
             }
         }
         
@@ -171,7 +178,7 @@ export default {
                         `**User:** ${user.toString()} (${user.displayName !== user.username ? `@${user.displayName}` : user.tag})`,
                         `**ID:** \`${user.id}\``,
                         `**Created:** <t:${Math.floor(user.createdTimestamp / 1000)}:R>`,
-                        `**Members:** ${guild.memberCount}`,
+                        `**Members:** ${memberCount}`,
                     ],
                     quoted: false,
                     thumbnail: user.displayAvatarURL({ dynamic: true }),
