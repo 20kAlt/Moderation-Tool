@@ -73,6 +73,7 @@ export const commandAliases = {
     'ticket': 'ticket',
     't': 'ticket',
     'new': 'ticket',
+    'merge': 'merge',
 
     'ver': 'verify',
     'vadmin': 'verification',

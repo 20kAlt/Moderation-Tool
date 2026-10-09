@@ -10,7 +10,7 @@ import {
 } from 'discord.js';
 import { buildStandardLogEmbed, formatLogLine } from '../utils/logging/logEmbeds.js';
 import { getGuildConfig } from './config/guildConfig.js';
-import { getTicketData, saveTicketData, deleteTicketData, getOpenTicketCountForUser, getTicketCounter, incrementTicketCounter } from '../utils/database.js';
+import { getTicketData, saveTicketData, deleteTicketData, getOpenTicketCountForUser, getTicketCounter, getHighestTicketNumber, incrementTicketCounter } from '../utils/database.js';
 import { logger } from '../utils/logger.js';
 import { createEmbed, errorEmbed } from '../utils/embeds.js';
 import { logTicketEvent } from '../utils/ticket/ticketLogging.js';
@@ -621,7 +621,7 @@ function escapeHtml(text) {
     .replace(/'/g, '&#039;');
 }
 
-async function generateTranscript(channel) {
+export async function generateTranscript(channel) {
   try {
     logger.debug('Generating transcript for channel', {
       channelId: channel.id,
@@ -651,7 +651,20 @@ async function generateTranscript(channel) {
       const ts = new Date(msg.createdTimestamp).toISOString().replace('T', ' ').slice(0, 19);
       const author = escape(msg.author?.tag ?? msg.author?.username ?? 'Unknown');
       const content = escape(msg.content || (msg.embeds.length ? '[embed]' : '[attachment]'));
-      return `<tr><td class="ts">${ts}</td><td class="author">${author}</td><td class="msg">${content}</td></tr>`;
+      const attachments = [...(msg.attachments?.values?.() || [])]
+        .map((attachment) => `<a href="${escape(attachment.url)}">${escape(attachment.name || 'Attachment')}</a>`)
+        .join('<br>');
+      const embeds = (msg.embeds || [])
+        .filter((embed) => embed.url || embed.title || embed.description)
+        .map((embed) => {
+          const title = escape(embed.title || embed.url || 'Embedded content');
+          return embed.url
+            ? `<a href="${escape(embed.url)}">${title}</a>${embed.description ? `<br>${escape(embed.description)}` : ''}`
+            : `${title}${embed.description ? `<br>${escape(embed.description)}` : ''}`;
+        })
+        .join('<br>');
+      const details = [content, attachments, embeds].filter(Boolean).join('<br>');
+      return `<tr><td class="ts">${ts}</td><td class="author">${author}</td><td class="msg">${details}</td></tr>`;
     }).join('\n');
 
     const html = `<!DOCTYPE html>
@@ -959,12 +972,15 @@ async function getNextTicketNumber(guild) {
   let highestNumber = await getTicketCounter(guild.id);
 
   if (highestNumber === 0) {
-    const channels = await guild.channels.fetch().catch(() => guild.channels.cache);
-    for (const channel of channels.values()) {
-      if (channel && channel.type === ChannelType.GuildText) {
-        const match = channel.name?.match(/ticket-(\d+)$/i);
-        if (match) {
-          highestNumber = Math.max(highestNumber, Number(match[1]));
+    highestNumber = await getHighestTicketNumber(guild.id);
+    if (highestNumber === 0) {
+      const channels = await guild.channels.fetch().catch(() => guild.channels.cache);
+      for (const channel of channels.values()) {
+        if (channel && channel.type === ChannelType.GuildText) {
+          const match = channel.name?.match(/ticket-(\d+)$/i);
+          if (match) {
+            highestNumber = Math.max(highestNumber, Number(match[1]));
+          }
         }
       }
     }

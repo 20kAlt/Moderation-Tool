@@ -60,6 +60,20 @@ export default {
         if (subcommand === 'add') {
             const role = options.getRole('role');
 
+            if (!guild.members.me.permissions.has(PermissionFlagsBits.ManageRoles)) {
+                return await replyUserError(interaction, {
+                    type: ErrorTypes.PERMISSION,
+                    message: 'I need the **Manage Roles** permission to assign an automatic role.',
+                });
+            }
+
+            if (role.managed) {
+                return await replyUserError(interaction, {
+                    type: ErrorTypes.VALIDATION,
+                    message: 'Managed integration roles cannot be assigned automatically.',
+                });
+            }
+
             const guildConfig = await getGuildConfig(client, guild.id);
             const verificationEnabled = Boolean(guildConfig.verification?.enabled);
             const autoVerifyEnabled = Boolean(guildConfig.verification?.autoVerify?.enabled);

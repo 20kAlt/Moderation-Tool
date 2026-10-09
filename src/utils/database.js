@@ -56,6 +56,7 @@ export {
     saveTicketData,
     deleteTicketData,
     getTicketCounter,
+    getHighestTicketNumber,
     incrementTicketCounter,
     getGuildTicketStats,
 } from './database/tickets.js';
@@ -413,7 +414,11 @@ export async function saveWelcomeConfig(client, guildId, config) {
         const existingConfig = await getWelcomeConfig(client, guildId);
         const mergedConfig = { ...existingConfig, ...config };
         
-        await client.db.set(key, mergedConfig);
+        const saved = await client.db.set(key, mergedConfig);
+        if (!saved) {
+            logger.error(`Database rejected welcome config save for guild ${guildId}`);
+            return false;
+        }
         return true;
     } catch (error) {
         logger.error(`Error saving welcome config for guild ${guildId}:`, error);
@@ -426,7 +431,10 @@ export async function updateWelcomeConfig(client, guildId, updates) {
         const currentConfig = await getWelcomeConfig(client, guildId);
         const updatedConfig = { ...currentConfig, ...updates };
         
-        await saveWelcomeConfig(client, guildId, updatedConfig);
+        const saved = await saveWelcomeConfig(client, guildId, updatedConfig);
+        if (!saved) {
+            throw new Error(`Failed to persist welcome configuration for guild ${guildId}`);
+        }
         return updatedConfig;
     } catch (error) {
         logger.error(`Error updating welcome config for guild ${guildId}:`, error);

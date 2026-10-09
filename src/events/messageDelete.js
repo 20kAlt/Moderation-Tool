@@ -43,25 +43,36 @@ export default {
         logger.warn(`Failed to clean up reaction role data for deleted message ${message.id}:`, reactionRoleCleanupError);
       }
 
-      if (message.author?.bot) return;
-
+      const deletedAt = new Date();
       const metaLines = [
         formatLogLine('Channel', message.channel ? `${message.channel.name} ${message.channel.toString()}` : 'Unknown'),
         formatLogLine('Message ID', `\`${message.id}\``),
-        formatLogLine('Message author', message.author ? message.author.toString() : 'Unknown'),
+        formatLogLine(
+          'Message author',
+          message.author
+            ? `${message.author.toString()} (${message.author.tag || message.author.username || message.author.id})`
+            : 'Unknown (message was not cached)',
+        ),
         formatLogLine('Message created', `<t:${Math.floor(message.createdTimestamp / 1000)}:R>`),
+        formatLogLine('Deleted at', `<t:${Math.floor(deletedAt.getTime() / 1000)}:F> (<t:${Math.floor(deletedAt.getTime() / 1000)}:R>)`),
       ];
 
-      let messageBody = null;
-      if (message.content) {
-        messageBody = message.content.length > MAX_LOGGED_MESSAGE_CONTENT_LENGTH
-          ? `${message.content.substring(0, MAX_LOGGED_MESSAGE_CONTENT_LENGTH - 3)}...`
-          : message.content;
-      }
-
-      if (message.attachments.size > 0) {
-        metaLines.push(formatLogLine('Attachments', String(message.attachments.size)));
-      }
+      const messageBody = (message.content || '').length > MAX_LOGGED_MESSAGE_CONTENT_LENGTH
+        ? `${message.content.substring(0, MAX_LOGGED_MESSAGE_CONTENT_LENGTH - 3)}...`
+        : message.content || '*(empty message)*';
+      const attachments = [...(message.attachments?.values?.() || [])]
+        .map((attachment) => `[${attachment.name || 'Attachment'}](${attachment.url})`)
+        .join('\n');
+      const embeddedLinks = (message.embeds || [])
+        .map((embed) => embed.url || embed.title)
+        .filter(Boolean)
+        .map((urlOrTitle) => `• ${urlOrTitle}`)
+        .join('\n');
+      const sections = [
+        { title: 'Message', body: messageBody },
+        attachments ? { title: 'Attachments', body: attachments } : null,
+        embeddedLinks ? { title: 'Embeds / Links', body: embeddedLinks } : null,
+      ].filter(Boolean);
 
       await logEvent({
         client: message.client,
@@ -71,7 +82,10 @@ export default {
           title: 'Message deleted',
           lines: metaLines,
           quoted: true,
-          section: messageBody ? { title: 'Message', body: messageBody || '*(empty message)*' } : null,
+          section: {
+            title: 'Deleted message details',
+            body: sections.map((section) => `**${section.title}**\n${section.body}`).join('\n\n'),
+          },
           userId: message.author?.id,
           channelId: message.channel.id,
         }

@@ -43,6 +43,7 @@ Moderation Tool offers a complete suite of tools for Discord server management a
 - **Claim & Priority** - Staff ticket management
 - **Ticket Limits** - Prevent spam
 - **Transcript System** - Save ticket history
+- **Ticket Merge** - Merge a member's open tickets while keeping the source as a closed archive
 
 ### Server Stats
 - **Member Counter** - Live member count channels
@@ -81,6 +82,7 @@ Moderation Tool offers a complete suite of tools for Discord server management a
 - **Welcome Messages** - Greet new members
 - **Auto Roles** - Assign roles on join
 - **Custom Embeds** - Personalized messages
+- **Welcome & Goodbye Setup** - Use `/welcome dashboard` or `/goodbye dashboard` for the shared settings menu
   
 ### Music
 - **24/7 Mode** - Play music 24/7
@@ -247,6 +249,10 @@ Notes:
 > migration step — just deploy/restart. To disable auto-migration set
 > `AUTO_MIGRATE=false`. You can still run a manual key migration locally with
 > `node scripts/migrate-keys.js --dry-run` (preview) or `node scripts/migrate-keys.js`.
+>
+> PostgreSQL is required for ticket numbers to remain permanent across restarts.
+> In degraded in-memory mode, ticket creation is stopped rather than issuing
+> numbers that would reset when the bot restarts.
 <a name="bot-intents"></a>
 
 ## Required Bot Intents

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { PostgreSQLDatabase } from '../src/utils/postgresDatabase.js';
-import { incrementTicketCounter } from '../src/utils/database/tickets.js';
+import { getHighestTicketNumber, incrementTicketCounter } from '../src/utils/database/tickets.js';
 import { db } from '../src/utils/database/wrapper.js';
 import { MemoryStorage } from '../src/utils/memoryStorage.js';
 import { getTicketCounterKey } from '../src/utils/database/keys.js';
@@ -71,6 +71,50 @@ test('ticket counter helper uses the guild key, preserves the high-water mark, a
       throw new Error('database write failed');
     };
     await assert.rejects(incrementTicketCounter('guild-three'), /database write failed/);
+  } finally {
+    db.initialized = originalState.initialized;
+    db.db = originalState.database;
+    db.useFallback = originalState.useFallback;
+  }
+});
+
+test('ticket counter recovers its high-water mark from stored ticket records', async () => {
+  const originalState = {
+    initialized: db.initialized,
+    database: db.db,
+    useFallback: db.useFallback,
+  };
+  const storage = new MemoryStorage();
+  db.initialized = true;
+  db.useFallback = false;
+  db.db = storage;
+
+  try {
+    await storage.set('guild:guild-one:ticket:channel-one', { ticketNumber: '018' });
+    await storage.set('guild:guild-one:ticket:channel-two', { ticketNumber: '004' });
+    assert.equal(await getHighestTicketNumber('guild-one'), 18);
+  } finally {
+    db.initialized = originalState.initialized;
+    db.db = originalState.database;
+    db.useFallback = originalState.useFallback;
+  }
+});
+
+test('ticket counter refuses to issue non-persistent numbers in degraded mode', async () => {
+  const originalState = {
+    initialized: db.initialized,
+    database: db.db,
+    useFallback: db.useFallback,
+  };
+  db.initialized = true;
+  db.useFallback = true;
+  db.db = new MemoryStorage();
+
+  try {
+    await assert.rejects(
+      incrementTicketCounter('guild-one'),
+      (error) => error.userMessage?.includes('persistent storage is offline'),
+    );
   } finally {
     db.initialized = originalState.initialized;
     db.db = originalState.database;

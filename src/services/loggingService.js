@@ -1,7 +1,7 @@
 // loggingService.js
 
 import { ChannelType } from 'discord.js';
-import { getGuildConfig, updateGuildConfig } from './config/guildConfig.js';
+import { getGuildConfig, patchGuildConfig, updateGuildConfig } from './config/guildConfig.js';
 import { logger } from '../utils/logger.js';
 import {
   appendContentSection,
@@ -33,6 +33,7 @@ const EVENT_TYPES = {
   MESSAGE_DELETE: 'message.delete',
   MESSAGE_EDIT: 'message.edit',
   MESSAGE_BULK_DELETE: 'message.bulkdelete',
+  TICKET_MERGE: 'ticket.merge',
 
   ROLE_CREATE: 'role.create',
   ROLE_DELETE: 'role.delete',
@@ -80,6 +81,7 @@ const EVENT_COLORS = {
   'message.delete': 0x8b0000,
   'message.edit': 0xFFA500,
   'message.bulkdelete': 0xFF0000,
+  'ticket.merge': 0x5865F2,
   'role.create': 0x2ecc71,
   'role.delete': 0xe74c3c,
   'role.update': 0x3498db,
@@ -120,6 +122,7 @@ const EVENT_ICONS = {
   'message.delete': '❌',
   'message.edit': '✏️',
   'message.bulkdelete': '🗑️',
+  'ticket.merge': '🔀',
   'role.create': '➕',
   'role.delete': '➖',
   'role.update': '🔄',
@@ -399,20 +402,16 @@ export async function setLogChannel(client, guildId, destination, channelId) {
 
   try {
     const config = await getGuildConfig(client, guildId);
-    const logging = {
-      ...config.logging,
-      channels: { ...(config.logging?.channels || {}), [destination]: channelId },
-    };
-
-    if (channelId) {
-      logging.enabled = true;
-    }
-
-    await updateGuildConfig(client, guildId, { logging });
+    await patchGuildConfig(client, guildId, {
+      logging: {
+        enabled: channelId ? true : config.logging?.enabled ?? false,
+        channels: { [destination]: channelId },
+      },
+    });
     return true;
   } catch (error) {
     logger.error('Error setting log channel:', error);
-    return false;
+    throw error;
   }
 }
 

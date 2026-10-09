@@ -1,4 +1,5 @@
 import { logger } from '../logger.js';
+import { createError, ErrorTypes } from '../errorHandler.js';
 import { db, getFromDb } from './wrapper.js';
 import { getTicketCounterKey, getTicketKey } from './keys.js';
 
@@ -82,9 +83,28 @@ export async function getTicketCounter(guildId) {
     return Number(counter) || 0;
 }
 
+export async function getHighestTicketNumber(guildId) {
+    const tickets = await listGuildTickets(guildId);
+    return tickets.reduce((highest, ticket) => {
+        const ticketNumber = Number(ticket.ticketNumber);
+        return Number.isSafeInteger(ticketNumber) && ticketNumber > highest
+            ? ticketNumber
+            : highest;
+    }, 0);
+}
+
 export async function incrementTicketCounter(guildId, minimumCounter = 0) {
     if (!db.initialized) {
         await db.initialize();
+    }
+
+    if (db.isDegraded()) {
+        throw createError(
+            'Persistent ticket numbering is unavailable',
+            ErrorTypes.DATABASE,
+            'Ticket numbers cannot be assigned safely while persistent storage is offline. Please contact an administrator and try again once the database is restored.',
+            { guildId, errorCode: 'TICKET_COUNTER_PERSISTENCE_REQUIRED', expected: true },
+        );
     }
 
     const key = getTicketCounterKey(guildId);

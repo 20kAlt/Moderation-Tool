@@ -26,7 +26,10 @@ export default {
       const disable = interaction.options.getBoolean('disable') ?? false;
 
       if (disable) {
-        await setLogChannel(client, interaction.guildId, destination, null);
+        const saved = await setLogChannel(client, interaction.guildId, destination, null);
+        if (!saved) {
+          throw new Error(`Could not clear the ${destination} logging channel`);
+        }
         return InteractionHelper.safeEditReply(interaction, {
           embeds: [successEmbed(
             'Channel Cleared',
@@ -44,7 +47,10 @@ export default {
         return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: `I need **View Channel**, **Send Messages**, and **Embed Links** in ${channel}.` });
       }
 
-      await setLogChannel(client, interaction.guildId, destination, channel.id);
+      const saved = await setLogChannel(client, interaction.guildId, destination, channel.id);
+      if (!saved) {
+        throw new Error(`Could not save the ${destination} logging channel`);
+      }
 
       return InteractionHelper.safeEditReply(interaction, {
         embeds: [successEmbed(

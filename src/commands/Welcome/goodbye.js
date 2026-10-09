@@ -5,6 +5,7 @@ import { formatWelcomeMessage, truncateForEmbedField } from '../../utils/welcome
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
+import greetDashboard from './modules/greet_dashboard.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -31,10 +32,27 @@ export default {
                 .addBooleanOption(option =>
                     option.setName('ping')
                         .setDescription('Whether to ping the user in the goodbye message')
-                        .setRequired(false))),
+                        .setRequired(false)))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('dashboard')
+                .setDescription('Open the welcome and goodbye configuration menu')),
+
+    prefixFallbackSubcommands: ['setup'],
+
+    async prefixFallback(interaction, config, client) {
+        if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
+            return await replyUserError(interaction, {
+                type: ErrorTypes.PERMISSION,
+                message: 'You need the **Manage Server** permission to use `?goodbye`.',
+            });
+        }
+
+        return await greetDashboard.execute(interaction, config, client);
+    },
 
     async execute(interaction) {
-        const deferSuccess = await InteractionHelper.safeDefer(interaction);
+        const deferSuccess = await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
         if (!deferSuccess) {
             logger.warn(`Goodbye interaction defer failed`, {
                 userId: interaction.user.id,
@@ -51,6 +69,10 @@ export default {
         }
 
         const subcommand = options.getSubcommand();
+
+        if (subcommand === 'dashboard') {
+            return await greetDashboard.execute(interaction, undefined, client);
+        }
 
         if (subcommand === 'setup') {
             const channel = options.getChannel('channel');

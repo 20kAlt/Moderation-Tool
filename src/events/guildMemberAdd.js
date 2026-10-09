@@ -8,6 +8,7 @@ import { getServerCounters, updateCounter } from '../services/serverstatsService
 import { setBirthday as dbSetBirthday } from '../utils/database.js';
 import { logger } from '../utils/logger.js';
 import { evaluateRaidProtection } from '../services/protectionService.js';
+import { assignAutoRole } from '../services/autoRoleService.js';
 
 export default {
   name: Events.GuildMemberAdd,
@@ -144,19 +145,14 @@ export default {
             
             if (delay > 0) {
                 const timeout = setTimeout(async () => {
-                    const role = guild.roles.cache.get(singleRoleId);
-                    if (role) {
-                        await assignRoleSafely(member, role);
-                    }
+                    const currentMember = await guild.members.fetch(member.id).catch(() => null);
+                    if (currentMember) await assignAutoRole(currentMember, singleRoleId);
                 }, delay * 1000);
                 if (typeof timeout.unref === 'function') {
                     timeout.unref();
                 }
             } else {
-                const role = guild.roles.cache.get(singleRoleId);
-                if (role) {
-                    await assignRoleSafely(member, role);
-                }
+                await assignAutoRole(member, singleRoleId);
             }
         }
         
@@ -246,13 +242,5 @@ async function handleVerification(member, guild, verificationConfig, client) {
             userTag: member.user.tag,
             error: error.message
         });
-    }
-}
-
-async function assignRoleSafely(member, role) {
-    try {
-        await member.roles.add(role);
-    } catch (error) {
-        logger.warn(`Failed to assign role ${role.id} to member ${member.id}:`, error);
     }
 }

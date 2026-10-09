@@ -5,6 +5,7 @@ import { formatWelcomeMessage, truncateForEmbedField } from '../../utils/welcome
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
+import greetDashboard from './modules/greet_dashboard.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -31,7 +32,11 @@ export default {
                 .addBooleanOption(option =>
                     option.setName('ping')
                         .setDescription('Whether to ping the user in the welcome message')
-                        .setRequired(false))),
+                        .setRequired(false)))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('dashboard')
+                .setDescription('Open the welcome and goodbye configuration menu')),
 
     prefixFallbackSubcommands: ['setup'],
 
@@ -46,9 +51,9 @@ export default {
         return await greetDashboard.execute(interaction, config, client);
     },
 
-    async execute(interaction) {
+    async execute(interaction, config, client) {
         try {
-            const deferSuccess = await InteractionHelper.safeDefer(interaction);
+            const deferSuccess = await InteractionHelper.safeDefer(interaction, { flags: MessageFlags.Ephemeral });
             if (!deferSuccess) {
                 logger.warn(`Welcome interaction defer failed`, {
                     userId: interaction.user.id,
@@ -62,13 +67,17 @@ export default {
             return;
         }
 
-        const { options, guild, client } = interaction;
+        const { options, guild } = interaction;
 
         if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
             return await replyUserError(interaction, { type: ErrorTypes.PERMISSION, message: 'You need the **Manage Server** permission to use `/welcome`.' });
         }
 
         const subcommand = options.getSubcommand();
+
+        if (subcommand === 'dashboard') {
+            return await greetDashboard.execute(interaction, config, client);
+        }
 
         if (subcommand === 'setup') {
             const channel = options.getChannel('channel');
