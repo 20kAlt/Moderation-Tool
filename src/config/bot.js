@@ -37,7 +37,7 @@ export const botConfig = {
     enabled: process.env.ANTI_NUKE_ENABLED !== "false",
     allowedBotIds: process.env.ANTI_NUKE_ALLOWED_BOT_IDS?.split(",").map((id) => id.trim()).filter(Boolean) || [],
     suspiciousNameTerms: ["nuke", "nuker", "raid", "server wipe", "server-wipe", "massban", "mass ban"],
-    blockDangerousPermissions: true,
+    blockDangerousPermissions: true, // keep true 
   },
 
   // =========================
@@ -62,7 +62,7 @@ export const botConfig = {
 
     // Default command prefix for text-based commands (e.g., "?" for "?ping").
     // Supports both slash commands and prefix commands.
-    prefix: "?",
+    prefix: "?", // prefix of the bot 
   },
 
   // =========================

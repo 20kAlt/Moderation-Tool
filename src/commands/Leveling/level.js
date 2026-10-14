@@ -106,6 +106,26 @@ export default {
             const existingConfig = await getLevelingConfig(client, interaction.guildId);
 
             if (existingConfig.configured) {
+                if (!existingConfig.enabled) {
+                    await saveLevelingConfig(client, interaction.guildId, {
+                        ...existingConfig,
+                        enabled: true,
+                    });
+
+                    return await InteractionHelper.safeEditReply(interaction, {
+                        embeds: [
+                            createEmbed({
+                                title: 'Leveling System Enabled',
+                                description:
+                                    `The leveling system is now **enabled** again.\n\n` +
+                                    `**Level-up Channel:** ${existingConfig.levelUpChannel ? `<#${existingConfig.levelUpChannel}>` : '`Not set`'}\n\n` +
+                                    `Your existing leveling settings have been preserved.`,
+                                color: 'success',
+                            }),
+                        ],
+                    });
+                }
+
                 return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `The leveling system is already set up on this server (level-up notifications go to <#${existingConfig.levelUpChannel}>).\n\nUse \`/level dashboard\` to adjust any settings.` });
             }
 

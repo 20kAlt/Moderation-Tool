@@ -113,7 +113,7 @@ function buildSelectMenu(guildId) {
 
 function buildButtonRow(cfg, guildId, disabled = false) {
     const announceOn = cfg.announceLevelUp !== false;
-    const systemOn = cfg.enabled !== false;
+    const systemOn = cfg.enabled === true;
     return new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId(`level_cfg_toggle_announce_${guildId}`)
@@ -213,7 +213,7 @@ export default {
                             flags: MessageFlags.Ephemeral,
                         });
                     } else {
-                        const wasEnabled = cfg.enabled !== false;
+                        const wasEnabled = cfg.enabled === true;
                         cfg.enabled = !wasEnabled;
                         await saveLevelingConfig(client, guildId, cfg);
                         await btnInteraction.followUp({
