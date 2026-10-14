@@ -202,6 +202,18 @@ export function normalizeGuildConfig(raw, defaults = {}) {
   const base = typeof raw === 'object' && raw !== null ? raw : {};
   const merged = { ...defaults, ...base };
 
+  if (
+    base.verification?.enabled === undefined &&
+    base.verification?.channelId &&
+    base.verification?.roleId
+  ) {
+    merged.verification = {
+      ...merged.verification,
+      ...base.verification,
+      enabled: true,
+    };
+  }
+
   merged.logging = migrateLoggingConfig(merged.logging, {
     logChannelId: merged.logChannelId,
     reportChannelId: merged.reportChannelId,

@@ -12,6 +12,22 @@ const XP_MULTIPLIER = 1.5;
 const MAX_LEVEL = 1000;
 const MIN_LEVEL = 0;
 
+function getDefaultLevelingConfig() {
+  return {
+    enabled: false,
+    xpPerMessage: { min: 15, max: 25 },
+    xpCooldown: 20,
+    levelUpMessage: '{user} has leveled up to level {level}!',
+    levelUpChannel: null,
+    ignoredChannels: [],
+    ignoredRoles: [],
+    blacklistedUsers: [],
+    roleRewards: {},
+    announceLevelUp: true,
+    xpMultiplier: 1
+  };
+}
+
 export function getXpForLevel(level) {
   if (!Number.isInteger(level) || level < 0 || level > MAX_LEVEL) {
     throw new ModerationToolError(
@@ -150,34 +166,21 @@ export function createLeaderboardEmbed(leaderboard, guild) {
 export async function getLevelingConfig(client, guildId) {
   try {
     const guildConfig = await getGuildConfig(client, guildId);
-    return guildConfig.leveling || {
-      enabled: false,
-      xpPerMessage: { min: 15, max: 25 },
-      xpCooldown: 20,
-      levelUpMessage: '{user} has leveled up to level {level}!',
-      levelUpChannel: null,
-      ignoredChannels: [],
-      ignoredRoles: [],
-      blacklistedUsers: [],
-      roleRewards: {},
-      announceLevelUp: true,
-      xpMultiplier: 1
+    const config = guildConfig.leveling;
+    if (!config) {
+      return getDefaultLevelingConfig();
+    }
+
+    const isConfigured = config.configured === true || Boolean(config.levelUpChannel);
+    return {
+      ...getDefaultLevelingConfig(),
+      ...config,
+      configured: isConfigured,
+      enabled: config.enabled ?? isConfigured
     };
   } catch (error) {
     logger.error(`Error getting leveling config for guild ${guildId}:`, error);
-    return {
-      enabled: false,
-      xpPerMessage: { min: 15, max: 25 },
-      xpCooldown: 20,
-      levelUpMessage: '{user} has leveled up to level {level}!',
-      levelUpChannel: null,
-      ignoredChannels: [],
-      ignoredRoles: [],
-      blacklistedUsers: [],
-      roleRewards: {},
-      announceLevelUp: true,
-      xpMultiplier: 1
-    };
+    return getDefaultLevelingConfig();
   }
 }
 

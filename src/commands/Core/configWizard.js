@@ -85,7 +85,7 @@ function buildDashboardEmbed(config, guild) {
             },
             {
                 name: '🛡️ Protection',
-                value: `Enabled: **${config.protection?.enabled ? 'Yes' : 'No'}**\nAlert: ${formatChannelMention(guild, config.protection?.alertChannelId)}\nRaid: **${config.protection?.raid?.joinThreshold ?? 8} / ${config.protection?.raid?.windowSeconds ?? 10}s**\nAnti-nuke: **${config.protection?.antiNuke?.actionThreshold ?? 3} / ${config.protection?.antiNuke?.windowSeconds ?? 10}s**`,
+                value: `Enabled: **${config.protection?.enabled ? 'Yes' : 'No'}**\nAlert: ${formatChannelMention(guild, config.protection?.alertChannelId)}\nRaid: **${config.protection?.raid?.joinThreshold ?? 8} / ${config.protection?.raid?.windowSeconds ?? 10}s**\nAnti-nuke: **${config.protection?.enabled && config.protection?.antiNuke?.enabled !== false ? 'Active' : 'Inactive'}** (switch: ${config.protection?.antiNuke?.enabled === false ? 'Off' : 'On'}) · ${config.protection?.antiNuke?.actionThreshold ?? 3} / ${config.protection?.antiNuke?.windowSeconds ?? 10}s`,
                 inline: false,
             },
             {
@@ -135,6 +135,11 @@ function buildSettingsSelect(guildId) {
                     .setDescription('Raid and anti-nuke server protection')
                     .setValue('protectionEnabled')
                     .setEmoji('🛡️'),
+                new StringSelectMenuOptionBuilder()
+                    .setLabel('Anti-Nuke')
+                    .setDescription('Enable or disable audit-log anti-nuke protection')
+                    .setValue('antiNukeEnabled')
+                    .setEmoji('🚨'),
                 new StringSelectMenuOptionBuilder()
                     .setLabel('Protection Alert Channel')
                     .setDescription('Where raid and nuke alerts are sent')
@@ -243,26 +248,35 @@ async function showSettingModal(selectInteraction, guildId, setting) {
         'antiNukeTimeoutMinutes',
     ]);
 
-    if (setting === 'protectionEnabled' || numericSettings.has(setting)) {
+    const booleanSettings = new Set(['protectionEnabled', 'antiNukeEnabled']);
+    if (booleanSettings.has(setting) || numericSettings.has(setting)) {
         const modal = new ModalBuilder()
             .setCustomId(modalCustomId)
             .setTitle(
-                setting === 'protectionEnabled'
-                    ? '🛡️ Toggle Protection'
+                booleanSettings.has(setting)
+                    ? setting === 'antiNukeEnabled' ? '🚨 Toggle Anti-Nuke' : '🛡️ Toggle Protection'
                     : '⚙️ Update Protection Setting'
             );
 
         const input = new TextInputBuilder()
             .setCustomId(setting)
             .setStyle(TextInputStyle.Short)
-            .setPlaceholder(setting === 'protectionEnabled' ? 'true or false' : 'Enter a number')
+            .setPlaceholder(booleanSettings.has(setting) ? 'true or false' : 'Enter a number')
             .setRequired(true)
             .setMinLength(1)
-            .setMaxLength(setting === 'protectionEnabled' ? 5 : 4);
+            .setMaxLength(booleanSettings.has(setting) ? 5 : 4);
 
         const label = new LabelBuilder()
-            .setLabel(setting === 'protectionEnabled' ? 'Enable Protection' : 'Value')
-            .setDescription(setting === 'protectionEnabled' ? 'Use true to enable server protection' : 'Set the numeric value for this protection setting')
+            .setLabel(
+                setting === 'protectionEnabled'
+                    ? 'Enable Protection'
+                    : setting === 'antiNukeEnabled' ? 'Enable Anti-Nuke' : 'Value'
+            )
+            .setDescription(
+                booleanSettings.has(setting)
+                    ? `Use true or false to ${setting === 'antiNukeEnabled' ? 'enable audit-log anti-nuke protection' : 'enable server protection'}`
+                    : 'Set the numeric value for this protection setting'
+            )
             .setTextInputComponent(input);
 
         modal.addLabelComponents(label);
@@ -298,10 +312,10 @@ function resolveSettingModalValue(setting, submitted) {
         return channelId;
     }
 
-    if (setting === 'protectionEnabled') {
+    if (setting === 'protectionEnabled' || setting === 'antiNukeEnabled') {
         const value = submitted.fields.getTextInputValue(setting)?.trim().toLowerCase();
         if (value !== 'true' && value !== 'false') {
-            throw new Error('Protection must be set to true or false.');
+            throw new Error('This setting must be set to true or false.');
         }
         return value === 'true';
     }
@@ -341,6 +355,10 @@ function buildSettingSuccessMessage(setting, value, guild) {
 
     if (setting === 'protectionEnabled') {
         return `Protection is now ${value ? 'enabled' : 'disabled'}.`;
+    }
+
+    if (setting === 'antiNukeEnabled') {
+        return `Audit-log anti-nuke protection is now ${value ? 'enabled' : 'disabled'}.`;
     }
 
     if (setting === 'raidJoinThreshold') {
@@ -389,6 +407,8 @@ async function handleSettingModalSubmit(selectInteraction, rootInteraction, sett
 
         if (setting === 'protectionEnabled') {
             nextProtection.enabled = value;
+        } else if (setting === 'antiNukeEnabled') {
+            nextProtection.antiNuke = { ...nextProtection.antiNuke, enabled: value };
         } else if (setting === 'protectionAlertChannel') {
             nextProtection.alertChannelId = value;
         } else if (setting === 'raidJoinThreshold') {
@@ -415,7 +435,14 @@ async function handleSettingModalSubmit(selectInteraction, rootInteraction, sett
         await patchGuildConfig(client, guildId, { protection: nextProtection });
 
         await submitted.reply({
-            embeds: [successEmbed('Configuration Updated', buildSettingSuccessMessage(setting, value, submitted.guild))],
+            embeds: [
+                successEmbed(
+                    'Configuration Updated',
+                    setting === 'antiNukeEnabled' && value && !nextProtection.enabled
+                        ? 'Audit-log anti-nuke protection is switched on, but it will not be active until overall Protection is enabled.'
+                        : buildSettingSuccessMessage(setting, value, submitted.guild),
+                ),
+            ],
             flags: MessageFlags.Ephemeral,
         });
 
