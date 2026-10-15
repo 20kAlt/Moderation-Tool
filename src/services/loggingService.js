@@ -251,6 +251,13 @@ export async function logEvent({
       return null;
     }
 
+    if (
+      [EVENT_TYPES.MESSAGE_DELETE, EVENT_TYPES.MESSAGE_EDIT].includes(eventType) &&
+      data?.channelId === logChannelId
+    ) {
+      return null;
+    }
+
     const channel = guild.channels.cache.get(logChannelId) ||
       await guild.channels.fetch(logChannelId).catch(() => null);
 

@@ -26,6 +26,7 @@ export default {
         }
       }
       if (!currentMessage.guild) return;
+      if (currentMessage.author?.bot) return;
 
       const cachedSnapshot = getMessageSnapshot(currentMessage.id);
       const oldSnapshot = cachedSnapshot || createMessageSnapshot(oldMessage);

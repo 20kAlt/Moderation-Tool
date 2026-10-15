@@ -18,6 +18,7 @@ export default {
   async execute(message) {
     try {
       if (!message.guild) return;
+      if (message.author?.bot) return;
 
       const snapshot = getMessageSnapshot(message.id);
       removeMessageSnapshot(message.id);

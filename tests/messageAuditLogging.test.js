@@ -35,13 +35,22 @@ function createLoggingContext() {
       return message;
     },
   };
+  const sourceChannel = {
+    ...channel,
+    id: 'conversation-channel',
+    name: 'conversation',
+    toString: () => '<#conversation-channel>',
+  };
   const guild = {
     id: '12345678901234567',
     name: 'Test Guild',
     iconURL: () => null,
     channels: {
-      cache: new Map([[channel.id, channel]]),
-      fetch: async () => channel,
+      cache: new Map([
+        [channel.id, channel],
+        [sourceChannel.id, sourceChannel],
+      ]),
+      fetch: async (channelId) => channelId === sourceChannel.id ? sourceChannel : channel,
     },
     members: { me: {} },
   };
@@ -54,6 +63,7 @@ function createLoggingContext() {
     originalState,
     sentMessages,
     channel,
+    sourceChannel,
     guild,
     client,
     async enableLogging() {
@@ -100,7 +110,7 @@ test('deleted messages are logged with their cached content and attachments', as
       content: '',
       guild: context.guild,
       client: context.client,
-      channel: context.channel,
+      channel: context.sourceChannel,
       author: null,
       createdTimestamp: 1700000000000,
       attachments: new Map(),
@@ -151,7 +161,7 @@ test('edited messages log before and after content and attachment changes', asyn
         id: messageId,
         guild: context.guild,
         client: context.client,
-        channel: context.channel,
+        channel: context.sourceChannel,
         content: 'after edit',
         author,
         createdTimestamp,
@@ -172,6 +182,98 @@ test('edited messages log before and after content and attachment changes', asyn
     assert.match(loggedContent, /new\.png/);
     assert.match(loggedContent, /Old field: Old value/);
     assert.match(loggedContent, /New field: New value/);
+  } finally {
+    context.restore();
+  }
+});
+
+test('deleted bot messages are not copied back into the audit channel', async () => {
+  const context = createLoggingContext();
+  await context.enableLogging();
+
+  try {
+    await messageDelete.execute({
+      id: 'bot-message',
+      partial: false,
+      guild: context.guild,
+      client: context.client,
+      channel: context.channel,
+      author: { id: 'bot-user', bot: true },
+      content: 'Previously logged event',
+      createdTimestamp: Date.now(),
+      attachments: new Map(),
+      embeds: [],
+    });
+
+    assert.equal(context.sentMessages.length, 0);
+  } finally {
+    context.restore();
+  }
+});
+
+test('deleting messages inside the audit channel does not create more audit entries', async () => {
+  const context = createLoggingContext();
+  await context.enableLogging();
+
+  try {
+    await messageDelete.execute({
+      id: '456789012345678901',
+      partial: false,
+      guild: context.guild,
+      client: context.client,
+      channel: context.channel,
+      author: { id: 'human-user', bot: false, tag: 'human#0001', toString: () => '<@human-user>' },
+      content: 'Message deleted from audit channel',
+      createdTimestamp: Date.now(),
+      attachments: new Map(),
+      embeds: [],
+    });
+
+    assert.equal(context.sentMessages.length, 0);
+  } finally {
+    context.restore();
+  }
+});
+
+test('edits to messages inside the audit channel do not create more audit entries', async () => {
+  const context = createLoggingContext();
+  await context.enableLogging();
+  const author = {
+    id: '23456789012345678',
+    tag: 'human#0001',
+    bot: false,
+    toString: () => '<@23456789012345678>',
+  };
+
+  try {
+    await messageUpdate.execute(
+      {
+        id: '456789012345678902',
+        partial: false,
+        guild: context.guild,
+        client: context.client,
+        channel: context.channel,
+        content: 'Before edit',
+        author,
+        createdTimestamp: Date.now(),
+        attachments: new Map(),
+        embeds: [],
+      },
+      {
+        id: '456789012345678902',
+        partial: false,
+        guild: context.guild,
+        client: context.client,
+        channel: context.channel,
+        content: 'After edit',
+        author,
+        createdTimestamp: Date.now(),
+        attachments: new Map(),
+        embeds: [],
+      },
+    );
+
+    assert.equal(context.sentMessages.length, 0);
   } finally {
     context.restore();
   }
