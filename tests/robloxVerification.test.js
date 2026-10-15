@@ -147,3 +147,69 @@ test('direct verification cannot bypass Roblox linking mode', async () => {
         (error) => error.userMessage?.includes('requires Roblox account linking'),
     );
 });
+
+test('verification adds the verified role and removes the configured unverified role', async () => {
+    for (const { mode, source } of [
+        { mode: 'standard', source: 'button_click' },
+        { mode: 'roblox', source: 'roblox_oauth' },
+    ]) {
+        const verifiedRole = { id: `verified-${mode}`, name: 'Verified', position: 2 };
+        const unverifiedRole = { id: `unverified-${mode}`, name: 'Unverified', position: 1 };
+        const memberRoleIds = new Set([unverifiedRole.id]);
+        const roleChanges = [];
+        const member = {
+            id: `member-${mode}`,
+            roles: {
+                cache: { has: (roleId) => memberRoleIds.has(roleId) },
+                add: async (roleId) => {
+                    roleChanges.push(['add', roleId]);
+                    memberRoleIds.add(roleId);
+                },
+                remove: async (roleId) => {
+                    roleChanges.push(['remove', roleId]);
+                    memberRoleIds.delete(roleId);
+                },
+            },
+        };
+        const botMember = {
+            permissions: { has: () => true },
+            roles: { highest: { position: 10 } },
+        };
+        const guild = {
+            id: `guild-${mode}`,
+            members: {
+                me: botMember,
+                fetch: async () => member,
+            },
+            roles: {
+                cache: new Map([
+                    [verifiedRole.id, verifiedRole],
+                    [unverifiedRole.id, unverifiedRole],
+                ]),
+            },
+        };
+        const client = {
+            guilds: { cache: new Map([[guild.id, guild]]) },
+            db: {
+                get: async () => ({
+                    verification: {
+                        enabled: true,
+                        mode,
+                        roleId: verifiedRole.id,
+                        unverifiedRoleId: unverifiedRole.id,
+                    },
+                }),
+            },
+        };
+
+        const result = await verifyUser(client, guild.id, member.id, { source });
+
+        assert.equal(result.status, 'verified');
+        assert.deepEqual(roleChanges, [
+            ['add', verifiedRole.id],
+            ['remove', unverifiedRole.id],
+        ]);
+        assert.equal(memberRoleIds.has(verifiedRole.id), true);
+        assert.equal(memberRoleIds.has(unverifiedRole.id), false);
+    }
+});

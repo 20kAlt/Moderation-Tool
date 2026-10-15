@@ -88,7 +88,24 @@ export async function verifyUser(client, guildId, userId, options = {}) {
             );
         }
 
-        if (member.roles.cache.has(verifiedRole.id)) {
+        const alreadyVerified = member.roles.cache.has(verifiedRole.id);
+        const unverifiedRoleId = await validateUnverifiedRoleRemoval(
+            guild,
+            member,
+            guildConfig.verification,
+        );
+        if (!alreadyVerified) {
+            await checkVerificationCooldown(userId, guildId, defaultCooldownMs);
+            await trackVerificationAttempt(userId, guildId, defaultMaxAttempts, defaultAttemptWindowMs);
+
+            await member.roles.add(verifiedRole.id, `User verified (${source})`);
+        }
+
+        if (unverifiedRoleId) {
+            await member.roles.remove(unverifiedRoleId, `User verified (${source})`);
+        }
+
+        if (alreadyVerified) {
             return {
                 status: 'already_verified',
                 userId,
@@ -96,11 +113,6 @@ export async function verifyUser(client, guildId, userId, options = {}) {
                 roleName: verifiedRole.name,
             };
         }
-
-        await checkVerificationCooldown(userId, guildId, defaultCooldownMs);
-        await trackVerificationAttempt(userId, guildId, defaultMaxAttempts, defaultAttemptWindowMs);
-
-        await member.roles.add(verifiedRole.id, `User verified (${source})`);
 
         logVerificationAction(client, guildId, userId, 'verified', {
             source,
@@ -236,7 +248,15 @@ export async function autoVerifyOnJoin(client, guild, member, verificationConfig
             };
         }
 
+        const unverifiedRoleId = await validateUnverifiedRoleRemoval(
+            guild,
+            member,
+            effectiveVerificationConfig,
+        );
         if (member.roles.cache.has(verifiedRole.id)) {
+            if (unverifiedRoleId) {
+                await member.roles.remove(unverifiedRoleId, 'Member auto-verified on join');
+            }
             return {
                 autoVerified: false,
                 reason: 'already_verified',
@@ -245,6 +265,9 @@ export async function autoVerifyOnJoin(client, guild, member, verificationConfig
         }
 
         await member.roles.add(verifiedRole.id, 'Auto-verified on join');
+        if (unverifiedRoleId) {
+            await member.roles.remove(unverifiedRoleId, 'Member auto-verified on join');
+        }
 
         logVerificationAction(client, guild.id, member.id, 'auto_verified', {
             criteria: verificationConfig.autoVerify.criteria,
@@ -470,6 +493,34 @@ export async function validateBotCanAssignRole(guild, roleId) {
     }
 
     return true;
+}
+
+async function validateUnverifiedRoleRemoval(guild, member, verificationConfig) {
+    const unverifiedRoleId = verificationConfig.unverifiedRoleId;
+    if (!unverifiedRoleId || unverifiedRoleId === verificationConfig.roleId) return null;
+    if (!member.roles.cache.has(unverifiedRoleId)) return null;
+
+    const unverifiedRole = guild.roles.cache.get(unverifiedRoleId);
+    if (!unverifiedRole) {
+        throw createError(
+            'Unverified role not found',
+            ErrorTypes.CONFIGURATION,
+            'The configured unverified role no longer exists. Update it in `/verification dashboard`.',
+            { guildId: guild.id, roleId: unverifiedRoleId }
+        );
+    }
+
+    const canRemoveRole = await validateBotCanAssignRole(guild, unverifiedRoleId);
+    if (!canRemoveRole) {
+        throw createError(
+            'Bot cannot remove unverified role',
+            ErrorTypes.PERMISSION,
+            "I can't remove the unverified role. Please check my **Manage Roles** permission and role hierarchy.",
+            { guildId: guild.id, roleId: unverifiedRoleId }
+        );
+    }
+
+    return unverifiedRoleId;
 }
 
 function evaluateAutoVerifyCriteria(member, autoVerifyConfig) {

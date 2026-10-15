@@ -62,6 +62,7 @@ function buildDashboardEmbed(cfg, guild, verifiedUserCount = 0, conflictSummary 
             { name: 'Panel Status', value: panelStatusValue, inline: false },
             { name: 'Verification Channel', value: channel, inline: true },
             { name: 'Verified Role', value: role, inline: true },
+            { name: 'Unverified Role', value: cfg.unverifiedRoleId ? `<@&${cfg.unverifiedRoleId}>` : '`Not set`', inline: true },
             { name: 'System Status', value: cfg.enabled !== false ? 'Enabled' : 'Disabled', inline: true },
             { name: 'Verification Mode', value: cfg.mode === 'roblox' ? 'Roblox account linking' : 'Standard', inline: true },
             { name: 'Panel Title', value: `\`${panelTitle}\``, inline: true },
@@ -110,6 +111,11 @@ function buildSelectMenu(guildId) {
                 .setDescription('Set the role assigned when a user verifies')
                 .setValue('role')
                 .setEmoji('🏷️'),
+            new StringSelectMenuOptionBuilder()
+                .setLabel('Change Unverified Role')
+                .setDescription('Choose the role removed after verification')
+                .setValue('unverified_role')
+                .setEmoji('🚫'),
             new StringSelectMenuOptionBuilder()
                 .setLabel('Edit Verification Message')
                 .setDescription('Customise the message shown on the verification panel embed')
@@ -297,6 +303,9 @@ export default {
                             break;
                         case 'role':
                             await handleRole(selectInteraction, interaction, cfg, guildId, client);
+                            break;
+                        case 'unverified_role':
+                            await handleUnverifiedRole(selectInteraction, interaction, cfg, guildId, client);
                             break;
                         case 'message':
                             await handleTextSetting(selectInteraction, interaction, cfg, guildId, client, {
@@ -550,7 +559,7 @@ async function handleRole(selectInteraction, rootInteraction, cfg, guildId, clie
         .setPlaceholder('Select a role...')
         .setMaxValues(1);
 
-    await selectInteraction.followUp({
+    const promptMessage = await selectInteraction.followUp({
         embeds: [
             new EmbedBuilder()
                 .setTitle('Change Verified Role')
@@ -611,6 +620,100 @@ async function handleRole(selectInteraction, rootInteraction, cfg, guildId, clie
             replyUserError(selectInteraction, {
                 type: ErrorTypes.RATE_LIMIT,
                 message: 'No role was selected. The setting was not changed.',
+            }).catch(() => {});
+        }
+    });
+}
+
+async function handleUnverifiedRole(selectInteraction, rootInteraction, cfg, guildId, client) {
+    await selectInteraction.deferUpdate();
+
+    const roleSelect = new RoleSelectMenuBuilder()
+        .setCustomId('verif_cfg_unverified_role_select')
+        .setPlaceholder('Select the role removed after verification...')
+        .setMaxValues(1);
+    const clearButton = new ButtonBuilder()
+        .setCustomId('verif_cfg_unverified_role_clear')
+        .setLabel('Clear Unverified Role')
+        .setStyle(ButtonStyle.Danger);
+
+    await selectInteraction.followUp({
+        embeds: [
+            new EmbedBuilder()
+                .setTitle('Change Unverified Role')
+                .setDescription(
+                    `**Current:** ${cfg.unverifiedRoleId ? `<@&${cfg.unverifiedRoleId}>` : '`Not set`'}\n\nChoose the role to remove after successful verification, or clear the setting.`,
+                )
+                .setColor(getColor('info')),
+        ],
+        components: [
+            new ActionRowBuilder().addComponents(roleSelect),
+            new ActionRowBuilder().addComponents(clearButton),
+        ],
+        flags: MessageFlags.Ephemeral,
+    });
+
+    const collector = rootInteraction.channel.createMessageComponentCollector({
+        filter: (componentInteraction) =>
+            componentInteraction.user.id === selectInteraction.user.id &&
+            componentInteraction.message.id === promptMessage.id &&
+            ['verif_cfg_unverified_role_select', 'verif_cfg_unverified_role_clear']
+                .includes(componentInteraction.customId),
+        time: 60_000,
+        max: 1,
+    });
+
+    collector.on('collect', async (componentInteraction) => {
+        await componentInteraction.deferUpdate();
+
+        if (componentInteraction.customId === 'verif_cfg_unverified_role_clear') {
+            cfg.unverifiedRoleId = null;
+        } else {
+            const role = componentInteraction.roles.first();
+            const guild = rootInteraction.guild;
+            const botMember = guild.members.me;
+
+            if (role.id === guild.id || role.managed || role.id === cfg.roleId) {
+                await replyUserError(componentInteraction, {
+                    type: ErrorTypes.VALIDATION,
+                    message: 'Choose a normal role that is different from the verified role.',
+                });
+                return;
+            }
+
+            if (role.position >= botMember.roles.highest.position) {
+                await replyUserError(componentInteraction, {
+                    type: ErrorTypes.PERMISSION,
+                    message: 'The unverified role must be below my highest role in the server role hierarchy.',
+                });
+                return;
+            }
+
+            cfg.unverifiedRoleId = role.id;
+        }
+
+        const latestConfig = await getGuildConfig(client, guildId);
+        latestConfig.verification = cfg;
+        await setGuildConfig(client, guildId, latestConfig);
+        await componentInteraction.followUp({
+            embeds: [
+                successEmbed(
+                    'Unverified Role Updated',
+                    cfg.unverifiedRoleId
+                        ? `<@&${cfg.unverifiedRoleId}> will be removed when a member verifies.`
+                        : 'No unverified role will be removed.',
+                ),
+            ],
+            flags: MessageFlags.Ephemeral,
+        });
+        await refreshDashboard(rootInteraction, cfg, guildId, client);
+    });
+
+    collector.on('end', (collected, reason) => {
+        if (reason === 'time' && collected.size === 0) {
+            replyUserError(selectInteraction, {
+                type: ErrorTypes.RATE_LIMIT,
+                message: 'No unverified role was selected. The setting was not changed.',
             }).catch(() => {});
         }
     });

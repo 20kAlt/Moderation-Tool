@@ -88,6 +88,7 @@ Moderation Tool offers a complete suite of tools for Discord server management a
 - **Standard Verification** - One-click server verification for communities that do not use Roblox
 - **Roblox Account Linking** - Verify with Roblox's official OAuth sign-in flow (PKCE); the bot never asks for Roblox passwords
 - **Custom Panels** - Configure the verification mode, title, description, button label, and optional image from `/verification dashboard`
+- **Role Swap** - Grant the verified role and remove an optional unverified role when verification succeeds
   
 ### Music
 - **24/7 Mode** - Play music 24/7

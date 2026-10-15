@@ -51,6 +51,7 @@ const VerificationConfigSchema = z
     channelId: z.string().nullable().optional(),
     messageId: z.string().nullable().optional(),
     roleId: z.string().optional(),
+    unverifiedRoleId: z.string().nullable().optional(),
     mode: z.enum(['standard', 'roblox']).default('standard'),
     title: z.string().max(256).optional(),
     message: z.string().optional(),

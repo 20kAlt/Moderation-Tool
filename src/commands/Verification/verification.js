@@ -32,6 +32,12 @@ export default {
                         .setDescription("Role to give to verified users")
                         .setRequired(true)
                 )
+                .addRoleOption(option =>
+                    option
+                        .setName("unverified_role")
+                        .setDescription("Optional role to remove when a member verifies")
+                        .setRequired(false)
+                )
                 .addStringOption(option =>
                     option
                         .setName("message")
@@ -126,6 +132,7 @@ export default {
 async function handleSetup(interaction, guild, client) {
     const verificationChannel = interaction.options.getChannel("verification_channel");
     const verifiedRole = interaction.options.getRole("verified_role");
+    const unverifiedRole = interaction.options.getRole("unverified_role");
     const message = interaction.options.getString("message") || botConfig.verification.defaultMessage;
     const buttonText = interaction.options.getString("button_text") || botConfig.verification.defaultButtonText;
     const mode = interaction.options.getString("mode") || 'standard';
@@ -196,13 +203,37 @@ async function handleSetup(interaction, guild, client) {
         );
     }
 
+    if (unverifiedRole && (unverifiedRole.id === guild.id || unverifiedRole.managed)) {
+        throw createError(
+            'Invalid unverified role selected',
+            ErrorTypes.VALIDATION,
+            'Please choose a normal server role (not @everyone or an integration-managed role) as the unverified role.',
+            { roleId: unverifiedRole.id, managed: unverifiedRole.managed }
+        );
+    }
+
+    if (unverifiedRole?.id === verifiedRole.id) {
+        throw createError(
+            'Verification roles must be different',
+            ErrorTypes.VALIDATION,
+            'Choose different roles for verified and unverified members.',
+            { roleId: verifiedRole.id }
+        );
+    }
+
     const botRole = botMember.roles.highest;
-    if (verifiedRole.position >= botRole.position) {
+    const rolesAboveBot = [verifiedRole, unverifiedRole].filter(
+        (role) => role && role.position >= botRole.position,
+    );
+    if (rolesAboveBot.length > 0) {
         throw createError(
             "Role hierarchy error",
             ErrorTypes.PERMISSION,
-            "The verified role must be below my highest role in the server role hierarchy.",
-            { rolePosition: verifiedRole.position, botRolePosition: botRole.position }
+            "The verified and unverified roles must both be below my highest role in the server role hierarchy.",
+            {
+                roleIds: rolesAboveBot.map((role) => role.id),
+                botRolePosition: botRole.position,
+            }
         );
     }
 
@@ -246,6 +277,7 @@ async function handleSetup(interaction, guild, client) {
         message: message,
         buttonText,
         imageUrl,
+        unverifiedRoleId: unverifiedRole?.id ?? guildConfig.verification?.unverifiedRoleId ?? null,
         robloxLinks: guildConfig.verification?.robloxLinks || {},
     };
 
@@ -257,6 +289,7 @@ async function handleSetup(interaction, guild, client) {
             [
                 `Channel: ${verificationChannel}`,
                 `Verified Role: ${verifiedRole}`,
+                `Unverified Role: ${unverifiedRole || 'Not configured'}`,
                 `Verification Mode: ${mode === 'roblox' ? 'Roblox account linking' : 'Standard'}`,
                 `Button Text: ${buttonText}`,
                 `Panel Title: ${title}`,
