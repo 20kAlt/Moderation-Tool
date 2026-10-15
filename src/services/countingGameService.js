@@ -4,8 +4,8 @@ const COUNTING_GAME_KEY_PREFIX = 'countingGame:';
 
 const COUNTING_SYSTEMS = {
   decimal: {
-    label: 'Decimal',
-    description: 'Standard 10-number system using 0-9',
+    label: 'Numbers (1, 2, 3...)',
+    description: 'Standard counting using numbers 1, 2, 3, and so on',
     toString: (n) => n.toString(10),
     parse: (value) => {
       if (!/^[0-9]+$/.test(value)) return null;

@@ -18,6 +18,7 @@ import { createEmbed, successEmbed } from '../../utils/embeds.js';
 import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
 import { getGuildConfig, patchGuildConfig } from '../../services/config/guildConfig.js';
 import ConfigService from '../../services/config/configService.js';
+import { resolveLogChannel } from '../../services/loggingService.js';
 import { logger } from '../../utils/logger.js';
 import { botConfig, getCommandPrefix } from '../../config/bot.js';
 
@@ -63,6 +64,13 @@ function getThemeColorLines() {
 }
 
 function buildDashboardEmbed(config, guild) {
+    const protectionAlertChannelId =
+        config.protection?.alertChannelId || resolveLogChannel(config, 'audit');
+    const protectionAlertChannel = formatChannelMention(guild, protectionAlertChannelId);
+    const alertChannelFallback = !config.protection?.alertChannelId && protectionAlertChannelId
+        ? ' (log channel fallback)'
+        : '';
+
     return createEmbed({
         title: '⚙️ Server Configuration',
         description: `Core settings for **${guild.name}**. Select a setting below to edit it.`,
@@ -80,12 +88,12 @@ function buildDashboardEmbed(config, guild) {
             },
             {
                 name: '📋 Log Channel',
-                value: formatChannelMention(guild, config.logging?.channels?.audit),
+                value: formatChannelMention(guild, resolveLogChannel(config, 'audit')),
                 inline: true,
             },
             {
                 name: '🛡️ Protection',
-                value: `Enabled: **${config.protection?.enabled ? 'Yes' : 'No'}**\nAlert: ${formatChannelMention(guild, config.protection?.alertChannelId)}\nRaid: **${config.protection?.raid?.joinThreshold ?? 8} / ${config.protection?.raid?.windowSeconds ?? 10}s**\nAnti-nuke: **${config.protection?.enabled && config.protection?.antiNuke?.enabled !== false ? 'Active' : 'Inactive'}** (switch: ${config.protection?.antiNuke?.enabled === false ? 'Off' : 'On'}) · ${config.protection?.antiNuke?.actionThreshold ?? 3} / ${config.protection?.antiNuke?.windowSeconds ?? 10}s`,
+                value: `Enabled: **${config.protection?.enabled ? 'Yes' : 'No'}**\nAlert: ${protectionAlertChannel}${alertChannelFallback}\nRaid: **${config.protection?.raid?.joinThreshold ?? 8} / ${config.protection?.raid?.windowSeconds ?? 10}s**\nAnti-nuke: **${config.protection?.enabled && config.protection?.antiNuke?.enabled !== false ? 'Active' : 'Inactive'}** (switch: ${config.protection?.antiNuke?.enabled === false ? 'Off' : 'On'}) · ${config.protection?.antiNuke?.actionThreshold ?? 3} / ${config.protection?.antiNuke?.windowSeconds ?? 10}s`,
                 inline: false,
             },
             {

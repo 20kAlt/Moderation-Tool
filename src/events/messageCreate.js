@@ -202,7 +202,7 @@ async function handlePrefixCommand(message, client) {
   }
 }
 
-async function handleCountingGame(message, client) {
+export async function handleCountingGame(message, client) {
   try {
     const config = await getCountingGameConfig(client, message.guild.id);
     if (!config.enabled || !config.channelId || message.channel.id !== config.channelId) {
@@ -231,6 +231,7 @@ async function handleCountingGame(message, client) {
     }
 
     await recordCorrectCount(client, message.guild.id, message.author.id);
+    await message.react('🔥');
     return true;
   } catch (error) {
     logger.error('Error handling counting game:', error);

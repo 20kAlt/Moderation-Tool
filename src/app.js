@@ -30,6 +30,7 @@ class ModerationToolBot extends Client {
         GatewayIntentBits.DirectMessages,
         GatewayIntentBits.GuildVoiceStates,
         GatewayIntentBits.GuildBans,
+        GatewayIntentBits.GuildModeration,
       ],
       partials: [Partials.Channel, Partials.Message],
     });

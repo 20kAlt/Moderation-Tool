@@ -1,13 +1,36 @@
 import { EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 import { getGuildConfig } from './config/guildConfig.js';
+import { resolveLogChannel } from './loggingService.js';
 import { logger } from '../utils/logger.js';
 
 const raidJoinHistory = new Map();
 const antiNukeActionHistory = new Map();
 
-function getAlertChannelForGuild(guild, channelId) {
+async function getAlertChannelForGuild(guild, channelId) {
     if (!guild || !channelId) return null;
-    return guild.channels.cache.get(channelId) ?? null;
+
+    const channel = guild.channels.cache.get(channelId) ||
+        await guild.channels.fetch(channelId).catch((error) => {
+            logger.warn(`Failed to fetch protection alert channel ${channelId} for guild ${guild.id}:`, error);
+            return null;
+        });
+    if (!channel?.isTextBased?.()) {
+        logger.warn(`Invalid protection alert channel ${channelId} for guild ${guild.id}`);
+        return null;
+    }
+
+    const botMember = guild.members.me;
+    const permissions = botMember ? channel.permissionsFor(botMember) : null;
+    if (!permissions?.has([PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks])) {
+        logger.warn(`Missing permissions in protection alert channel ${channelId} for guild ${guild.id}`);
+        return null;
+    }
+
+    return channel;
+}
+
+function getProtectionAlertChannelId(config) {
+    return config?.protection?.alertChannelId || resolveLogChannel(config, 'audit');
 }
 
 function pruneHistory(history, windowMs) {
@@ -42,7 +65,10 @@ export async function evaluateRaidProtection(client, guild, user, configOverride
         return false;
     }
 
-    const alertChannel = getAlertChannelForGuild(guild, protection.alertChannelId);
+    const alertChannel = await getAlertChannelForGuild(
+        guild,
+        getProtectionAlertChannelId(config),
+    );
     if (alertChannel?.isTextBased?.()) {
         const embed = new EmbedBuilder()
             .setColor(0xFEE75C)
@@ -89,7 +115,10 @@ export async function recordAntiNukeAction(client, guild, actorId, actionLabel, 
         return false;
     }
 
-    const alertChannel = getAlertChannelForGuild(guild, protection.alertChannelId);
+    const alertChannel = await getAlertChannelForGuild(
+        guild,
+        getProtectionAlertChannelId(config),
+    );
     const timeoutMinutes = Number(protection.antiNuke.timeoutMinutes ?? 30);
     let timedOut = false;
     const targetMember = await guild.members.fetch(actorId).catch(() => null);

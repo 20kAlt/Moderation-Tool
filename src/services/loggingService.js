@@ -238,7 +238,10 @@ export async function logEvent({
     const channel = guild.channels.cache.get(logChannelId) ||
       await guild.channels.fetch(logChannelId).catch(() => null);
 
-    if (!channel || channel.type !== ChannelType.GuildText) {
+    if (
+      !channel?.isTextBased?.() ||
+      ![ChannelType.GuildText, ChannelType.GuildAnnouncement].includes(channel.type)
+    ) {
       logger.warn(`logEvent: Invalid log channel ${logChannelId} for guild ${guildId}`);
       return null;
     }
