@@ -1,3 +1,5 @@
+import { Events } from 'discord.js';
+import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 import { 
     getJoinToCreateConfig, 
     removeJoinToCreateTrigger,
@@ -10,8 +12,31 @@ import { logger } from '../utils/logger.js';
 import { recordAntiNukeAction } from '../services/protectionService.js';
 
 export default {
-    name: 'channelDelete',
+    name: Events.ChannelDelete,
     async execute(channel, client) {
+        if (channel.guild) {
+            try {
+                await logEvent({
+                    client,
+                    guildId: channel.guild.id,
+                    eventType: EVENT_TYPES.CHANNEL_DELETE,
+                    data: {
+                        title: 'Channel deleted',
+                        lines: [
+                            `**Name:** ${channel.name}`,
+                            `**Type:** ${channel.constructor.name.replace(/Channel$/, '')}`,
+                            `**Channel ID:** \`${channel.id}\``,
+                            channel.parent ? `**Category:** ${channel.parent.name}` : null,
+                        ].filter(Boolean),
+                        channelId: channel.id,
+                    },
+                });
+            } catch (error) {
+                logger.error('Error logging deleted channel:', error);
+            }
+        }
+
+        if (!channel.guild) return;
         
         if (channel.type === 0 && channel.guild) {
             try {

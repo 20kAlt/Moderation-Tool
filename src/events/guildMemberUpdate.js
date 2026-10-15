@@ -10,6 +10,41 @@ export default {
     try {
       if (!newMember.guild) return;
 
+      const addedRoles = newMember.roles.cache.filter((role) => !oldMember.roles.cache.has(role.id));
+      const removedRoles = oldMember.roles.cache.filter((role) => !newMember.roles.cache.has(role.id));
+
+      if (addedRoles.size > 0) {
+        await logEvent({
+          client: newMember.client,
+          guildId: newMember.guild.id,
+          eventType: EVENT_TYPES.MEMBER_ROLE_ADD,
+          data: {
+            title: 'Role added to member',
+            lines: [
+              `**Member:** ${newMember.user} (${newMember.user.tag})`,
+              `**Roles added:** ${[...addedRoles.values()].map((role) => `${role} (\`${role.id}\`)`).join(', ')}`,
+            ],
+            userId: newMember.user.id,
+          },
+        });
+      }
+
+      if (removedRoles.size > 0) {
+        await logEvent({
+          client: newMember.client,
+          guildId: newMember.guild.id,
+          eventType: EVENT_TYPES.MEMBER_ROLE_REMOVE,
+          data: {
+            title: 'Role removed from member',
+            lines: [
+              `**Member:** ${newMember.user} (${newMember.user.tag})`,
+              `**Roles removed:** ${[...removedRoles.values()].map((role) => `**${role.name}** (\`${role.id}\`)`).join(', ')}`,
+            ],
+            userId: newMember.user.id,
+          },
+        });
+      }
+
       if (oldMember.nickname !== newMember.nickname) {
         await logEvent({
           client: newMember.client,
@@ -28,7 +63,6 @@ export default {
           }
         });
 
-        return;
       }
 
     } catch (error) {
