@@ -1,6 +1,6 @@
-import { botConfig, getColor } from '../../config/bot.js';
-import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
-import { createEmbed, infoEmbed, successEmbed } from '../../utils/embeds.js';
+import { botConfig } from '../../config/bot.js';
+import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags } from 'discord.js';
+import { infoEmbed, successEmbed } from '../../utils/embeds.js';
 import { getGuildConfig, setGuildConfig } from '../../services/config/guildConfig.js';
 import { withErrorHandling, createError, ErrorTypes, replyUserError } from '../../utils/errorHandler.js';
 import { removeVerification, verifyUser } from '../../services/verificationService.js';
@@ -8,6 +8,8 @@ import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { getWelcomeConfig } from '../../utils/database.js';
 import verificationDashboard from './modules/verification_dashboard.js';
+import { isRobloxOAuthConfigured } from '../../services/robloxVerificationService.js';
+import { buildVerificationPanelPayload, normalizeVerificationImageUrl } from '../../utils/verificationPanel.js';
 
 export default {
     data: new SlashCommandBuilder()
@@ -42,6 +44,30 @@ export default {
                         .setName("button_text")
                         .setDescription("Text for the verification button")
                         .setMaxLength(80)
+                        .setRequired(false)
+                )
+                .addStringOption(option =>
+                    option
+                        .setName("mode")
+                        .setDescription("Choose regular server verification or Roblox account linking")
+                        .addChoices(
+                            { name: "Standard server verification", value: "standard" },
+                            { name: "Link a Roblox account", value: "roblox" }
+                        )
+                        .setRequired(false)
+                )
+                .addStringOption(option =>
+                    option
+                        .setName("title")
+                        .setDescription("Title shown on the verification panel")
+                        .setMaxLength(256)
+                        .setRequired(false)
+                )
+                .addStringOption(option =>
+                    option
+                        .setName("image_url")
+                        .setDescription("Optional HTTPS image URL shown on the panel")
+                        .setMaxLength(500)
                         .setRequired(false)
                 )
         )
@@ -102,7 +128,19 @@ async function handleSetup(interaction, guild, client) {
     const verifiedRole = interaction.options.getRole("verified_role");
     const message = interaction.options.getString("message") || botConfig.verification.defaultMessage;
     const buttonText = interaction.options.getString("button_text") || botConfig.verification.defaultButtonText;
+    const mode = interaction.options.getString("mode") || 'standard';
+    const title = interaction.options.getString("title") || botConfig.verification.defaultTitle;
+    const imageUrl = normalizeVerificationImageUrl(interaction.options.getString("image_url"));
     const botMember = guild.members.me;
+
+    if (mode === 'roblox' && !isRobloxOAuthConfigured()) {
+        throw createError(
+            'Roblox OAuth is not configured',
+            ErrorTypes.CONFIGURATION,
+            'Roblox verification needs ROBLOX_OAUTH_CLIENT_ID, ROBLOX_OAUTH_CLIENT_SECRET, and ROBLOX_OAUTH_REDIRECT_URI configured by the bot host.',
+            { guildId: guild.id, mode }
+        );
+    }
 
     if (!botMember) {
         throw createError(
@@ -137,6 +175,15 @@ async function handleSetup(interaction, guild, client) {
             ErrorTypes.PERMISSION,
             "I need the 'Manage Roles' permission to give verified roles.",
             { missingPermission: "ManageRoles" }
+        );
+    }
+
+    if (mode === 'roblox' && !botMember.permissions.has(PermissionFlagsBits.ManageNicknames)) {
+        throw createError(
+            'Missing ManageNicknames permission',
+            ErrorTypes.PERMISSION,
+            "I need the 'Manage Nicknames' permission to set verified members' server nicknames to their Roblox display name and username.",
+            { missingPermission: 'ManageNicknames' }
         );
     }
 
@@ -181,32 +228,25 @@ async function handleSetup(interaction, guild, client) {
 
     await InteractionHelper.safeDefer(interaction);
 
-    const verifyEmbed = createEmbed({
-        title: "Server Verification",
-        description: message,
-        color: getColor('success')
-    });
-
-    const verifyButton = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-            .setCustomId("verify_user")
-            .setLabel(buttonText)
-            .setStyle(ButtonStyle.Success)
-            .setEmoji("✅")
-    );
-
-    const verifyMessage = await verificationChannel.send({
-        embeds: [verifyEmbed],
-        components: [verifyButton]
-    });
+    const verifyMessage = await verificationChannel.send(buildVerificationPanelPayload({
+        mode,
+        title,
+        message,
+        buttonText,
+        imageUrl,
+    }));
 
     guildConfig.verification = {
         enabled: true,
+        mode,
         channelId: verificationChannel.id,
         messageId: verifyMessage.id,
         roleId: verifiedRole.id,
+        title,
         message: message,
-        buttonText: buttonText
+        buttonText,
+        imageUrl,
+        robloxLinks: guildConfig.verification?.robloxLinks || {},
     };
 
     await setGuildConfig(client, guild.id, guildConfig);
@@ -217,7 +257,9 @@ async function handleSetup(interaction, guild, client) {
             [
                 `Channel: ${verificationChannel}`,
                 `Verified Role: ${verifiedRole}`,
-                `Button Text: ${buttonText}`
+                `Verification Mode: ${mode === 'roblox' ? 'Roblox account linking' : 'Standard'}`,
+                `Button Text: ${buttonText}`,
+                `Panel Title: ${title}`,
             ].join('\n')
         )]
     });
@@ -225,6 +267,12 @@ async function handleSetup(interaction, guild, client) {
 
 async function handleRemove(interaction, guild, client) {
     const targetUser = interaction.options.getUser("user");
+    const guildConfig = await getGuildConfig(client, guild.id);
+
+    if (guildConfig.verification?.robloxLinks?.[targetUser.id]) {
+        delete guildConfig.verification.robloxLinks[targetUser.id];
+        await setGuildConfig(client, guild.id, guildConfig);
+    }
 
     const result = await removeVerification(client, guild.id, targetUser.id, {
         moderatorId: interaction.user.id,

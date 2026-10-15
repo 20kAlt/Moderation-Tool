@@ -66,6 +66,15 @@ export async function verifyUser(client, guildId, userId, options = {}) {
             );
         }
 
+        if (guildConfig.verification.mode === 'roblox' && source !== 'roblox_oauth') {
+            throw createError(
+                'Roblox account linking is required',
+                ErrorTypes.VALIDATION,
+                'This server requires Roblox account linking. Use the verification panel button to link your Roblox account.',
+                { guildId, userId, source }
+            );
+        }
+
         await validateVerificationSetup(guild, guildConfig.verification);
 
         const verifiedRole = guild.roles.cache.get(guildConfig.verification.roleId);

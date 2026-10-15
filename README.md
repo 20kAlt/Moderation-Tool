@@ -83,6 +83,11 @@ Moderation Tool offers a complete suite of tools for Discord server management a
 - **Auto Roles** - Assign roles on join
 - **Custom Embeds** - Personalized messages
 - **Welcome & Goodbye Setup** - Use `/welcome dashboard` or `/goodbye dashboard` for the shared settings menu
+
+### Verification
+- **Standard Verification** - One-click server verification for communities that do not use Roblox
+- **Roblox Account Linking** - Verify with Roblox's official OAuth sign-in flow (PKCE); the bot never asks for Roblox passwords
+- **Custom Panels** - Configure the verification mode, title, description, button label, and optional image from `/verification dashboard`
   
 ### Music
 - **24/7 Mode** - Play music 24/7
@@ -95,6 +100,19 @@ Moderation Tool offers a complete suite of tools for Discord server management a
 
 <a name="quick-setup"></a>
 ## Quick Setup (Recommended for non-coders)
+
+### Roblox account verification (optional)
+
+Roblox verification uses Roblox's official OAuth authorization-code flow with PKCE and requests only the `openid profile` identity scopes. Members approve the request on Roblox itself; the bot never asks for Roblox passwords and does not store OAuth access or refresh tokens. A linked Roblox user ID, display name, and username are saved per Discord server to associate that member with their verified role. The bot sets the Discord server nickname to `DisplayName (@username)` and needs **Manage Nicknames** permission, with its highest role above the member's roles, to do so.
+
+To enable it:
+
+1. Register an OAuth app in the Roblox Creator Dashboard. Roblox may require account verification and app review for OAuth access.
+2. Configure the app with the exact redirect URL `https://<your-public-domain>/oauth/roblox/callback` (use the HTTPS domain that serves this bot).
+3. Set `ROBLOX_OAUTH_CLIENT_ID`, `ROBLOX_OAUTH_CLIENT_SECRET`, and `ROBLOX_OAUTH_REDIRECT_URI` in the bot host's environment. The callback URI must exactly match the one registered with Roblox.
+4. Restart the bot, run `/verification setup` with mode `Link a Roblox account`, or select **Use Roblox Account Linking** in `/verification dashboard`.
+
+Servers can keep using standard verification without setting any Roblox OAuth credentials. Use the dashboard to customize the panel's title, description, button label, and optional HTTPS image.
 
 ### Video Tutorial
 For a detailed step-by-step setup guide, watch our comprehensive video tutorial:

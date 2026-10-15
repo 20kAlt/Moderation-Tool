@@ -51,8 +51,17 @@ const VerificationConfigSchema = z
     channelId: z.string().nullable().optional(),
     messageId: z.string().nullable().optional(),
     roleId: z.string().optional(),
+    mode: z.enum(['standard', 'roblox']).default('standard'),
+    title: z.string().max(256).optional(),
     message: z.string().optional(),
     buttonText: z.string().default('Verify'),
+    imageUrl: z.string().nullable().optional(),
+    robloxLinks: z.record(z.object({
+      robloxUserId: z.string(),
+      username: z.string(),
+      displayName: z.string().optional(),
+      linkedAt: z.string(),
+    })).default({}),
     autoVerify: AutoVerifyConfigSchema
   })
   .optional();

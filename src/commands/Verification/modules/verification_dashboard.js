@@ -11,6 +11,7 @@ import {
     ButtonBuilder,
     ButtonStyle,
     ChannelType,
+    PermissionFlagsBits,
     MessageFlags,
     ComponentType,
     EmbedBuilder,
@@ -27,6 +28,8 @@ import {
     formatPanelStatusField,
 } from '../../../utils/panelStatus.js';
 import { startDashboardSession } from '../../../utils/dashboardSession.js';
+import { buildVerificationPanelPayload, normalizeVerificationImageUrl } from '../../../utils/verificationPanel.js';
+import { isRobloxOAuthConfigured } from '../../../services/robloxVerificationService.js';
 
 async function updateLivePanel(guild, cfg) {
     if (!cfg.channelId || !cfg.messageId) return;
@@ -36,20 +39,7 @@ async function updateLivePanel(guild, cfg) {
         const msg = await channel.messages.fetch(cfg.messageId).catch(() => null);
         if (!msg) return;
 
-        const verifyEmbed = new EmbedBuilder()
-            .setTitle('Server Verification')
-            .setDescription(cfg.message || botConfig.verification.defaultMessage)
-            .setColor(getColor('success'));
-
-        const verifyButton = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-                .setCustomId('verify_user')
-                .setLabel(cfg.buttonText || botConfig.verification.defaultButtonText)
-                .setStyle(ButtonStyle.Success)
-                .setEmoji('✅'),
-        );
-
-        await msg.edit({ embeds: [verifyEmbed], components: [verifyButton] });
+        await msg.edit(buildVerificationPanelPayload(cfg));
     } catch (error) {
         logger.warn('Could not update live verification panel:', error.message);
     }
@@ -61,6 +51,7 @@ function buildDashboardEmbed(cfg, guild, verifiedUserCount = 0, conflictSummary 
     const rawMsg = cfg.message || botConfig.verification.defaultMessage;
     const msgPreview = `\`${rawMsg.length > 60 ? rawMsg.substring(0, 60) + '…' : rawMsg}\``;
     const buttonText = cfg.buttonText || botConfig.verification.defaultButtonText;
+    const panelTitle = cfg.title || botConfig.verification.defaultTitle;
     const panelStatusValue = cfg.channelId ? formatPanelStatusField(panelStatus) : '`Not configured`';
 
     const embed = new EmbedBuilder()
@@ -72,6 +63,8 @@ function buildDashboardEmbed(cfg, guild, verifiedUserCount = 0, conflictSummary 
             { name: 'Verification Channel', value: channel, inline: true },
             { name: 'Verified Role', value: role, inline: true },
             { name: 'System Status', value: cfg.enabled !== false ? 'Enabled' : 'Disabled', inline: true },
+            { name: 'Verification Mode', value: cfg.mode === 'roblox' ? 'Roblox account linking' : 'Standard', inline: true },
+            { name: 'Panel Title', value: `\`${panelTitle}\``, inline: true },
             { name: 'Button Text', value: `\`${buttonText}\``, inline: true },
             { name: 'Verified Users', value: `${verifiedUserCount} users`, inline: true },
             { name: '\u200B', value: '\u200B', inline: true },
@@ -93,6 +86,21 @@ function buildSelectMenu(guildId) {
         .setPlaceholder('Select a setting to configure...')
         .addOptions(
             new StringSelectMenuOptionBuilder()
+                .setLabel('Use Standard Verification')
+                .setDescription('Verify members with one button click')
+                .setValue('mode_standard')
+                .setEmoji('✅'),
+            new StringSelectMenuOptionBuilder()
+                .setLabel('Use Roblox Account Linking')
+                .setDescription('Require members to sign in to Roblox')
+                .setValue('mode_roblox')
+                .setEmoji('🌐'),
+            new StringSelectMenuOptionBuilder()
+                .setLabel('Edit Panel Title')
+                .setDescription('Change the title at the top of the panel')
+                .setValue('title')
+                .setEmoji('📝'),
+            new StringSelectMenuOptionBuilder()
                 .setLabel('Change Verification Channel')
                 .setDescription('Set the channel where the verification panel is posted')
                 .setValue('channel')
@@ -112,6 +120,11 @@ function buildSelectMenu(guildId) {
                 .setDescription('Change the label on the verify button')
                 .setValue('button_text')
                 .setEmoji('🔘'),
+            new StringSelectMenuOptionBuilder()
+                .setLabel('Edit Panel Image')
+                .setDescription('Set or remove the optional panel image')
+                .setValue('image_url')
+                .setEmoji('🖼️'),
         );
 }
 
@@ -155,20 +168,7 @@ async function repostVerificationPanel(guild, cfg) {
         );
     }
 
-    const verifyEmbed = new EmbedBuilder()
-        .setTitle('Server Verification')
-        .setDescription(cfg.message || botConfig.verification.defaultMessage)
-        .setColor(getColor('success'));
-
-    const verifyButton = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-            .setCustomId('verify_user')
-            .setLabel(cfg.buttonText || botConfig.verification.defaultButtonText)
-            .setStyle(ButtonStyle.Success)
-            .setEmoji('✅'),
-    );
-
-    return channel.send({ embeds: [verifyEmbed], components: [verifyButton] });
+    return channel.send(buildVerificationPanelPayload(cfg));
 }
 
 async function refreshDashboard(rootInteraction, cfg, guildId, client) {
@@ -299,10 +299,71 @@ export default {
                             await handleRole(selectInteraction, interaction, cfg, guildId, client);
                             break;
                         case 'message':
-                            await handleMessage(selectInteraction, interaction, cfg, guildId, client);
+                            await handleTextSetting(selectInteraction, interaction, cfg, guildId, client, {
+                                key: 'message',
+                                customId: 'verif_cfg_message',
+                                modalTitle: 'Edit Verification Description',
+                                label: 'Description shown on the panel',
+                                value: cfg.message || botConfig.verification.defaultMessage,
+                                maxLength: 2000,
+                                style: TextInputStyle.Paragraph,
+                                successTitle: 'Description Updated',
+                                successMessage: 'The verification panel description has been updated.',
+                            });
                             break;
                         case 'button_text':
-                            await handleButtonText(selectInteraction, interaction, cfg, guildId, client);
+                            await handleTextSetting(selectInteraction, interaction, cfg, guildId, client, {
+                                key: 'buttonText',
+                                customId: 'verif_cfg_button_text',
+                                modalTitle: 'Edit Button Text',
+                                label: 'Button label (max 80 characters)',
+                                value: cfg.buttonText || botConfig.verification.defaultButtonText,
+                                maxLength: 80,
+                                style: TextInputStyle.Short,
+                                successTitle: 'Button Text Updated',
+                                successMessage: () => `The verify button now reads **${cfg.buttonText}**.`,
+                            });
+                            break;
+                        case 'title':
+                            await handleTextSetting(selectInteraction, interaction, cfg, guildId, client, {
+                                key: 'title',
+                                customId: 'verif_cfg_title',
+                                modalTitle: 'Edit Verification Panel Title',
+                                label: 'Panel title (max 256 characters)',
+                                value: cfg.title || botConfig.verification.defaultTitle,
+                                maxLength: 256,
+                                style: TextInputStyle.Short,
+                                successTitle: 'Panel Title Updated',
+                                successMessage: () => `The panel title is now **${cfg.title}**.`,
+                            });
+                            break;
+                        case 'image_url':
+                            await handleTextSetting(selectInteraction, interaction, cfg, guildId, client, {
+                                key: 'imageUrl',
+                                customId: 'verif_cfg_image_url',
+                                modalTitle: 'Edit Verification Panel Image',
+                                label: 'HTTPS image URL (blank removes the image)',
+                                value: cfg.imageUrl || '',
+                                maxLength: 500,
+                                minLength: 0,
+                                style: TextInputStyle.Short,
+                                successTitle: 'Panel Image Updated',
+                                successMessage: () => cfg.imageUrl
+                                    ? 'The verification panel image has been updated.'
+                                    : 'The verification panel image has been removed.',
+                                validate: normalizeVerificationImageUrl,
+                            });
+                            break;
+                        case 'mode_standard':
+                        case 'mode_roblox':
+                            await handleVerificationMode(
+                                selectInteraction,
+                                interaction,
+                                cfg,
+                                guildId,
+                                client,
+                                selectedOption === 'mode_roblox' ? 'roblox' : 'standard',
+                            );
                             break;
                     }
                 },
@@ -451,20 +512,7 @@ async function handleChannel(selectInteraction, rootInteraction, cfg, guildId, c
 
         if (cfg.enabled !== false) {
             try {
-                const verifyEmbed = new EmbedBuilder()
-                    .setTitle('Server Verification')
-                    .setDescription(cfg.message || botConfig.verification.defaultMessage)
-                    .setColor(getColor('success'));
-
-                const verifyButton = new ActionRowBuilder().addComponents(
-                    new ButtonBuilder()
-                        .setCustomId('verify_user')
-                        .setLabel(cfg.buttonText || botConfig.verification.defaultButtonText)
-                        .setStyle(ButtonStyle.Success)
-                        .setEmoji('✅'),
-                );
-
-                const newMsg = await newChannel.send({ embeds: [verifyEmbed], components: [verifyButton] });
+                const newMsg = await newChannel.send(buildVerificationPanelPayload(cfg));
                 cfg.messageId = newMsg.id;
             } catch (error) {
                 logger.warn('Could not post verification panel in new channel:', error.message);
@@ -568,102 +616,109 @@ async function handleRole(selectInteraction, rootInteraction, cfg, guildId, clie
     });
 }
 
-async function handleMessage(selectInteraction, rootInteraction, cfg, guildId, client) {
+async function handleTextSetting(selectInteraction, rootInteraction, cfg, guildId, client, {
+    key,
+    customId,
+    modalTitle,
+    label,
+    value,
+    maxLength,
+    minLength = 1,
+    style,
+    successTitle,
+    successMessage,
+    validate = (input) => input.trim(),
+}) {
+    const input = new TextInputBuilder()
+        .setCustomId('setting_input')
+        .setLabel(label)
+        .setStyle(style)
+        .setMaxLength(maxLength)
+        .setMinLength(minLength)
+        .setRequired(minLength > 0);
+    if (value) input.setValue(value);
+
+    const modal = new ModalBuilder()
+        .setCustomId(customId)
+        .setTitle(modalTitle)
+        .addComponents(new ActionRowBuilder().addComponents(input));
+
+    await selectInteraction.showModal(modal);
+    const submitted = await selectInteraction
+        .awaitModalSubmit({
+            filter: (modalInteraction) =>
+                modalInteraction.customId === customId &&
+                modalInteraction.user.id === selectInteraction.user.id,
+            time: 120_000,
+        })
+        .catch(() => null);
+
+    if (!submitted) return;
+
+    let valueToSave;
     try {
-        const modal = new ModalBuilder()
-            .setCustomId('verif_cfg_message')
-            .setTitle('Edit Verification Message')
-            .addComponents(
-                new ActionRowBuilder().addComponents(
-                    new TextInputBuilder()
-                        .setCustomId('message_input')
-                        .setLabel('Message shown on the verification panel embed')
-                        .setStyle(TextInputStyle.Paragraph)
-                        .setValue(cfg.message || botConfig.verification.defaultMessage)
-                        .setMaxLength(2000)
-                        .setMinLength(1)
-                        .setRequired(true),
-                ),
-            );
-
-        await selectInteraction.showModal(modal);
-
-        const submitted = await selectInteraction
-            .awaitModalSubmit({
-                filter: i =>
-                    i.customId === 'verif_cfg_message' && i.user.id === selectInteraction.user.id,
-                time: 120_000,
-            })
-            .catch(() => null);
-
-        if (!submitted) return;
-
-        cfg.message = submitted.fields.getTextInputValue('message_input').trim();
-
-        const latestConfig = await getGuildConfig(client, guildId);
-        latestConfig.verification = cfg;
-        await setGuildConfig(client, guildId, latestConfig);
-
-        await updateLivePanel(rootInteraction.guild, cfg);
-
-        await submitted.reply({
-            embeds: [successEmbed('Message Updated', 'The verification panel has been updated with the new message.')],
-            flags: MessageFlags.Ephemeral,
-        });
-
-        await refreshDashboard(rootInteraction, cfg, guildId, client);
+        valueToSave = validate(submitted.fields.getTextInputValue('setting_input'));
     } catch (error) {
-        logger.error('Error in handleMessage:', error);
-        
+        await replyUserError(submitted, {
+            type: ErrorTypes.VALIDATION,
+            message: error.message,
+        });
+        return;
     }
+
+    cfg[key] = valueToSave;
+    const latestConfig = await getGuildConfig(client, guildId);
+    latestConfig.verification = cfg;
+    await setGuildConfig(client, guildId, latestConfig);
+    await updateLivePanel(rootInteraction.guild, cfg);
+
+    await submitted.reply({
+        embeds: [
+            successEmbed(
+                successTitle,
+                typeof successMessage === 'function' ? successMessage() : successMessage,
+            ),
+        ],
+        flags: MessageFlags.Ephemeral,
+    });
+    await refreshDashboard(rootInteraction, cfg, guildId, client);
 }
 
-async function handleButtonText(selectInteraction, rootInteraction, cfg, guildId, client) {
-    try {
-        const modal = new ModalBuilder()
-            .setCustomId('verif_cfg_button_text')
-            .setTitle('Edit Button Text')
-            .addComponents(
-                new ActionRowBuilder().addComponents(
-                    new TextInputBuilder()
-                        .setCustomId('button_text_input')
-                        .setLabel('Button label (max 80 characters)')
-                        .setStyle(TextInputStyle.Short)
-                        .setValue(cfg.buttonText || botConfig.verification.defaultButtonText)
-                        .setMaxLength(80)
-                        .setMinLength(1)
-                        .setRequired(true),
-                ),
-            );
+async function handleVerificationMode(selectInteraction, rootInteraction, cfg, guildId, client, mode) {
+    await selectInteraction.deferUpdate();
 
-        await selectInteraction.showModal(modal);
-
-        const submitted = await selectInteraction
-            .awaitModalSubmit({
-                filter: i =>
-                    i.customId === 'verif_cfg_button_text' && i.user.id === selectInteraction.user.id,
-                time: 120_000,
-            })
-            .catch(() => null);
-
-        if (!submitted) return;
-
-        cfg.buttonText = submitted.fields.getTextInputValue('button_text_input').trim();
-
-        const latestConfig = await getGuildConfig(client, guildId);
-        latestConfig.verification = cfg;
-        await setGuildConfig(client, guildId, latestConfig);
-
-        await updateLivePanel(rootInteraction.guild, cfg);
-
-        await submitted.reply({
-            embeds: [successEmbed('Button Text Updated', `The verify button now reads **${cfg.buttonText}**.`)],
-            flags: MessageFlags.Ephemeral,
+    if (mode === 'roblox' && !isRobloxOAuthConfigured()) {
+        await replyUserError(selectInteraction, {
+            type: ErrorTypes.CONFIGURATION,
+            message: 'Roblox linking needs the bot host to configure ROBLOX_OAUTH_CLIENT_ID, ROBLOX_OAUTH_CLIENT_SECRET, and ROBLOX_OAUTH_REDIRECT_URI first.',
         });
-
-        await refreshDashboard(rootInteraction, cfg, guildId, client);
-    } catch (error) {
-        logger.error('Error in handleButtonText:', error);
-        
+        return;
     }
+
+    if (
+        mode === 'roblox' &&
+        !rootInteraction.guild.members.me?.permissions.has(PermissionFlagsBits.ManageNicknames)
+    ) {
+        await replyUserError(selectInteraction, {
+            type: ErrorTypes.PERMISSION,
+            message: "I need the 'Manage Nicknames' permission to set verified members' server nicknames to their Roblox display name and username.",
+        });
+        return;
+    }
+
+    cfg.mode = mode;
+    const latestConfig = await getGuildConfig(client, guildId);
+    latestConfig.verification = cfg;
+    await setGuildConfig(client, guildId, latestConfig);
+    await updateLivePanel(rootInteraction.guild, cfg);
+    await selectInteraction.followUp({
+        embeds: [
+            successEmbed(
+                'Verification Mode Updated',
+                `The panel now uses **${mode === 'roblox' ? 'Roblox account linking' : 'standard server verification'}**.`,
+            ),
+        ],
+        flags: MessageFlags.Ephemeral,
+    });
+    await refreshDashboard(rootInteraction, cfg, guildId, client);
 }

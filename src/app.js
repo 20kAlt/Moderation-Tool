@@ -17,6 +17,7 @@ import { initializeMusic } from './services/music/riffySetup.js';
 import { shutdownMusic } from './services/music/playerHandler.js';
 import pkg from '../package.json' with { type: 'json' };
 import { EXPECTED_SCHEMA_VERSION, EXPECTED_SCHEMA_LABEL } from './config/database/schemaVersion.js';
+import { handleRobloxOAuthCallback } from './handlers/robloxOAuthCallback.js';
 
 class ModerationToolBot extends Client {
   constructor() {
@@ -205,6 +206,15 @@ class ModerationToolBot extends Client {
         ready: false,
         reason: !this.isReady() ? 'Bot not Ready' : 'Database degraded',
         metrics,
+      });
+    });
+
+    app.get('/oauth/roblox/callback', (req, res) => {
+      handleRobloxOAuthCallback(req, res, this).catch((error) => {
+        logger.error('Unhandled Roblox OAuth callback error:', error);
+        if (!res.headersSent) {
+          res.status(500).type('text').send('Roblox verification failed. Please return to Discord and try again.');
+        }
       });
     });
 

@@ -175,7 +175,7 @@ export const botConfig = {
       // Plural display name.
       namePlural: "coins",
       // Currency symbol shown in balances.
-      symbol: "$",
+      symbol: "£fo",
     },
 
     // Starting balance for new users.
@@ -311,6 +311,9 @@ export const botConfig = {
   // VERIFICATION SETTINGS
   // =========================
   verification: {
+    // Title shown at the top of the verification panel.
+    defaultTitle: "Server Verification",
+
     // Message shown when posting the verification panel.
     defaultMessage: "Click the button below to verify yourself and gain access to the server!",
 
