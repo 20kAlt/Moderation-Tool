@@ -13,6 +13,7 @@ import { enforceAbuseProtection, formatCooldownDuration } from '../utils/abusePr
 import { createEmbed } from '../utils/embeds.js';
 import { isCommandEnabled } from '../services/commandAccessService.js';
 import { clearAfkStatus, getAfkStatus } from '../services/afkService.js';
+import { cacheMessageSnapshot } from '../services/messageSnapshotService.js';
 import {
   getCountingGameConfig,
   saveCountingGameConfig,
@@ -27,11 +28,13 @@ export default {
   name: Events.MessageCreate,
   async execute(message, client) {
     try {
-      if (message.author.bot) return;
-
       if (!message.guild) {
         return;
       }
+
+      cacheMessageSnapshot(message);
+
+      if (message.author.bot) return;
 
       logger.debug(`Message received from ${message.author.tag}: ${message.content}`);
 

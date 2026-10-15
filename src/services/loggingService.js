@@ -304,9 +304,16 @@ function createLogEmbed(guild, eventType, data) {
     });
 
     if (data.fields?.length) {
-      const { before, after } = splitComparisonFields(data.fields);
+      const { before, after, rest } = splitComparisonFields(data.fields);
       if (before !== null) inlineFields.push({ name: 'Before', value: before, inline: true });
       if (after !== null) inlineFields.push({ name: 'After', value: after, inline: true });
+      if (rest.length > 0) {
+        description = buildLogDescription({
+          headline: description || undefined,
+          lines: fieldsToLines(rest),
+          quoted: true,
+        });
+      }
     }
   } else if (data.fields?.length) {
     const { before, after, rest } = splitComparisonFields(data.fields);

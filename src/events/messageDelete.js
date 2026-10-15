@@ -3,6 +3,11 @@ import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 import { logger } from '../utils/logger.js';
 import { getReactionRoleMessage, deleteReactionRoleMessage } from '../services/reactionRoleService.js';
 import { formatLogLine } from '../utils/logging/logEmbeds.js';
+import {
+  getMessageSnapshot,
+  removeMessageSnapshot,
+  formatMessageEmbed,
+} from '../services/messageSnapshotService.js';
 
 const MAX_LOGGED_MESSAGE_CONTENT_LENGTH = 1024;
 
@@ -13,6 +18,9 @@ export default {
   async execute(message) {
     try {
       if (!message.guild) return;
+
+      const snapshot = getMessageSnapshot(message.id);
+      removeMessageSnapshot(message.id);
 
       try {
         const reactionRoleData = await getReactionRoleMessage(message.client, message.guild.id, message.id);
@@ -51,22 +59,33 @@ export default {
           'Message author',
           message.author
             ? `${message.author.toString()} (${message.author.tag || message.author.username || message.author.id})`
-            : 'Unknown (message was not cached)',
+            : snapshot?.authorId
+              ? `<@${snapshot.authorId}> (${snapshot.authorTag || snapshot.authorId})`
+              : 'Unknown (message was not cached)',
         ),
-        formatLogLine('Message created', `<t:${Math.floor(message.createdTimestamp / 1000)}:R>`),
+        formatLogLine(
+          'Message created',
+          `<t:${Math.floor((message.createdTimestamp || snapshot?.createdTimestamp || Date.now()) / 1000)}:R>`,
+        ),
         formatLogLine('Deleted at', `<t:${Math.floor(deletedAt.getTime() / 1000)}:F> (<t:${Math.floor(deletedAt.getTime() / 1000)}:R>)`),
       ];
 
-      const messageBody = (message.content || '').length > MAX_LOGGED_MESSAGE_CONTENT_LENGTH
-        ? `${message.content.substring(0, MAX_LOGGED_MESSAGE_CONTENT_LENGTH - 3)}...`
-        : message.content || '*(empty message)*';
-      const attachments = [...(message.attachments?.values?.() || [])]
+      const messageContent = message.content || snapshot?.content || '';
+      const messageBody = messageContent.length > MAX_LOGGED_MESSAGE_CONTENT_LENGTH
+        ? `${messageContent.substring(0, MAX_LOGGED_MESSAGE_CONTENT_LENGTH - 3)}...`
+        : messageContent || (message.partial || snapshot?.content === null
+          ? '*(message content unavailable; it was not cached before deletion)*'
+          : '*(empty message)*');
+      const attachments = (snapshot?.attachments || [...(message.attachments?.values?.() || [])]
+        .map((attachment) => ({ name: attachment.name, url: attachment.url })))
         .map((attachment) => `[${attachment.name || 'Attachment'}](${attachment.url})`)
         .join('\n');
-      const embeddedLinks = (message.embeds || [])
-        .map((embed) => embed.url || embed.title)
+      const embeddedLinks = (snapshot?.embeds || (message.embeds || []).map((embed) => (
+        typeof embed.toJSON === 'function' ? embed.toJSON() : { ...embed }
+      )))
+        .map(formatMessageEmbed)
         .filter(Boolean)
-        .map((urlOrTitle) => `• ${urlOrTitle}`)
+        .map((embedDetails) => `• ${embedDetails}`)
         .join('\n');
       const sections = [
         { title: 'Message', body: messageBody },
@@ -86,7 +105,7 @@ export default {
             title: 'Deleted message details',
             body: sections.map((section) => `**${section.title}**\n${section.body}`).join('\n\n'),
           },
-          userId: message.author?.id,
+          userId: message.author?.id || snapshot?.authorId,
           channelId: message.channel.id,
         }
       });
