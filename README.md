@@ -249,9 +249,15 @@ Notes:
 Set your Discord user ID in `OWNER_IDS` in `.env`, then restart the bot. Configured bot owners can post a styled announcement with `/announce` or `?announce`:
 
 - `/announce scope:This server message:...` or `?announce server "message"` posts in the current channel.
-- `/announce scope:All servers message:...` or `?announce global "message"` posts in each server's `#general` text or announcement channel. Servers without a sendable `#general` channel are skipped and counted in the result.
+- `/announce scope:All servers message:...` or `?announce global "message"` posts in each opted-in server's configured announcement channel. Servers that have not opted in or have an unavailable channel are skipped and counted in the result.
 
 Only configured bot owners can execute this command. Discord does not provide per-user visibility controls for global slash commands, so `/announce` can still appear in other users' command pickers; those users receive a denial if they try to run it.
+
+Server owners and members with **Manage Server** can opt in to global bot announcements with `/announcements channel:<channel>` or `?announcements #channel`. This is **off by default** for every server. Use `/announcements disable:true` or `?announcements disable` to opt out; omit options to check the current setting.
+
+### Message audit logs
+
+Set an audit destination with `/logging channel destination:Audit channel:<channel>`, then confirm **Audit Logging** and the **Messages** category are enabled in `/logging dashboard`. The bot needs View Channel, Send Messages, and Embed Links in the destination. Message deletion events can be logged even when Discord no longer provides the deleted message content.
 
 4. **Setup PostgreSQL Database** (Optional but recommended)
    ```bash

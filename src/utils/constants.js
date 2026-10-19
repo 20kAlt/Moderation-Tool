@@ -36,6 +36,10 @@ export const DEFAULT_GUILD_CONFIG = {
         ignore: { users: [], channels: [] },
         enabledEvents: {},
     },
+    announcements: {
+        enabled: false,
+        channelId: null,
+    },
     verification: {
         enabled: false
     },

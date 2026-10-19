@@ -17,22 +17,32 @@ export default {
 
   async execute(message) {
     try {
-      if (!message.guild) return;
+      const guildId = message.guildId || message.guild?.id || message.channel?.guildId;
+      if (!guildId) return;
+
+      const guild = message.guild
+        || message.client.guilds.cache.get(guildId)
+        || await message.client.guilds.fetch(guildId).catch(() => null);
+      if (!guild) {
+        logger.warn(`Could not resolve guild ${guildId} for deleted message ${message.id}.`);
+        return;
+      }
+
       if (message.author?.bot) return;
 
       const snapshot = getMessageSnapshot(message.id);
       removeMessageSnapshot(message.id);
 
       try {
-        const reactionRoleData = await getReactionRoleMessage(message.client, message.guild.id, message.id);
+        const reactionRoleData = await getReactionRoleMessage(message.client, guild.id, message.id);
         if (reactionRoleData) {
-          await deleteReactionRoleMessage(message.client, message.guild.id, message.id);
-          logger.info(`Cleaned up reaction role database entry for manually deleted message ${message.id} in guild ${message.guild.id}`);
+          await deleteReactionRoleMessage(message.client, guild.id, message.id);
+          logger.info(`Cleaned up reaction role database entry for manually deleted message ${message.id} in guild ${guild.id}`);
 
           try {
             await logEvent({
               client: message.client,
-              guildId: message.guild.id,
+              guildId: guild.id,
               eventType: EVENT_TYPES.REACTION_ROLE_DELETE,
               data: {
                 title: 'Reaction Role Removed',
@@ -96,7 +106,7 @@ export default {
 
       await logEvent({
         client: message.client,
-        guildId: message.guild.id,
+        guildId: guild.id,
         eventType: EVENT_TYPES.MESSAGE_DELETE,
         data: {
           title: 'Message deleted',

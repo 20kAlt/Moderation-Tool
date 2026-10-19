@@ -29,6 +29,13 @@ export const LoggingConfigSchema = z
   })
   .default({ enabled: false, enabledEvents: {} });
 
+const AnnouncementConfigSchema = z
+  .object({
+    enabled: z.boolean().default(false),
+    channelId: z.string().nullable().default(null),
+  })
+  .default({ enabled: false, channelId: null });
+
 const TicketLoggingSchema = z
   .object({
     lifecycleChannelId: z.string().nullable().optional(),
@@ -103,6 +110,7 @@ export const GuildConfigSchema = z
     disabledCommands: z.record(z.boolean()).optional(),
     disabledCategories: z.record(z.boolean()).optional(),
     logging: LoggingConfigSchema.optional(),
+    announcements: AnnouncementConfigSchema.optional(),
     ticketLogging: TicketLoggingSchema.optional(),
     enableLogging: z.boolean().optional(),
     verification: VerificationConfigSchema,

@@ -7,8 +7,27 @@ import announceCommand, {
   sendGlobalAnnouncement,
 } from '../src/commands/Core/announce.js';
 import botConfig from '../src/config/bot.js';
+import { db } from '../src/utils/database/wrapper.js';
+import { getGuildConfigKey } from '../src/utils/database/keys.js';
+import { MemoryStorage } from '../src/utils/memoryStorage.js';
 import { mapArgumentsToOptions } from '../src/utils/prefixParser.js';
 import { supportsPrefixExecution } from '../src/utils/messageAdapter.js';
+
+function useMemoryDatabase() {
+  const originalState = {
+    initialized: db.initialized,
+    database: db.db,
+    useFallback: db.useFallback,
+  };
+  db.initialized = true;
+  db.useFallback = true;
+  db.db = new MemoryStorage();
+  return () => {
+    db.initialized = originalState.initialized;
+    db.db = originalState.database;
+    db.useFallback = originalState.useFallback;
+  };
+}
 
 function createGuild(id, channels) {
   const general = {
@@ -25,7 +44,8 @@ function createGuild(id, channels) {
     id,
     members: { me: {} },
     channels: {
-      fetch: async () => new Map([[general.id, general]]),
+      cache: new Map([[general.id, general]]),
+      fetch: async (channelId) => channelId ? general : new Map([[general.id, general]]),
     },
   };
 }
@@ -35,9 +55,11 @@ test('announcement embeds distinguish server and global announcements', () => {
   assert.equal(buildAnnouncementEmbed('global', 'Change details').toJSON().title, 'Global Announcement');
 });
 
-test('global announcements are delivered to each guild #general channel', async () => {
+test('global announcements are delivered only to servers that opted in', async () => {
+  const restoreDatabase = useMemoryDatabase();
   const postedPayloads = [];
   const client = {
+    db,
     guilds: {
       cache: new Map([
         ['guild-1', createGuild('guild-1', postedPayloads)],
@@ -46,14 +68,24 @@ test('global announcements are delivered to each guild #general channel', async 
     },
   };
 
-  const result = await sendGlobalAnnouncement(client, 'A change is now live.');
+  try {
+    await db.set(getGuildConfigKey('guild-1'), {
+      announcements: { enabled: true, channelId: 'guild-1-general' },
+    });
+    await db.set(getGuildConfigKey('guild-2'), {
+      announcements: { enabled: false, channelId: null },
+    });
 
-  assert.deepEqual(result, { sent: 2, skipped: 0 });
-  assert.equal(postedPayloads.length, 2);
-  for (const payload of postedPayloads) {
+    const result = await sendGlobalAnnouncement(client, 'A change is now live.');
+
+    assert.deepEqual(result, { sent: 1, skipped: 1 });
+    assert.equal(postedPayloads.length, 1);
+    const [payload] = postedPayloads;
     assert.equal(payload.embeds[0].toJSON().title, 'Global Announcement');
     assert.equal(payload.embeds[0].toJSON().description, 'A change is now live.');
     assert.deepEqual(payload.allowedMentions, { parse: [], repliedUser: false });
+  } finally {
+    restoreDatabase();
   }
 });
 

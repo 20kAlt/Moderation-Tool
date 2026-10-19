@@ -127,6 +127,34 @@ test('deleted messages are logged with their cached content and attachments', as
   }
 });
 
+test('deleted partial messages still log when the message has no guild object', async () => {
+  const context = createLoggingContext();
+  await context.enableLogging();
+
+  try {
+    await messageDelete.execute({
+      id: '34567890123456790',
+      guildId: context.guild.id,
+      guild: null,
+      partial: true,
+      content: '',
+      client: context.client,
+      channel: context.sourceChannel,
+      author: null,
+      createdTimestamp: 1700000000000,
+      attachments: new Map(),
+      embeds: [],
+    });
+
+    assert.equal(context.sentMessages.length, 1);
+    const loggedEmbed = context.sentMessages[0].embeds[0].toJSON();
+    assert.equal(loggedEmbed.title, 'Message deleted');
+    assert.match(loggedEmbed.description, /message content unavailable/);
+  } finally {
+    context.restore();
+  }
+});
+
 test('edited messages log before and after content and attachment changes', async () => {
   const context = createLoggingContext();
   await context.enableLogging();

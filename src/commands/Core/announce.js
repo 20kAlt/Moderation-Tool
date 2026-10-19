@@ -6,6 +6,7 @@ import {
   SlashCommandBuilder,
 } from 'discord.js';
 import { isBotOwner } from '../../config/bot.js';
+import { getGuildConfig } from '../../services/config/guildConfig.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { logger } from '../../utils/logger.js';
 
@@ -40,27 +41,38 @@ export async function sendGlobalAnnouncement(client, message) {
   let skipped = 0;
 
   for (const guild of client.guilds.cache.values()) {
-    let channels;
+    let guildConfig;
     try {
-      channels = await guild.channels.fetch();
+      guildConfig = await getGuildConfig(client, guild.id);
     } catch (error) {
       skipped += 1;
-      logger.warn(`Could not fetch channels for global announcement in guild ${guild.id}:`, error);
+      logger.warn(`Could not load announcement settings for guild ${guild.id}:`, error);
       continue;
     }
 
-    const generalChannel = [...channels.values()].find((channel) =>
-      channel.name?.toLowerCase() === 'general'
-      && ANNOUNCEMENT_CHANNEL_TYPES.has(channel.type));
-
-    if (!generalChannel || !canSendAnnouncement(generalChannel, guild)) {
+    if (!guildConfig.announcements?.enabled || !guildConfig.announcements.channelId) {
       skipped += 1;
-      logger.warn(`Skipped global announcement in guild ${guild.id}: no sendable #general channel.`);
+      continue;
+    }
+
+    let channel;
+    try {
+      channel = guild.channels.cache.get(guildConfig.announcements.channelId)
+        || await guild.channels.fetch(guildConfig.announcements.channelId);
+    } catch (error) {
+      skipped += 1;
+      logger.warn(`Could not fetch configured announcement channel in guild ${guild.id}:`, error);
+      continue;
+    }
+
+    if (!canSendAnnouncement(channel, guild)) {
+      skipped += 1;
+      logger.warn(`Skipped global announcement in guild ${guild.id}: configured announcement channel is unavailable or not sendable.`);
       continue;
     }
 
     try {
-      await generalChannel.send({
+      await channel.send({
         embeds: [buildAnnouncementEmbed('global', message)],
         allowedMentions: { parse: [], repliedUser: false },
       });
@@ -131,7 +143,7 @@ async function executeAnnouncement(interaction, client) {
     embeds: [
       new EmbedBuilder()
         .setTitle('Global Announcement')
-        .setDescription(`Posted in **${result.sent}** server(s) in #general.\nSkipped **${result.skipped}** server(s) without an available, sendable #general channel.`)
+        .setDescription(`Posted in **${result.sent}** opted-in server(s).\nSkipped **${result.skipped}** server(s) that are not configured or have an unavailable announcement channel.`)
         .setColor(result.sent > 0 ? 0x57F287 : 0xFEE75C)
         .setTimestamp(),
     ],
