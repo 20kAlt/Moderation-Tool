@@ -76,12 +76,14 @@ export const tableStatements = [
         guild_id VARCHAR(20),
         user_id VARCHAR(20),
         reason TEXT,
+        original_nickname VARCHAR(32),
         status_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         expires_at TIMESTAMP,
         PRIMARY KEY (guild_id, user_id),
         FOREIGN KEY (guild_id) REFERENCES ${t.guilds}(id) ON DELETE CASCADE,
         FOREIGN KEY (user_id) REFERENCES ${t.users}(id) ON DELETE CASCADE
     )`,
+    `ALTER TABLE ${t.afk_status} ADD COLUMN IF NOT EXISTS original_nickname VARCHAR(32)`,
 
     `CREATE TABLE IF NOT EXISTS ${t.welcome_configs} (
         guild_id VARCHAR(20) PRIMARY KEY,

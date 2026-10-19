@@ -278,3 +278,95 @@ test('edits to messages inside the audit channel do not create more audit entrie
     context.restore();
   }
 });
+
+test('bot-authored message edits are never copied into the audit channel', async () => {
+  const context = createLoggingContext();
+  await context.enableLogging();
+
+  try {
+    await messageUpdate.execute(
+      {
+        id: '456789012345678903',
+        partial: false,
+        guild: context.guild,
+        client: context.client,
+        channel: context.sourceChannel,
+        content: 'Before embed refresh',
+        author: { id: 'bot-user', bot: true },
+        createdTimestamp: Date.now(),
+        attachments: new Map(),
+        embeds: [],
+      },
+      {
+        id: '456789012345678903',
+        partial: false,
+        guild: context.guild,
+        client: context.client,
+        channel: context.sourceChannel,
+        content: 'Before embed refresh',
+        author: { id: 'bot-user', bot: true },
+        createdTimestamp: Date.now(),
+        attachments: new Map(),
+        embeds: [{ title: 'Refreshed bot embed' }],
+      },
+    );
+
+    assert.equal(context.sentMessages.length, 0);
+  } finally {
+    context.restore();
+  }
+});
+
+test('edits in every configured logging destination are ignored', async () => {
+  const context = createLoggingContext();
+  await context.enableLogging();
+  await db.set(getGuildConfigKey(context.guild.id), {
+    logging: {
+      enabled: true,
+      channels: {
+        audit: context.channel.id,
+        applications: context.sourceChannel.id,
+      },
+      enabledEvents: {},
+    },
+  });
+  const author = {
+    id: '23456789012345678',
+    tag: 'human#0001',
+    bot: false,
+    toString: () => '<@23456789012345678>',
+  };
+
+  try {
+    await messageUpdate.execute(
+      {
+        id: '456789012345678904',
+        partial: false,
+        guild: context.guild,
+        client: context.client,
+        channel: context.sourceChannel,
+        content: 'Before log-channel edit',
+        author,
+        createdTimestamp: Date.now(),
+        attachments: new Map(),
+        embeds: [],
+      },
+      {
+        id: '456789012345678904',
+        partial: false,
+        guild: context.guild,
+        client: context.client,
+        channel: context.sourceChannel,
+        content: 'After log-channel edit',
+        author,
+        createdTimestamp: Date.now(),
+        attachments: new Map(),
+        embeds: [],
+      },
+    );
+
+    assert.equal(context.sentMessages.length, 0);
+  } finally {
+    context.restore();
+  }
+});

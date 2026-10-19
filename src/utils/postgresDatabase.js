@@ -734,13 +734,15 @@ class PostgreSQLDatabase {
                 
                 case 'afk_status': {
                     const afkResult = await this.pool.query(
-                        `SELECT reason, status_at, expires_at FROM ${pgConfig.tables.afk_status} WHERE guild_id = $1 AND user_id = $2`,
+                        `SELECT reason, original_nickname, status_at, expires_at FROM ${pgConfig.tables.afk_status} WHERE guild_id = $1 AND user_id = $2`,
                         [parsedKey.guildId, parsedKey.userId],
                     );
                     if (afkResult.rows.length === 0) return defaultValue;
                     const row = afkResult.rows[0];
                     return {
                         reason: row.reason,
+                        originalNickname: row.original_nickname,
+                        since: row.status_at ? new Date(row.status_at).getTime() : null,
                         setAt: row.status_at,
                         expiresAt: row.expires_at,
                     };
@@ -932,11 +934,17 @@ class PostgreSQLDatabase {
                     );
                     
                     await this.pool.query(
-                        `INSERT INTO ${pgConfig.tables.afk_status} (guild_id, user_id, reason, expires_at) 
-                         VALUES ($1, $2, $3, $4) 
+                        `INSERT INTO ${pgConfig.tables.afk_status} (guild_id, user_id, reason, original_nickname, expires_at)
+                         VALUES ($1, $2, $3, $4, $5)
                          ON CONFLICT (guild_id, user_id) DO UPDATE SET 
-                         reason = $3, expires_at = $4, status_at = CURRENT_TIMESTAMP`,
-                        [parsedKey.guildId, parsedKey.userId, value.reason, (value.expiresAt ?? value.expires_at) ? new Date(value.expiresAt ?? value.expires_at) : null]
+                         reason = $3, original_nickname = $4, expires_at = $5, status_at = CURRENT_TIMESTAMP`,
+                        [
+                            parsedKey.guildId,
+                            parsedKey.userId,
+                            value.reason,
+                            value.originalNickname ?? null,
+                            (value.expiresAt ?? value.expires_at) ? new Date(value.expiresAt ?? value.expires_at) : null,
+                        ]
                     );
                     return true;
                 

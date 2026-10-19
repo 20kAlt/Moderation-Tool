@@ -177,6 +177,10 @@ export function resolveLogChannel(config, destination) {
   return channels[destination] ?? null;
 }
 
+export function isLogDestinationChannel(config, channelId) {
+  return LOG_DESTINATIONS.some((destination) => resolveLogChannel(config, destination) === channelId);
+}
+
 export function getIgnoreList(config) {
   return config?.logging?.ignore ?? config?.logIgnore ?? { users: [], channels: [] };
 }

@@ -12,7 +12,11 @@ import { getCommandPrefix, getBotMessage, isBotOwner, isCommandCategoryEnabled, 
 import { enforceAbuseProtection, formatCooldownDuration } from '../utils/abuseProtection.js';
 import { createEmbed } from '../utils/embeds.js';
 import { isCommandEnabled } from '../services/commandAccessService.js';
-import { clearAfkStatus, getAfkStatus } from '../services/afkService.js';
+import {
+  clearAfkStatus,
+  getAfkStatus,
+  restoreAfkNickname,
+} from '../services/afkService.js';
 import { cacheMessageSnapshot } from '../services/messageSnapshotService.js';
 import {
   getCountingGameConfig,
@@ -23,7 +27,6 @@ import {
 
 const MESSAGE_XP_RATE_LIMIT_ATTEMPTS = 12;
 const MESSAGE_XP_RATE_LIMIT_WINDOW_MS = 10000;
-
 export default {
   name: Events.MessageCreate,
   async execute(message, client) {
@@ -63,6 +66,13 @@ async function handleAfkStatuses(message) {
     if (returningStatus) {
       notices.push(`Welcome back, <@${message.author.id}>. Your AFK status has been cleared.`);
       pingUserIds.add(message.author.id);
+
+      const member = message.member;
+      try {
+        await restoreAfkNickname(member, returningStatus);
+      } catch (error) {
+        logger.warn(`Could not restore nickname for returning member ${message.author.id} in guild ${message.guild.id}:`, error);
+      }
     }
 
     const mentionedUsers = new Map(message.mentions.users.map(user => [user.id, user]));

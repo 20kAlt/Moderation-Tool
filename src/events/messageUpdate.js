@@ -1,5 +1,6 @@
 import { Events } from 'discord.js';
-import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
+import { logEvent, EVENT_TYPES, isLogDestinationChannel } from '../services/loggingService.js';
+import { getGuildConfig } from '../services/config/guildConfig.js';
 import { logger } from '../utils/logger.js';
 import { formatLogLine } from '../utils/logging/logEmbeds.js';
 import {
@@ -37,6 +38,9 @@ export default {
       const attachmentsChanged = JSON.stringify(oldSnapshot.attachments) !== JSON.stringify(newSnapshot.attachments);
       const embedsChanged = JSON.stringify(oldSnapshot.embeds) !== JSON.stringify(newSnapshot.embeds);
       if (!contentChanged && !attachmentsChanged && !embedsChanged) return;
+
+      const guildConfig = await getGuildConfig(currentMessage.client, currentMessage.guild.id);
+      if (isLogDestinationChannel(guildConfig, currentMessage.channel?.id)) return;
 
       const metaLines = [
         formatLogLine('Channel', currentMessage.channel ? `${currentMessage.channel.name} ${currentMessage.channel.toString()}` : 'Unknown'),

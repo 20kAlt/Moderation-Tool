@@ -1,7 +1,12 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { setAfkStatus } from '../../services/afkService.js';
+import {
+  createAfkNickname,
+  getAfkStatus,
+  setAfkStatus,
+} from '../../services/afkService.js';
 import { createEmbed } from '../../utils/embeds.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
+import { logger } from '../../utils/logger.js';
 
 export default {
   data: new SlashCommandBuilder()
@@ -18,7 +23,17 @@ export default {
 
   async execute(interaction) {
     const reason = interaction.options.getString('reason')?.trim() || null;
-    const status = await setAfkStatus(interaction.guildId, interaction.user.id, reason);
+    const member = interaction.member;
+    const existingStatus = await getAfkStatus(interaction.guildId, interaction.user.id);
+    const originalNickname = existingStatus
+      ? existingStatus.originalNickname ?? member?.nickname ?? null
+      : member?.nickname ?? null;
+    const status = await setAfkStatus(
+      interaction.guildId,
+      interaction.user.id,
+      reason,
+      originalNickname,
+    );
 
     if (!status) {
       await InteractionHelper.safeReply(interaction, {
@@ -31,12 +46,27 @@ export default {
       return;
     }
 
+    let nicknameUpdated = false;
+    if (member?.setNickname) {
+      const displayName = originalNickname || member.displayName || interaction.user.username;
+      const afkNickname = createAfkNickname(displayName);
+
+      try {
+        if (member.nickname !== afkNickname) {
+          await member.setNickname(afkNickname, 'Member set their AFK status');
+        }
+        nicknameUpdated = true;
+      } catch (error) {
+        logger.warn(`Could not set AFK nickname for member ${interaction.user.id} in guild ${interaction.guildId}:`, error);
+      }
+    }
+
     await InteractionHelper.safeReply(interaction, {
       embeds: [createEmbed({
         title: 'AFK Status Set',
         description: reason
-          ? `You are now marked as away.\n**Reason:** ${reason}`
-          : 'You are now marked as away. Your status will clear when you send your next message.',
+          ? `You are now marked as away.${nicknameUpdated ? ' Your nickname now shows **AFK** and will be restored when you return.' : ' I could not change your nickname; check that I have Manage Nicknames permission and my role is above yours.'}\n**Reason:** ${reason}`
+          : `You are now marked as away. Your status will clear when you send your next message.${nicknameUpdated ? ' Your nickname now shows **AFK** and will be restored when you return.' : ' I could not change your nickname; check that I have Manage Nicknames permission and my role is above yours.'}`,
         color: 'success',
       })],
     });

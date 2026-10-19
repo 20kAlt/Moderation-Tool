@@ -244,6 +244,15 @@ Notes:
 - In the [Discord Developer Portal](https://discord.com/developers/applications), ensure your bot is not restricted to a single guild if you plan to invite it elsewhere
 - Generate an OAuth2 invite URL from the [Discord Developer Portal](https://discord.com/developers/applications) (OAuth2 → URL Generator, scopes: `bot` and `applications.commands`)
 
+### Bot-owner announcements
+
+Set your Discord user ID in `OWNER_IDS` in `.env`, then restart the bot. Configured bot owners can post a styled announcement with `/announce` or `?announce`:
+
+- `/announce scope:This server message:...` or `?announce server "message"` posts in the current channel.
+- `/announce scope:All servers message:...` or `?announce global "message"` posts in each server's `#general` text or announcement channel. Servers without a sendable `#general` channel are skipped and counted in the result.
+
+Only configured bot owners can execute this command. Discord does not provide per-user visibility controls for global slash commands, so `/announce` can still appear in other users' command pickers; those users receive a denial if they try to run it.
+
 4. **Setup PostgreSQL Database** (Optional but recommended)
    ```bash
    # Create database and user
