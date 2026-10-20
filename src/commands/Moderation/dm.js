@@ -1,5 +1,6 @@
-import { SlashCommandBuilder, PermissionFlagsBits, PermissionsBitField, ChannelType, MessageFlags } from 'discord.js';
-import { createEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
+import { SlashCommandBuilder, MessageFlags } from 'discord.js';
+import { isBotOwner } from '../../config/bot.js';
+import { successEmbed } from '../../utils/embeds.js';
 import { logEvent } from '../../utils/moderation.js';
 import { logger } from '../../utils/logger.js';
 import { sanitizeMarkdown } from '../../utils/validation.js';
@@ -9,7 +10,7 @@ import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
 export default {
     data: new SlashCommandBuilder()
         .setName("dm")
-        .setDescription("Send a direct message to a user (Staff only)")
+        .setDescription("Send a direct message to a user (Bot owner only)")
         .addUserOption(option =>
             option
                 .setName("user")
@@ -28,11 +29,18 @@ export default {
                 .setDescription("Send the message anonymously (default: false)")
                 .setRequired(false)
         )
-        .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
         .setDMPermission(false),
     category: "moderation",
 
     async execute(interaction, config, client) {
+        if (!isBotOwner(interaction.user?.id)) {
+            await InteractionHelper.safeReply(interaction, {
+                content: 'Only configured bot owners can use this command.',
+                flags: MessageFlags.Ephemeral,
+            });
+            return;
+        }
+
         const deferSuccess = await InteractionHelper.safeDefer(interaction);
         if (!deferSuccess) {
             logger.warn(`DM interaction defer failed`, {
