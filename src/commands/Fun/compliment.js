@@ -22,6 +22,7 @@ export default {
       option.setName('member').setDescription('Who should receive the compliment?'),
     ),
   category: 'Fun',
+  helpInvocation: 'both',
 
   async execute(interaction) {
     await InteractionHelper.safeDefer(interaction);

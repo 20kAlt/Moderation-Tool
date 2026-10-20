@@ -19,6 +19,7 @@ export default {
     .setName('icebreaker')
     .setDescription('Start a friendly conversation in the server.'),
   category: 'Fun',
+  helpInvocation: 'both',
 
   async execute(interaction) {
     await InteractionHelper.safeDefer(interaction);
