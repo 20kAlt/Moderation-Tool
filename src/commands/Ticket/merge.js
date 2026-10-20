@@ -127,11 +127,13 @@ export default {
 
         const sourceTicket = permissionContext.ticketData;
         const mergedAt = new Date().toISOString();
-        const sourceNumber = sourceTicket.ticketNumber || sourceTicket.id;
-        const destinationNumber = destinationTicket.ticketNumber || destinationTicket.id;
+        const sourceNumber = sourceTicket.ticketNumber || null;
+        const destinationNumber = destinationTicket.ticketNumber || null;
+        const sourceRef = sourceNumber ? `#${sourceNumber}` : `${interaction.channel}`;
+        const destinationRef = destinationNumber ? `#${destinationNumber}` : `${destination}`;
         const mergeEmbed = new EmbedBuilder()
             .setColor(0x5865F2)
-            .setTitle(`Ticket #${sourceNumber} merged`)
+            .setTitle(sourceNumber ? `Ticket #${sourceNumber} merged` : 'Support Ticket merged')
             .setDescription(`Transcript from ${interaction.channel} was merged into this ticket by ${interaction.user}.`)
             .addFields(
                 { name: 'Source ticket', value: `${interaction.channel} (\`${interaction.channel.id}\`)`, inline: true },
@@ -149,7 +151,7 @@ export default {
         const archivedTicket = await closeTicket(
             interaction.channel,
             interaction.user,
-            `Merged into ticket #${destinationNumber} (${destination}) by ${interaction.user.tag}.`,
+            `Merged into ticket ${destinationRef} by ${interaction.user.tag}.`,
         );
 
         archivedTicket.mergedIntoChannelId = destination.id;
@@ -164,8 +166,8 @@ export default {
             data: {
                 title: 'Ticket merged',
                 lines: [
-                    formatLogLine('Source ticket', `${interaction.channel} (#${sourceNumber})`),
-                    formatLogLine('Destination ticket', `${destination} (#${destinationNumber})`),
+                    formatLogLine('Source ticket', sourceRef),
+                    formatLogLine('Destination ticket', destinationRef),
                     formatLogLine('Merged by', `${interaction.user} (\`${interaction.user.id}\`)`),
                     formatLogLine('Merged at', `<t:${Math.floor(Date.parse(mergedAt) / 1000)}:F>`),
                 ],
@@ -178,7 +180,7 @@ export default {
         return InteractionHelper.safeEditReply(interaction, {
             embeds: [successEmbed(
                 'Tickets Merged',
-                `Ticket **#${sourceNumber}** was copied into ${destination} and closed as an archive. The original channel was kept.`,
+                `Ticket ${sourceRef} was copied into ${destination} and closed as an archive. The original channel was kept.`,
             )],
         });
     },

@@ -110,8 +110,11 @@ const TICKET_EVENT_STYLES = {
 
 async function createTicketLogEmbed(guild, event) {
   const style = TICKET_EVENT_STYLES[event.type] || { color: 0x95a5a6, title: 'Ticket Event' };
-  const ticketNumber = event.ticketNumber || event.ticketId;
-  const ticketRef = ticketNumber ? `#${ticketNumber}` : 'Unknown';
+  const ticketRef = event.ticketNumber && event.ticketNumber !== event.ticketId
+    ? `#${event.ticketNumber}`
+    : event.ticketId
+      ? `<#${event.ticketId}>`
+      : 'Unknown';
   const channelMention = event.ticketId ? `<#${event.ticketId}>` : null;
   const executorMention = event.executorId ? `<@${event.executorId}>` : null;
   const userMention = event.userId ? `<@${event.userId}>` : null;
@@ -277,4 +280,3 @@ export function validateLogChannel(channel, botMember) {
 
   return { valid: true };
 }
-

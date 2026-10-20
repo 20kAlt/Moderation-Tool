@@ -10,7 +10,7 @@ import {
 } from 'discord.js';
 import { buildStandardLogEmbed, formatLogLine } from '../utils/logging/logEmbeds.js';
 import { getGuildConfig } from './config/guildConfig.js';
-import { getTicketData, saveTicketData, deleteTicketData, getOpenTicketCountForUser, getTicketCounter, getHighestTicketNumber, incrementTicketCounter } from '../utils/database.js';
+import { getTicketData, saveTicketData, deleteTicketData, getOpenTicketCountForUser } from '../utils/database.js';
 import { logger } from '../utils/logger.js';
 import { createEmbed, errorEmbed } from '../utils/embeds.js';
 import { logTicketEvent } from '../utils/ticket/ticketLogging.js';
@@ -70,6 +70,20 @@ function buildTicketControlRow({ claimedBy = null } = {}) {
   );
 }
 
+function isTicketMessage(message) {
+  const title = message.embeds[0]?.title;
+  return title?.startsWith('Ticket #') || title === 'Support Ticket';
+}
+
+export function createTicketChannelName(member) {
+  const name = member.user?.username || member.displayName || 'support';
+  const sanitizedName = String(name)
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return `ticket-${sanitizedName || 'support'}`.slice(0, 100);
+}
+
 export const getUserTicketCount = wrapServiceBoundary(async function getUserTicketCount(guildId, userId) {
   return await getOpenTicketCountForUser(guildId, userId);
 }, {
@@ -116,9 +130,7 @@ export async function createTicket(guild, member, categoryId, reason = 'No reaso
       });
     }
     
-    const ticketNumber = await getNextTicketNumber(guild);
-    
-    let channelName = `ticket-${ticketNumber}`;
+    let channelName = createTicketChannelName(member);
     
     if (priority !== 'none') {
       const priorityInfo = PRIORITY_MAP[priority];
@@ -159,7 +171,6 @@ export async function createTicket(guild, member, categoryId, reason = 'No reaso
     
     const ticketData = {
       id: channel.id,
-      ticketNumber,
       userId: member.id,
       guildId: guild.id,
       createdAt: new Date().toISOString(),
@@ -174,7 +185,7 @@ export async function createTicket(guild, member, categoryId, reason = 'No reaso
     const priorityInfo = PRIORITY_MAP[priority] || PRIORITY_MAP.none;
     
     const embed = createEmbed({
-      title: `Ticket #${ticketNumber}`,
+      title: 'Support Ticket',
       description: `${member.toString()}, thanks for creating a ticket!\n\n**Reason:** ${reason}\n**Priority:** ${priorityInfo.emoji} ${priorityInfo.label}`,
       color: priorityInfo.color,
       fields: [
@@ -218,7 +229,6 @@ export async function createTicket(guild, member, categoryId, reason = 'No reaso
       event: {
         type: 'open',
         ticketId: channel.id,
-        ticketNumber: ticketNumber,
         userId: member.id,
         executorId: member.id,
         reason: reason,
@@ -347,7 +357,7 @@ export async function closeTicket(channel, closer, reason = 'No reason provided'
     const messages = await channel.messages.fetch();
     const ticketMessage = messages.find(m => 
       m.embeds.length > 0 && 
-      m.embeds[0].title?.startsWith('Ticket #')
+      isTicketMessage(m)
     );
     
     if (ticketMessage) {
@@ -440,7 +450,7 @@ export async function claimTicket(channel, claimer) {
     const messages = await channel.messages.fetch();
     const ticketMessage = messages.find(m => 
       m.embeds.length > 0 && 
-      m.embeds[0].title?.startsWith('Ticket #')
+      isTicketMessage(m)
     );
     
     if (ticketMessage) {
@@ -566,7 +576,7 @@ export async function reopenTicket(channel, reopener) {
     const messages = await channel.messages.fetch();
     const ticketMessage = messages.find(m => 
       m.embeds.length > 0 && 
-      m.embeds[0].title?.startsWith('Ticket #')
+      isTicketMessage(m)
     );
     
     if (ticketMessage) {
@@ -901,7 +911,7 @@ export async function unclaimTicket(channel, unclaimer) {
     const messages = await channel.messages.fetch();
     const ticketMessage = messages.find(m => 
       m.embeds.length > 0 && 
-      m.embeds[0].title?.startsWith('Ticket #')
+      isTicketMessage(m)
     );
     
     if (ticketMessage) {
@@ -968,27 +978,6 @@ export async function unclaimTicket(channel, unclaimer) {
   }
 }
 
-async function getNextTicketNumber(guild) {
-  let highestNumber = await getTicketCounter(guild.id);
-
-  if (highestNumber === 0) {
-    highestNumber = await getHighestTicketNumber(guild.id);
-    if (highestNumber === 0) {
-      const channels = await guild.channels.fetch().catch(() => guild.channels.cache);
-      for (const channel of channels.values()) {
-        if (channel && channel.type === ChannelType.GuildText) {
-          const match = channel.name?.match(/ticket-(\d+)$/i);
-          if (match) {
-            highestNumber = Math.max(highestNumber, Number(match[1]));
-          }
-        }
-      }
-    }
-  }
-
-  return await incrementTicketCounter(guild.id, highestNumber);
-}
-
 export async function updateTicketPriority(channel, priority, updater) {
   try {
     const ticketData = requireTicket(await getTicketData(channel.guild.id, channel.id), channel);
@@ -1028,7 +1017,7 @@ export async function updateTicketPriority(channel, priority, updater) {
     const messages = await channel.messages.fetch();
     const ticketMessage = messages.find(m => 
       m.embeds.length > 0 && 
-      m.embeds[0].title?.startsWith('Ticket #')
+      isTicketMessage(m)
     );
     
     if (ticketMessage) {
