@@ -46,6 +46,15 @@ class DatabaseWrapper {
             }
         }
 
+        if (process.env.ALLOW_IN_MEMORY_STORAGE?.toLowerCase() !== 'true') {
+            const failure = pgDb.getLastFailure?.();
+            const detail = failure?.message ? ` PostgreSQL error: ${failure.message}` : '';
+            throw new Error(
+                `PostgreSQL is required for persistent storage, but it is unavailable.${detail} `
+                + 'Configure PostgreSQL or set ALLOW_IN_MEMORY_STORAGE=true to explicitly allow volatile storage.',
+            );
+        }
+
         this.db = new MemoryStorage();
         this.useFallback = true;
         this.connectionType = 'memory';
@@ -158,7 +167,7 @@ export const db = new DatabaseWrapper();
 
 export async function initializeDatabase() {
     try {
-        logger.info('Initializing Database (PostgreSQL > Memory fallback)...');
+        logger.info('Initializing Database (PostgreSQL; in-memory fallback requires explicit opt-in)...');
         await db.initialize();
         logger.info('✅ Database initialized');
         return { db };
@@ -169,7 +178,7 @@ export async function initializeDatabase() {
             throw error;
         }
 
-        return { db };
+        throw error;
     }
 }
 

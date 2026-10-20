@@ -148,6 +148,10 @@ Moderation Tool is fully containerized for easy deployment.
 
 This starts the bot and PostgreSQL. The compose file sets `POSTGRES_SSL=false` and `AUTO_MIGRATE=true` for the bundled database. Music uses public Lavalink v4 nodes from `lavalink/nodes.json` by default.
 
+PostgreSQL is required by default so server configuration and other bot data persist across restarts. If PostgreSQL is unavailable, the bot now stops during startup instead of appearing to save settings in memory that will be lost. For temporary local testing only, set `ALLOW_IN_MEMORY_STORAGE=true`; all data created in that mode is discarded when the process stops.
+
+Docker Compose stores PostgreSQL data in the `postgres_data` volume. `docker compose down` preserves it; `docker compose down -v` deletes it.
+
 ### Music
 
 Music uses [Lavalink v4](https://github.com/lavalink-devs/Lavalink) via [Riffy](https://github.com/riffy-rb/riffy), similar to [Musicify](https://github.com/codebymitch/Musicify).
