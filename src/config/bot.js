@@ -175,7 +175,7 @@ export const botConfig = {
       // Plural display name.
       namePlural: "coins",
       // Currency symbol shown in balances.
-      symbol: "£fo",
+      symbol: "£",
     },
 
     // Starting balance for new users.
