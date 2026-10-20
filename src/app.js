@@ -164,9 +164,9 @@ class ModerationToolBot extends Client {
     });
 
     app.get('/health', (req, res) => {
-      const dbStatus = this.db?.getStatus?.() || { isDegraded: 'unknown' };
+      const dbStatus = this.db?.getStatus?.() || { isDegraded: false, connectionType: 'none' };
       const status = {
-        status: 'healthy',
+        status: dbStatus.isDegraded ? 'degraded' : 'healthy',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
         database: {
@@ -179,8 +179,9 @@ class ModerationToolBot extends Client {
     });
 
     app.get('/ready', (req, res) => {
-      const dbStatus = this.db?.getStatus?.() || { isDegraded: true, connectionType: 'none' };
-      const isReady = this.isReady() && !dbStatus.isDegraded;
+      const dbStatus = this.db?.getStatus?.() || { isDegraded: false, connectionType: 'none' };
+      const isReady = this.isReady();
+      const isOperational = isReady && (dbStatus.connectionType !== 'none' || dbStatus.isDegraded);
 
       const metrics = {
         guildCount: this.guilds?.cache?.size ?? 0,
@@ -194,17 +195,18 @@ class ModerationToolBot extends Client {
         schemaLabel: EXPECTED_SCHEMA_LABEL,
       };
 
-      if (isReady) {
+      if (isOperational) {
         return res.status(200).json({
           ready: true,
-          message: 'Bot is ready',
+          degraded: dbStatus.isDegraded,
+          message: dbStatus.isDegraded ? 'Bot is ready in degraded mode' : 'Bot is ready',
           metrics,
         });
       }
 
       res.status(503).json({
         ready: false,
-        reason: !this.isReady() ? 'Bot not Ready' : 'Database degraded',
+        reason: !isReady ? 'Bot not Ready' : 'Database unavailable',
         metrics,
       });
     });
