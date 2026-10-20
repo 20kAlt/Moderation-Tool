@@ -132,6 +132,7 @@ export async function resolveMusicSearch(client, query, requester) {
         'ytsearch',
         'ytmsearch',
         'scsearch',
+        'spsearch',
         client.riffy.defaultSearchPlatform,
     ].filter(Boolean))];
     let lastResult = null;
@@ -291,11 +292,39 @@ export async function joinVoiceChannel(client, interaction) {
     );
 }
 
+async function resolveSpotifyTrackForPlayback(client, track, requester) {
+    const source = track?.info?.sourceName?.toLowerCase();
+    const uri = track?.info?.uri?.toLowerCase() || '';
+    if (source !== 'spotify' && !uri.includes('spotify.com')) {
+        return track;
+    }
+
+    const query = [track.info.author, track.info.title].filter(Boolean).join(' - ');
+    const result = await client.riffy.resolve({ query, source: 'ytsearch', requester });
+    const playableTrack = rankMusicTracks(query, result?.tracks || [])[0];
+    if (playableTrack) {
+        return playableTrack;
+    }
+
+    if (track.track) {
+        return track;
+    }
+
+    throw new ModerationToolError(
+        'Spotify track unavailable',
+        ErrorTypes.USER_INPUT,
+        `Could not find playable audio for **${track.info.title || 'that Spotify track'}**. Try its YouTube suggestion instead.`,
+    );
+}
+
 export async function playQuery(client, interaction, query, { selectedTrack } = {}) {
     const { player, guildData } = await ensurePlayer(client, interaction);
 
-    const result = selectedTrack
-        ? { loadType: 'track', tracks: [selectedTrack] }
+    const playableSelectedTrack = selectedTrack
+        ? await resolveSpotifyTrackForPlayback(client, selectedTrack, interaction.user)
+        : undefined;
+    const result = playableSelectedTrack
+        ? { loadType: 'track', tracks: [playableSelectedTrack] }
         : await resolveMusicSearch(client, query, interaction.user);
 
     const { loadType, tracks, playlistInfo } = result;
@@ -332,7 +361,7 @@ export async function playQuery(client, interaction, query, { selectedTrack } = 
         || loadType === 'SEARCH_RESULT'
         || loadType === 'TRACK_LOADED'
     ) {
-        const track = selectedTrack || rankMusicTracks(query, tracks || [])[0];
+        const track = playableSelectedTrack || rankMusicTracks(query, tracks || [])[0];
         if (!track) {
             throw new ModerationToolError('No results', ErrorTypes.USER_INPUT, 'No results found for that query.');
         }

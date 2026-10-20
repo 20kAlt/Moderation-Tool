@@ -62,6 +62,44 @@ function consumeTrackSuggestion(token, interaction) {
     return suggestion.track;
 }
 
+function getTrackPlatform(track) {
+    const source = track?.info?.sourceName?.toLowerCase();
+    const uri = track?.info?.uri?.toLowerCase() || '';
+
+    if (source === 'spotify' || uri.includes('spotify.com')) {
+        return 'Spotify';
+    }
+    if (
+        source === 'youtube'
+        || source === 'youtube music'
+        || uri.includes('youtube.com')
+        || uri.includes('youtu.be')
+    ) {
+        return 'YouTube';
+    }
+    return null;
+}
+
+function rankTracksByPlatform(query, tracks) {
+    const ranked = rankMusicTracks(query, tracks);
+    const spotify = ranked.filter((track) => getTrackPlatform(track) === 'Spotify');
+    const youtube = ranked.filter((track) => getTrackPlatform(track) === 'YouTube');
+    const other = ranked.filter((track) => !getTrackPlatform(track));
+    const mixed = [];
+    const platformCount = Math.max(spotify.length, youtube.length);
+
+    for (let index = 0; index < platformCount; index += 1) {
+        if (spotify[index]) {
+            mixed.push(spotify[index]);
+        }
+        if (youtube[index]) {
+            mixed.push(youtube[index]);
+        }
+    }
+
+    return [...mixed, ...other];
+}
+
 export default {
     category: 'Music',
     data: new SlashCommandBuilder()
@@ -100,7 +138,7 @@ export default {
             const choices = [];
             const seen = new Set();
 
-            for (const track of rankMusicTracks(query, result?.tracks || [])) {
+            for (const track of rankTracksByPlatform(query, result?.tracks || [])) {
                 const title = track?.info?.title?.trim();
                 const author = track?.info?.author?.trim() || 'Unknown artist';
                 if (!title) {
@@ -112,8 +150,9 @@ export default {
                     continue;
                 }
                 seen.add(key);
+                const platform = getTrackPlatform(track);
                 choices.push({
-                    name: `${title} — ${author}`.slice(0, 100),
+                    name: `${platform ? `[${platform}] ` : ''}${title} — ${author}`.slice(0, 100),
                     value: createTrackSuggestion(track, interaction),
                 });
 
