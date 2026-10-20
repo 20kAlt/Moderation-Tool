@@ -4,6 +4,7 @@ import {
     ChannelType,
     MessageFlags,
 } from 'discord.js';
+import { isBotOwner } from '../../config/bot.js';
 import { successEmbed } from '../../utils/embeds.js';
 import { logEvent } from '../../utils/moderation.js';
 import { logger } from '../../utils/logger.js';
@@ -47,12 +48,19 @@ export default {
                 .addChannelTypes(...TEXT_CHANNEL_TYPES)
                 .setRequired(false),
         )
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
         .setDMPermission(false),
     category: 'moderation',
     abuseProtection: { maxAttempts: 8, windowMs: 60_000 },
 
     async execute(interaction, _config, client) {
+        if (!isBotOwner(interaction.user?.id)) {
+            await InteractionHelper.safeReply(interaction, {
+                content: 'Only configured bot owners can use this command.',
+                flags: MessageFlags.Ephemeral,
+            });
+            return;
+        }
+
         const deferSuccess = await InteractionHelper.safeDefer(interaction, {
             flags: MessageFlags.Ephemeral,
         });
