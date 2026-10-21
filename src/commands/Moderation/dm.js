@@ -1,5 +1,4 @@
 import { SlashCommandBuilder, MessageFlags } from 'discord.js';
-import { isBotOwner } from '../../config/bot.js';
 import { successEmbed } from '../../utils/embeds.js';
 import { logEvent } from '../../utils/moderation.js';
 import { logger } from '../../utils/logger.js';
