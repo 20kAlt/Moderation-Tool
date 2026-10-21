@@ -9,7 +9,7 @@ const WEBSITE_URL = 'https://moderation-tool-website--20k1.replit.app/';
 export default {
   data: new SlashCommandBuilder()
     .setName('website')
-    .setDescription('Get the official project website link'),
+    .setDescription('Get the official website link'),
 
   async execute(interaction) {
     try {
@@ -23,8 +23,8 @@ export default {
       await InteractionHelper.safeReply(interaction, {
         embeds: [
           createEmbed({
-            title: 'Project Website',
-            description: 'Visit the official project page for updates, docs, and support information.',
+            title: 'Moderation Tool Website',
+            description: 'Visit the official Moderation Tool website',
           }),
         ],
         components: [actionRow],
