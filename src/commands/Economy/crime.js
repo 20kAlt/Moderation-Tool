@@ -35,7 +35,7 @@ export default {
                     { name: 'Art Theft', value: 'art-theft' },
                     { name: 'Cybercrime', value: 'cybercrime' },
                     { name: 'DataBreach', value: 'DataBreach'},
-                    { name: 'KnifeCrime', value: 'KnifeCrime'}
+                    { name: 'KnifeCrime', value: 'KnifeCrime'},
                 )
         ),
 
