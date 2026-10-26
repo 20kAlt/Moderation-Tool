@@ -16,6 +16,7 @@ const CRIME_TYPES = [
     { name: "Cybercrime", min: 5000, max: 20000, risk: 0.8 },
     {name: "Casino", min: 2000, max:50000, risk: 0.9},
     {name: "DataBreach", min: 3000, max:8000, risk: 0.7},
+    {name: "KnifeCrime", min: 500, max:2500, risk: 0.7},
 ];
 
 export default {
@@ -33,6 +34,8 @@ export default {
                     { name: 'Bank Heist', value: 'bank-heist' },
                     { name: 'Art Theft', value: 'art-theft' },
                     { name: 'Cybercrime', value: 'cybercrime' },
+                    { name: 'DataBreach', value: 'DataBreach'},
+                    { name: 'KnifeCrime', value: 'KnifeCrime'}
                 )
         ),
 
