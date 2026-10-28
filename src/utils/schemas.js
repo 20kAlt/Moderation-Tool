@@ -93,6 +93,28 @@ const ProtectionConfigSchema = z
   })
   .default({});
 
+const SessionBoardConfigSchema = z
+  .object({
+    enabled: z.boolean().default(false),
+    boardId: z.string().nullable().optional(),
+    plannedListId: z.string().nullable().optional(),
+    ongoingListId: z.string().nullable().optional(),
+    cancelledListId: z.string().nullable().optional(),
+    hostRoleId: z.string().nullable().optional(),
+    coHostRoleIds: z.array(z.string()).default([]),
+    defaultStatus: z.enum(['planned', 'ongoing', 'cancelled']).default('planned'),
+  })
+  .default({
+    enabled: false,
+    boardId: null,
+    plannedListId: null,
+    ongoingListId: null,
+    cancelledListId: null,
+    hostRoleId: null,
+    coHostRoleIds: [],
+    defaultStatus: 'planned',
+  });
+
 export const GuildConfigSchema = z
   .object({
     prefix: z.string().optional(),
@@ -115,6 +137,7 @@ export const GuildConfigSchema = z
     enableLogging: z.boolean().optional(),
     verification: VerificationConfigSchema,
     protection: ProtectionConfigSchema,
+    sessionBoard: SessionBoardConfigSchema.optional(),
   })
   .passthrough();
 

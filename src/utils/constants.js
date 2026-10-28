@@ -58,7 +58,17 @@ export const DEFAULT_GUILD_CONFIG = {
             timeoutMinutes: 30,
             trustedUserIds: [],
         },
-    }
+    },
+    sessionBoard: {
+        enabled: false,
+        boardId: null,
+        plannedListId: null,
+        ongoingListId: null,
+        cancelledListId: null,
+        hostRoleId: null,
+        coHostRoleIds: [],
+        defaultStatus: 'planned',
+    },
 };
 
 export const INTERACTION_TIMEOUTS = {

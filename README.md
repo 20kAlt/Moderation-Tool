@@ -115,6 +115,23 @@ To enable it:
 
 Servers can keep using standard verification without setting any Roblox OAuth credentials. Use the dashboard to customize the panel's title, description, button label, and optional HTTPS image.
 
+### Trello Roblox session board (optional)
+
+You can connect a Trello board to the bot to track Roblox session planning, cancellations, and live sessions. The bot supports a session board with dedicated lists for `planned`, `ongoing`, and `cancelled` sessions and a Discord role gate for who can edit the board.
+
+1. Create a Trello Power-Up or personal API key from the Trello App Key page.
+2. Set the environment values:
+   ```bash
+   TRELLO_API_KEY=your_key
+   TRELLO_TOKEN=your_token
+   TRELLO_BOARD_ID=your_board_id
+   TRELLO_PLANNED_LIST_ID=planned_list_id
+   TRELLO_ONGOING_LIST_ID=ongoing_list_id
+   TRELLO_CANCELLED_LIST_ID=cancelled_list_id
+   ```
+3. In Discord, run `/sessionboard setup` and set the board, list IDs, and the host/co-host roles. The host role is the main editing role, and the co-host role list allows extra members to update the board when a session changes status.
+4. Use `/sessionboard update` to move a session card between `planned`, `ongoing`, or `cancelled` without editing Trello manually.
+
 ### Video Tutorial
 For a detailed step-by-step setup guide, watch our comprehensive video tutorial:
 [**Moderation Tool Setup Tutorial**](https://www.youtube.com/@TouchDisc)
