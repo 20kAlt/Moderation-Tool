@@ -37,7 +37,7 @@ export const botConfig = {
     enabled: process.env.ANTI_NUKE_ENABLED !== "false",
     allowedBotIds: process.env.ANTI_NUKE_ALLOWED_BOT_IDS?.split(",").map((id) => id.trim()).filter(Boolean) || [],
     suspiciousNameTerms: ["nuke", "nuker", "raid", "server wipe", "server-wipe", "massban", "mass ban"],
-    blockDangerousPermissions: true, // keep true 
+    blockDangerousPermissions: false, // keep true 
   },
 
   // =========================
@@ -71,9 +71,9 @@ export const botConfig = {
   applications: {
     // Default questions shown when someone fills out an application.
     defaultQuestions: [
-      { question: "How old are you?", required: true },
-      { question: "Why do you want to join?", required: true },
-      { question: "Tell us about yourself.", required: true },
+      { question: "How old are you?", required: false },
+      { question: "Why do you want to join?", required: false },
+      { question: "Tell us about yourself.", required: false },
     ],
 
     // Embed colors by application status.
