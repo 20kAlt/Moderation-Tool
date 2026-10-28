@@ -1,8 +1,27 @@
 export const SESSION_BOARD_STATUSES = ['planned', 'ongoing', 'cancelled'];
+export const SESSION_BOARD_CARD_TYPES = ['session', 'training', 'shift'];
 
 export function normalizeSessionStatus(status = 'planned') {
     const normalized = String(status || 'planned').trim().toLowerCase();
     return SESSION_BOARD_STATUSES.includes(normalized) ? normalized : 'planned';
+}
+
+export function resolveCardType(cardName = '') {
+    const label = String(cardName || '').trim().toLowerCase();
+
+    if (!label) {
+        return 'session';
+    }
+
+    if (/training/.test(label) || /class/.test(label)) {
+        return 'training';
+    }
+
+    if (/shift/.test(label) || /schedule/.test(label) || /slot/.test(label)) {
+        return 'shift';
+    }
+
+    return 'session';
 }
 
 export function parseRoleIds(rawRoles = '') {
@@ -82,6 +101,58 @@ export function buildSessionCardDescription({
     lines.push(`Updated: ${updatedAt || new Date().toISOString()}`);
 
     return lines.join('\n');
+}
+
+export async function getTrelloBoardCards({ boardId, apiKey, token }) {
+    const trelloApiKey = apiKey || process.env.TRELLO_API_KEY;
+    const trelloToken = token || process.env.TRELLO_TOKEN;
+
+    if (!boardId || !trelloApiKey || !trelloToken) {
+        throw new Error('Missing Trello board configuration. Set TRELLO_API_KEY, TRELLO_TOKEN, and boardId.');
+    }
+
+    const boardUrl = `https://api.trello.com/1/boards/${encodeURIComponent(boardId)}/cards?key=${encodeURIComponent(trelloApiKey)}&token=${encodeURIComponent(trelloToken)}`;
+    const response = await fetch(boardUrl);
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch Trello cards: ${response.status} ${errorText}`);
+    }
+
+    const cards = await response.json();
+    const listIds = [...new Set((cards || []).map((card) => card?.idList).filter(Boolean))];
+
+    if (listIds.length === 0) {
+        return [];
+    }
+
+    const listUrl = `https://api.trello.com/1/lists/${listIds.map((id) => encodeURIComponent(id)).join(',')}?key=${encodeURIComponent(trelloApiKey)}&token=${encodeURIComponent(trelloToken)}`;
+    const listResponse = await fetch(listUrl);
+    if (!listResponse.ok) {
+        return (cards || []).map((card) => ({
+            ...card,
+            type: resolveCardType(card?.name),
+            listName: null,
+        }));
+    }
+
+    const listPayload = await listResponse.json();
+    const listsById = Array.isArray(listPayload)
+        ? Object.fromEntries(listPayload.map((list) => [list.id, list.name]))
+        : { [listPayload.id]: listPayload.name };
+
+    return (cards || []).map((card) => ({
+        ...card,
+        type: resolveCardType(card?.name),
+        listName: listsById[card?.idList] || null,
+    }));
+}
+
+export async function getTrainingOrShiftCards({ boardId, apiKey, token }) {
+    const cards = await getTrelloBoardCards({ boardId, apiKey, token });
+    return cards.filter((card) => {
+        const type = resolveCardType(card?.name);
+        return type === 'training' || type === 'shift';
+    });
 }
 
 export async function syncSessionBoardCard({
