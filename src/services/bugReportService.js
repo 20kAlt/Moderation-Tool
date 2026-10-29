@@ -1,7 +1,7 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
 
 export function formatBugReportProof(proof) {
-    if (!proof) return { value: 'Proof was Not provided', imageUrl: null };
+    if (!proof) return { value: 'Proof was not provided', imageUrl: null };
 
     const matches = [...proof.matchAll(/https?:\/\/[^\s<>"']+/gi)];
     const links = matches.flatMap(match => {
