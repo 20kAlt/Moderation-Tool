@@ -9,6 +9,7 @@ const IDEAL_ROLE_LABELS = {
     planned: 'Planned',
     ongoing: 'Ongoing',
     cancelled: 'Cancelled',
+    delayed: 'Delayed',
 };
 
 function getConfiguredRoleIds(config = {}) {
@@ -40,7 +41,7 @@ export default {
                     option
                         .setName('board_id')
                         .setDescription('The Trello board ID to connect to')
-                        .setRequired(false)
+                        .setRequired(true)
                 )
                 .addStringOption((option) =>
                     option

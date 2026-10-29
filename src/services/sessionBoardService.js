@@ -1,4 +1,4 @@
-export const SESSION_BOARD_STATUSES = ['planned', 'ongoing', 'cancelled'];
+export const SESSION_BOARD_STATUSES = ['planned', 'ongoing', 'cancelled', "delayed"];
 export const SESSION_BOARD_CARD_TYPES = ['session', 'training', 'shift'];
 
 export function normalizeSessionStatus(status = 'planned') {

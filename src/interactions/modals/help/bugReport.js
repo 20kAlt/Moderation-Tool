@@ -36,8 +36,8 @@ export default {
             .addFields(
                 { name: 'Status', value: '🕓 Pending review', inline: true },
                 { name: 'Server', value: `${interaction.guild.name}\n\`${interaction.guildId}\``, inline: true },
-                { name: 'Reported by', value: `<@${interaction.user.id}> (\`${interaction.user.id}\`)`, inline: false },
-                { name: 'Proof', value: formattedProof.value, inline: false },
+                { name: 'Reported by', value: `<@${interaction.user.id}> (\`${interaction.user.id}\`)`, inline: true },
+                { name: 'Proof', value: formattedProof.value, inline: true },
             )
             .setTimestamp();
 

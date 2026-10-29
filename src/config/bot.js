@@ -1,3 +1,4 @@
+import { required } from 'zod/v4-mini';
 import { logger } from '../utils/logger.js';
 
 export const botConfig = {
@@ -71,9 +72,11 @@ export const botConfig = {
   applications: {
     // Default questions shown when someone fills out an application.
     defaultQuestions: [
+      { question: "What is your discord username", required: false},
       { question: "How old are you?", required: false },
       { question: "Why do you want to join?", required: false },
       { question: "Tell us about yourself.", required: false },
+      { question: "Do you have any past experience.", required: false},
     ],
 
     // Embed colors by application status.
