@@ -97,6 +97,8 @@ const SessionBoardConfigSchema = z
   .object({
     enabled: z.boolean().default(false),
     boardId: z.string().nullable().optional(),
+    apiKey: z.string().nullable().optional(),
+    token: z.string().nullable().optional(),
     plannedListId: z.string().nullable().optional(),
     ongoingListId: z.string().nullable().optional(),
     cancelledListId: z.string().nullable().optional(),
@@ -107,6 +109,8 @@ const SessionBoardConfigSchema = z
   .default({
     enabled: false,
     boardId: null,
+    apiKey: null,
+    token: null,
     plannedListId: null,
     ongoingListId: null,
     cancelledListId: null,

@@ -32,6 +32,15 @@ test('database startup requires PostgreSQL unless volatile storage is explicitly
     );
     assert.equal(db.initialized, false);
 
+    process.env.ALLOW_IN_MEMORY_STORAGE = '1';
+    await initializeDatabase();
+    assert.equal(db.initialized, true);
+    assert.equal(db.useFallback, true);
+    assert.ok(db.db instanceof MemoryStorage);
+
+    db.initialized = false;
+    db.db = null;
+    db.useFallback = false;
     process.env.ALLOW_IN_MEMORY_STORAGE = 'true';
     await initializeDatabase();
     assert.equal(db.initialized, true);

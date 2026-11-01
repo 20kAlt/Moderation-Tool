@@ -62,6 +62,8 @@ export const DEFAULT_GUILD_CONFIG = {
     sessionBoard: {
         enabled: false,
         boardId: null,
+        apiKey: null,
+        token: null,
         plannedListId: null,
         ongoingListId: null,
         cancelledListId: null,

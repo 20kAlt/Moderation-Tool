@@ -3,7 +3,13 @@ import { createEmbed } from '../../utils/embeds.js';
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { getGuildConfig, patchGuildConfig } from '../../services/config/guildConfig.js';
-import { canEditSessionBoard, normalizeSessionStatus, parseRoleIds, syncSessionBoardCard } from '../../services/sessionBoardService.js';
+import {
+    canEditSessionBoard,
+    getTrainingOrShiftCards,
+    normalizeSessionStatus,
+    parseRoleIds,
+    syncSessionBoardCard,
+} from '../../services/sessionBoardService.js';
 
 const IDEAL_ROLE_LABELS = {
     planned: 'Planned',
@@ -39,9 +45,21 @@ export default {
                 .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
                 .addStringOption((option) =>
                     option
+                        .setName('api_key')
+                        .setDescription('Trello API key for the board')
+                        .setRequired(false)
+                )
+                .addStringOption((option) =>
+                    option
+                        .setName('token')
+                        .setDescription('Trello token for the board')
+                        .setRequired(false)
+                )
+                .addStringOption((option) =>
+                    option
                         .setName('board_id')
                         .setDescription('The Trello board ID to connect to')
-                        .setRequired(true)
+                        .setRequired(false)
                 )
                 .addStringOption((option) =>
                     option
@@ -106,6 +124,11 @@ export default {
             subcommand
                 .setName('view')
                 .setDescription('View the current Trello board and role setup')
+        )
+        .addSubcommand((subcommand) =>
+            subcommand
+                .setName('cards')
+                .setDescription('List Trello training and shift cards from the connected board')
         ),
 
     async execute(interaction) {
@@ -124,6 +147,8 @@ export default {
             const currentStatus = normalizeSessionStatus(sessionBoardConfig.defaultStatus || 'planned');
 
             if (subcommand === 'setup') {
+                const apiKey = interaction.options.getString('api_key') || sessionBoardConfig.apiKey || process.env.TRELLO_API_KEY || null;
+                const token = interaction.options.getString('token') || sessionBoardConfig.token || process.env.TRELLO_TOKEN || null;
                 const boardId = interaction.options.getString('board_id') || sessionBoardConfig.boardId || process.env.TRELLO_BOARD_ID || null;
                 const plannedListId = interaction.options.getString('planned_list_id') || sessionBoardConfig.plannedListId || process.env.TRELLO_PLANNED_LIST_ID || null;
                 const ongoingListId = interaction.options.getString('ongoing_list_id') || sessionBoardConfig.ongoingListId || process.env.TRELLO_ONGOING_LIST_ID || null;
@@ -137,6 +162,8 @@ export default {
                     sessionBoard: {
                         ...sessionBoardConfig,
                         enabled: true,
+                        apiKey,
+                        token,
                         boardId,
                         plannedListId,
                         ongoingListId,
@@ -148,6 +175,7 @@ export default {
                 }, { context: 'sessionboard-setup' });
 
                 const boardSummary = [
+                    `API key: ${apiKey ? 'configured' : 'not configured'}`,
                     `Board: ${boardId || 'not configured'}`,
                     `Planned: ${plannedListId || 'not configured'}`,
                     `Ongoing: ${ongoingListId || 'not configured'}`,
@@ -166,9 +194,54 @@ export default {
                 return;
             }
 
+            if (subcommand === 'cards') {
+                const apiKey = sessionBoardConfig.apiKey || process.env.TRELLO_API_KEY;
+                const token = sessionBoardConfig.token || process.env.TRELLO_TOKEN;
+                const boardId = sessionBoardConfig.boardId || process.env.TRELLO_BOARD_ID;
+                if (!boardId || !apiKey || !token) {
+                    await InteractionHelper.safeEditReply(interaction, {
+                        content: 'No Trello board or API credentials are set. Run /sessionboard setup first.',
+                        flags: MessageFlags.Ephemeral,
+                    });
+                    return;
+                }
+
+                const trainingOrShiftCards = await getTrainingOrShiftCards({
+                    boardId,
+                    apiKey,
+                    token,
+                });
+
+                if (!trainingOrShiftCards.length) {
+                    await InteractionHelper.safeEditReply(interaction, {
+                        embeds: [createEmbed({
+                            title: 'Training and shift cards',
+                            description: 'No Trello cards were found for training or shifts on this board.',
+                            color: 'info',
+                        })],
+                    });
+                    return;
+                }
+
+                const cardLines = trainingOrShiftCards.slice(0, 10).map((card) => {
+                    const type = card.type === 'training' ? 'Training' : 'Shift';
+                    const listName = card.listName ? ` (${card.listName})` : '';
+                    return `- **${type}** ${card.name}${listName} — ${card.url || 'No Trello URL'}`;
+                });
+
+                await InteractionHelper.safeEditReply(interaction, {
+                    embeds: [createEmbed({
+                        title: 'Training and shift cards',
+                        description: cardLines.join('\n'),
+                        color: 'info',
+                    })],
+                });
+                return;
+            }
+
             if (subcommand === 'view') {
-                const configSummary = sessionBoardConfig.enabled
-                    ? [
+                const configSummary = sessionBoardConfig.enabled ? [
+                        `API key: ${sessionBoardConfig.apiKey || process.env.TRELLO_API_KEY ? 'configured' : 'not set'}`,
                         `Board ID: ${sessionBoardConfig.boardId || process.env.TRELLO_BOARD_ID || 'not set'}`,
                         `Planned list: ${sessionBoardConfig.plannedListId || process.env.TRELLO_PLANNED_LIST_ID || 'not set'}`,
                         `Ongoing list: ${sessionBoardConfig.ongoingListId || process.env.TRELLO_ONGOING_LIST_ID || 'not set'}`,
@@ -206,6 +279,8 @@ export default {
                     ongoing: sessionBoardConfig.ongoingListId || process.env.TRELLO_ONGOING_LIST_ID,
                     cancelled: sessionBoardConfig.cancelledListId || process.env.TRELLO_CANCELLED_LIST_ID,
                 };
+                const apiKey = sessionBoardConfig.apiKey || process.env.TRELLO_API_KEY;
+                const token = sessionBoardConfig.token || process.env.TRELLO_TOKEN;
 
                 const targetListId = configuredListIds[status];
                 if (!targetListId) {
@@ -231,6 +306,8 @@ export default {
                     notes,
                     boardId,
                     listId: targetListId,
+                    apiKey,
+                    token,
                     sessionKey: `discord:${interaction.guildId}:${sessionName}`,
                     hostName: interaction.user.tag,
                     hostRoleName: interaction.member.roles.highest?.name || 'Discord member',

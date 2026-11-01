@@ -3,6 +3,14 @@ import { MemoryStorage } from '../memoryStorage.js';
 import { logger } from '../logger.js';
 import { validateGuildConfigOrThrow } from '../schemas.js';
 
+function isInMemoryStorageAllowed() {
+    const value = process.env.ALLOW_IN_MEMORY_STORAGE;
+    if (value === undefined || value === null || value === '') {
+        return false;
+    }
+    return ['1', 'true', 'yes', 'on'].includes(String(value).trim().toLowerCase());
+}
+
 class DatabaseWrapper {
     constructor() {
         this.initialized = false;
@@ -46,12 +54,12 @@ class DatabaseWrapper {
             }
         }
 
-        if (process.env.ALLOW_IN_MEMORY_STORAGE?.toLowerCase() !== 'true') {
+        if (!isInMemoryStorageAllowed()) {
             const failure = pgDb.getLastFailure?.();
             const detail = failure?.message ? ` PostgreSQL error: ${failure.message}` : '';
             throw new Error(
                 `PostgreSQL is required for persistent storage, but it is unavailable.${detail} `
-                + 'Configure PostgreSQL or set ALLOW_IN_MEMORY_STORAGE=true to explicitly allow volatile storage.',
+                + 'Configure PostgreSQL or set ALLOW_IN_MEMORY_STORAGE=true (or 1/yes/on) to explicitly allow volatile storage.',
             );
         }
 

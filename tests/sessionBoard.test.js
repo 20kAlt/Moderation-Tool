@@ -5,8 +5,10 @@ import {
     SESSION_BOARD_STATUSES,
     buildSessionCardDescription,
     canEditSessionBoard,
+    getTrainingOrShiftCards,
     normalizeSessionStatus,
     parseRoleIds,
+    resolveCardType,
     syncSessionBoardCard,
 } from '../src/services/sessionBoardService.js';
 
@@ -16,6 +18,9 @@ test('session board status values are normalized to the supported set', () => {
     assert.equal(normalizeSessionStatus('cancelled'), 'cancelled');
     assert.equal(normalizeSessionStatus('unknown'), 'planned');
     assert.deepEqual(SESSION_BOARD_STATUSES, ['planned', 'ongoing', 'cancelled']);
+    assert.equal(resolveCardType('Roblox Training Session'), 'training');
+    assert.equal(resolveCardType('Weekend Shift Coverage'), 'shift');
+    assert.equal(resolveCardType('Regular Roblox Session'), 'session');
 });
 
 test('role parsing and access control handle host and co-host roles', () => {
@@ -76,6 +81,46 @@ test('session card description captures the session metadata and status', () => 
     assert.match(description, /Co-host rank: Trusted Host/);
     assert.match(description, /Session ID: session-42/);
     assert.match(description, /Bring the Roblox track/);
+});
+
+test('getTrainingOrShiftCards filters Trello cards by their card type using the board API', async () => {
+    const originalFetch = globalThis.fetch;
+
+    globalThis.fetch = async (url) => {
+        if (String(url).includes('/boards/board-1/cards')) {
+            return {
+                ok: true,
+                json: async () => [
+                    { id: 'card-1', idList: 'list-1', name: 'Roblox Training Session', url: 'https://trello.com/c/aaa' },
+                    { id: 'card-2', idList: 'list-2', name: 'Weeknight Shift Coverage', url: 'https://trello.com/c/bbb' },
+                    { id: 'card-3', idList: 'list-3', name: 'Regular Session', url: 'https://trello.com/c/ccc' },
+                ],
+            };
+        }
+
+        if (String(url).includes('/boards/board-1/lists')) {
+            return {
+                ok: true,
+                json: async () => [
+                    { id: 'list-1', name: 'Planned' },
+                    { id: 'list-2', name: 'Ongoing' },
+                    { id: 'list-3', name: 'Cancelled' },
+                ],
+            };
+        }
+
+        throw new Error(`Unexpected fetch call: ${url}`);
+    };
+
+    try {
+        const cards = await getTrainingOrShiftCards({ boardId: 'board-1', apiKey: 'api-key', token: 'token' });
+        assert.equal(cards.length, 2);
+        assert.deepEqual(cards.map((card) => card.type), ['training', 'shift']);
+        assert.equal(cards[0].name, 'Roblox Training Session');
+        assert.equal(cards[1].listName, 'Ongoing');
+    } finally {
+        globalThis.fetch = originalFetch;
+    }
 });
 
 test('syncSessionBoardCard creates and updates Trello cards using the configured board and status list', async () => {
