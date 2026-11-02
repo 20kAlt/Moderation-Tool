@@ -11,6 +11,7 @@ import { getServerCounters, saveServerCounters, updateCounter } from './services
 import { logger, startupLog, shutdownLog } from './utils/logger.js';
 import { checkBirthdays } from './services/birthdayService.js';
 import { checkGiveaways } from './services/giveawayService.js';
+import { refreshSessionBoardCache } from './services/sessionBoardService.js';
 import { loadCommands, registerCommands as registerSlashCommands } from './handlers/loaders/commandLoader.js';
 import { runSafeTask, handleTaskError, ErrorCodes } from './utils/errorHandler.js';
 import { initializeMusic } from './services/music/riffySetup.js';
@@ -268,6 +269,24 @@ class ModerationToolBot extends Client {
   setupCronJobs() {
     cron.schedule('0 6 * * *', runSafeTask('birthday_check', () => checkBirthdays(this)));
     cron.schedule('* * * * *', runSafeTask('giveaway_check', () => checkGiveaways(this)));
+    cron.schedule('*/5 * * * *', runSafeTask('session_board_refresh', async () => {
+      if (!this.db) return;
+
+      for (const [guildId] of this.guilds.cache) {
+        try {
+          const guildConfig = await getGuildConfig(this, guildId, { context: 'sessionboard-refresh' });
+          const sessionBoardConfig = guildConfig?.sessionBoard || {};
+
+          if (!sessionBoardConfig.enabled || !sessionBoardConfig.boardId) {
+            continue;
+          }
+
+          await refreshSessionBoardCache({ client: this, guildId, guildConfig });
+        } catch (error) {
+          logger.error(`Session board refresh failed for guild ${guildId}:`, error);
+        }
+      }
+    }));
     cron.schedule('*/15 * * * *', runSafeTask('counter_update', () => this.updateAllCounters()));
   }
 

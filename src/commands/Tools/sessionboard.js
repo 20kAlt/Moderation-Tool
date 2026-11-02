@@ -15,7 +15,6 @@ const IDEAL_ROLE_LABELS = {
     planned: 'Planned',
     ongoing: 'Ongoing',
     cancelled: 'Cancelled',
-    delayed: 'Delayed',
 };
 
 function getConfiguredRoleIds(config = {}) {

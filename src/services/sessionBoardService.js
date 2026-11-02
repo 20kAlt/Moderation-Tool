@@ -1,5 +1,8 @@
-export const SESSION_BOARD_STATUSES = ['planned', 'ongoing', 'cancelled', 'delayed'];
+import { getGuildConfig, patchGuildConfig } from './config/guildConfig.js';
+
+export const SESSION_BOARD_STATUSES = ['planned', 'ongoing', 'cancelled'];
 export const SESSION_BOARD_CARD_TYPES = ['session', 'training', 'shift'];
+export const SESSION_BOARD_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 
 export function normalizeSessionStatus(status = 'planned') {
     const normalized = String(status || 'planned').trim().toLowerCase();
@@ -101,6 +104,58 @@ export function buildSessionCardDescription({
     lines.push(`Updated: ${updatedAt || new Date().toISOString()}`);
 
     return lines.join('\n');
+}
+
+export function serializeSessionBoardCard(card = {}) {
+    const cardName = String(card?.name || '').trim() || 'Roblox Session';
+    const updatedAt = card?.updatedAt || card?.dateLastActivity || new Date().toISOString();
+    const listName = card?.listName || null;
+
+    return {
+        id: card?.id || null,
+        shortLink: card?.shortLink || null,
+        name: cardName,
+        url: card?.url || null,
+        desc: card?.desc || '',
+        listId: card?.idList || card?.listId || null,
+        listName,
+        type: resolveCardType(cardName),
+        updatedAt,
+    };
+}
+
+export async function refreshSessionBoardCache({ client, guildId, guildConfig } = {}) {
+    if (!client || !guildId) {
+        return null;
+    }
+
+    const currentConfig = guildConfig || await getGuildConfig(client, guildId, { context: 'sessionboard-refresh' });
+    const sessionBoardConfig = currentConfig?.sessionBoard || {};
+    const boardId = sessionBoardConfig.boardId || process.env.TRELLO_BOARD_ID;
+    const apiKey = sessionBoardConfig.apiKey || process.env.TRELLO_API_KEY;
+    const token = sessionBoardConfig.token || process.env.TRELLO_TOKEN;
+
+    if (!sessionBoardConfig.enabled || !boardId || !apiKey || !token) {
+        return null;
+    }
+
+    const cards = await getTrelloBoardCards({ boardId, apiKey, token });
+    const safeCards = cards.map((card) => serializeSessionBoardCard({
+        ...card,
+        listName: card.listName,
+        updatedAt: new Date().toISOString(),
+    }));
+
+    await patchGuildConfig(client, guildId, {
+        sessionBoard: {
+            ...sessionBoardConfig,
+            cards: safeCards,
+            lastSyncedAt: new Date().toISOString(),
+            refreshIntervalMs: SESSION_BOARD_REFRESH_INTERVAL_MS,
+        },
+    }, { context: 'sessionboard-refresh' });
+
+    return safeCards;
 }
 
 export async function getTrelloBoardCards({ boardId, apiKey, token }) {

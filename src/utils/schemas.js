@@ -104,6 +104,19 @@ const SessionBoardConfigSchema = z
     cancelledListId: z.string().nullable().optional(),
     hostRoleId: z.string().nullable().optional(),
     coHostRoleIds: z.array(z.string()).default([]),
+    cards: z.array(z.object({
+      id: z.string().nullable().optional(),
+      shortLink: z.string().nullable().optional(),
+      name: z.string().default('Roblox Session'),
+      url: z.string().nullable().optional(),
+      desc: z.string().optional().default(''),
+      listId: z.string().nullable().optional(),
+      listName: z.string().nullable().optional(),
+      type: z.enum(['session', 'training', 'shift']).default('session'),
+      updatedAt: z.string().nullable().optional(),
+    })).default([]),
+    lastSyncedAt: z.string().nullable().optional(),
+    refreshIntervalMs: z.number().int().positive().default(5 * 60 * 1000),
     defaultStatus: z.enum(['planned', 'ongoing', 'cancelled']).default('planned'),
   })
   .default({
@@ -116,6 +129,9 @@ const SessionBoardConfigSchema = z
     cancelledListId: null,
     hostRoleId: null,
     coHostRoleIds: [],
+    cards: [],
+    lastSyncedAt: null,
+    refreshIntervalMs: 5 * 60 * 1000,
     defaultStatus: 'planned',
   });
 

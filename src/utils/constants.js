@@ -69,6 +69,9 @@ export const DEFAULT_GUILD_CONFIG = {
         cancelledListId: null,
         hostRoleId: null,
         coHostRoleIds: [],
+        cards: [],
+        lastSyncedAt: null,
+        refreshIntervalMs: 5 * 60 * 1000,
         defaultStatus: 'planned',
     },
 };
