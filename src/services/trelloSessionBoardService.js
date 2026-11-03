@@ -246,17 +246,71 @@ function buildSessionBoardEmbed({ boardName, boardUrl, cards, lastUpdated }) {
   return embed;
 }
 
+async function resolveBoardReference(apiKey, token, boardId) {
+  const reference = normalizeBoardReference(boardId);
+  if (!reference) {
+    return null;
+  }
+
+  try {
+    const boardResponse = await axios.get(`https://api.trello.com/1/boards/${reference}`, {
+      params: { key: apiKey, token, fields: 'id,name,url,shortLink,shortUrl' },
+      timeout: 10000,
+    });
+    return boardResponse.data?.id || reference;
+  } catch (error) {
+    if (!token || error?.response?.status !== 404) {
+      throw error;
+    }
+
+    try {
+      const boardsResponse = await axios.get('https://api.trello.com/1/members/me/boards', {
+        params: { key: apiKey, token, fields: 'id,name,url,shortLink,shortUrl' },
+        timeout: 10000,
+      });
+
+      const boards = boardsResponse.data || [];
+      const matchedBoard = boards.find((board) => {
+        const candidateValues = [
+          board.id,
+          board.shortLink,
+          board.shortUrl,
+          board.url,
+          board.name,
+          normalizeBoardReference(board.shortUrl),
+          normalizeBoardReference(board.url),
+        ].filter(Boolean);
+
+        return candidateValues.some((value) => value.toLowerCase() === reference.toLowerCase());
+      });
+
+      if (matchedBoard) {
+        return matchedBoard.id;
+      }
+    } catch (lookupError) {
+      throw error;
+    }
+
+    throw error;
+  }
+}
+
 async function fetchTrelloBoardData(apiKey, token, boardId) {
   if (!apiKey || !boardId) {
+    return null;
+  }
+
+  const resolvedBoardId = await resolveBoardReference(apiKey, token, boardId);
+  if (!resolvedBoardId) {
     return null;
   }
 
   const params = { key: apiKey, token };
 
   const [boardResponse, listResponse, cardResponse] = await Promise.all([
-    axios.get(`https://api.trello.com/1/boards/${boardId}`, { params: { ...params, fields: 'name,url' }, timeout: 10000 }),
-    axios.get(`https://api.trello.com/1/boards/${boardId}/lists`, { params: { ...params, fields: 'name,id' }, timeout: 10000 }),
-    axios.get(`https://api.trello.com/1/boards/${boardId}/cards`, { params: { ...params, fields: 'name,desc,idList,url,shortUrl,labels,due' }, timeout: 10000 }),
+    axios.get(`https://api.trello.com/1/boards/${resolvedBoardId}`, { params: { ...params, fields: 'name,url' }, timeout: 10000 }),
+    axios.get(`https://api.trello.com/1/boards/${resolvedBoardId}/lists`, { params: { ...params, fields: 'name,id' }, timeout: 10000 }),
+    axios.get(`https://api.trello.com/1/boards/${resolvedBoardId}/cards`, { params: { ...params, fields: 'name,desc,idList,url,shortUrl,labels,due' }, timeout: 10000 }),
   ]);
 
   const listNameMap = new Map((listResponse.data || []).map((list) => [list.id, list.name]));
@@ -315,9 +369,19 @@ export async function fetchSessionBoardStatus({ apiKey = process.env.TRELLO_API_
     throw new Error('Trello API key and board ID are required for this server. Set them with /sessionboard or save them to this server configuration.');
   }
 
-  const data = await fetchTrelloBoardData(resolvedApiKey, resolvedToken, resolvedBoardId);
+  let data;
+  try {
+    data = await fetchTrelloBoardData(resolvedApiKey, resolvedToken, resolvedBoardId);
+  } catch (error) {
+    const statusCode = error?.response?.status;
+    const reason = statusCode === 404
+      ? 'The board reference is invalid or the token does not have access to that Trello board.'
+      : error?.message || 'Unknown Trello error';
+    throw new Error(`Unable to load Trello board data. ${reason}`);
+  }
+
   if (!data) {
-    throw new Error('Unable to load Trello board data.');
+    throw new Error('Unable to load Trello board data. The board reference may be wrong or the token may not have access to this board.');
   }
 
   const cards = (data.cards || []).filter((card) => card.status !== 'Unknown');
