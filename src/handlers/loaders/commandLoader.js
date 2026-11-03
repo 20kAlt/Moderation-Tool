@@ -233,23 +233,40 @@ function validateCommands(commands) {
     }
 }
 
+function prioritizeCommands(commands) {
+    const priorityNames = new Set(['help', 'ping', 'stats', 'support', 'uptime', 'commands', 'credits', 'sessionboard']);
+
+    return [...commands].sort((left, right) => {
+        const leftPriority = priorityNames.has(left.name) ? 1 : 0;
+        const rightPriority = priorityNames.has(right.name) ? 1 : 0;
+
+        if (leftPriority !== rightPriority) {
+            return rightPriority - leftPriority;
+        }
+
+        return 0;
+    });
+}
+
 function prepareCommandsForRegistration(commands) {
-    if (commands.length >= COMMAND_COUNT_WARN_THRESHOLD) {
-        logger.warn(`Command count (${commands.length}) is near Discord's ${MAX_COMMANDS} per-guild command limit`);
+    const orderedCommands = prioritizeCommands(commands);
+
+    if (orderedCommands.length >= COMMAND_COUNT_WARN_THRESHOLD) {
+        logger.warn(`Command count (${orderedCommands.length}) is near Discord's ${MAX_COMMANDS} per-guild command limit`);
     }
 
-    if (commands.length <= MAX_COMMANDS) {
-        return commands;
+    if (orderedCommands.length <= MAX_COMMANDS) {
+        return orderedCommands;
     }
 
-    logger.warn(`Command count (${commands.length}) exceeds Discord's per-guild limit (${MAX_COMMANDS}), truncating...`);
-    const truncated = commands.slice(0, MAX_COMMANDS);
+    logger.warn(`Command count (${orderedCommands.length}) exceeds Discord's per-guild limit (${MAX_COMMANDS}), truncating...`);
+    const truncated = orderedCommands.slice(0, MAX_COMMANDS);
     logger.info(`Truncated to ${truncated.length} commands for registration`);
     return truncated;
 }
 
 function buildGlobalCommandBadge(commands) {
-    const preferredNames = new Set(['help', 'ping', 'stats', 'support', 'uptime', 'commands', 'credits']);
+    const preferredNames = new Set(['help', 'ping', 'stats', 'support', 'uptime', 'commands', 'credits', 'sessionboard']);
     const preferredCommands = commands.filter((command) => preferredNames.has(command.name));
     const globalCommands = preferredCommands.length > 0 ? preferredCommands : commands;
 
