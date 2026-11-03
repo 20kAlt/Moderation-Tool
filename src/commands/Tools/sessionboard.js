@@ -84,6 +84,18 @@ export default {
                         .setDescription('Discord role allowed to host or edit the session board')
                         .setRequired(false)
                 )
+                .addChannelOption((option) =>
+                    option
+                        .setName('announcement_channel')
+                        .setDescription('Channel to notify when the session board updates')
+                        .setRequired(false)
+                )
+                .addBooleanOption((option) =>
+                    option
+                        .setName('announce_everyone')
+                        .setDescription('Ping @everyone in the announcement channel when the board changes')
+                        .setRequired(false)
+                )
                 .addStringOption((option) =>
                     option
                         .setName('cohost_roles')
@@ -154,6 +166,9 @@ export default {
                 const cancelledListId = interaction.options.getString('cancelled_list_id') || sessionBoardConfig.cancelledListId || process.env.TRELLO_CANCELLED_LIST_ID || null;
                 const hostRole = interaction.options.getRole('host_role') || (sessionBoardConfig.hostRoleId ? interaction.guild.roles.cache.get(sessionBoardConfig.hostRoleId) : null);
                 const hostRoleId = hostRole?.id || sessionBoardConfig.hostRoleId || null;
+                const announcementChannel = interaction.options.getChannel('announcement_channel') || (sessionBoardConfig.announcementChannelId ? interaction.guild.channels.cache.get(sessionBoardConfig.announcementChannelId) : null);
+                const announcementChannelId = announcementChannel?.id || sessionBoardConfig.announcementChannelId || null;
+                const announceEveryone = interaction.options.getBoolean('announce_everyone') ?? Boolean(sessionBoardConfig.announceEveryone);
                 const cohostRoleIds = interaction.options.getString('cohost_roles') || (Array.isArray(sessionBoardConfig.coHostRoleIds) ? sessionBoardConfig.coHostRoleIds.join(', ') : '');
                 const parsedCoHostIds = parseRoleIds(cohostRoleIds);
 
@@ -168,6 +183,8 @@ export default {
                         ongoingListId,
                         cancelledListId,
                         hostRoleId,
+                        announcementChannelId,
+                        announceEveryone,
                         coHostRoleIds: parsedCoHostIds,
                         defaultStatus: currentStatus,
                     },
@@ -180,6 +197,8 @@ export default {
                     `Ongoing: ${ongoingListId || 'not configured'}`,
                     `Cancelled: ${cancelledListId || 'not configured'}`,
                     `Host role: ${hostRole?.name || hostRoleId || 'not configured'}`,
+                    `Announcement channel: ${announcementChannel?.name || announcementChannelId || 'not configured'}`,
+                    `Ping everyone: ${announceEveryone ? 'yes' : 'no'}`,
                     `Co-host roles: ${parsedCoHostIds.length > 0 ? parsedCoHostIds.join(', ') : 'not configured'}`,
                 ].join('\n');
 
@@ -246,6 +265,8 @@ export default {
                         `Ongoing list: ${sessionBoardConfig.ongoingListId || process.env.TRELLO_ONGOING_LIST_ID || 'not set'}`,
                         `Cancelled list: ${sessionBoardConfig.cancelledListId || process.env.TRELLO_CANCELLED_LIST_ID || 'not set'}`,
                         `Host role: ${sessionBoardConfig.hostRoleId ? `<@&${sessionBoardConfig.hostRoleId}>` : 'not set'}`,
+                        `Announcement channel: ${sessionBoardConfig.announcementChannelId ? `<#${sessionBoardConfig.announcementChannelId}>` : 'not set'}`,
+                        `Ping everyone: ${sessionBoardConfig.announceEveryone ? 'yes' : 'no'}`,
                         `Co-host roles: ${getConfiguredRoleIds(guildConfig).length > 0 ? getConfiguredRoleIds(guildConfig).map((roleId) => `<@&${roleId}>`).join(', ') : 'not set'}`,
                     ].join('\n')
                     : 'No Trello board is connected yet. Use /sessionboard setup to connect one.';

@@ -117,7 +117,7 @@ Servers can keep using standard verification without setting any Roblox OAuth cr
 
 ### Trello Roblox session board (optional)
 
-You can connect a Trello board to the bot to track Roblox session planning, cancellations, and live sessions. The bot supports a session board with dedicated lists for `planned`, `ongoing`, and `cancelled` sessions and a Discord role gate for who can edit the board. Session data is cached in the database and refreshed automatically every five minutes so newly created Trello cards appear in the synced board after the next refresh.
+You can connect a Trello board to the bot to track Roblox session planning, cancellations, and live sessions. The bot supports a session board with dedicated lists for `planned`, `ongoing`, and `cancelled` sessions and a Discord role gate for who can edit the board. Session data is cached in the database and refreshed automatically every five minutes so newly created Trello cards appear in the synced board after the next refresh. You can also configure an announcement channel and toggle `@everyone` pings so the bot notifies the server whenever the board changes.
 
 1. Create a Trello Power-Up or personal API key from the Trello App Key page.
 2. Set the environment values:

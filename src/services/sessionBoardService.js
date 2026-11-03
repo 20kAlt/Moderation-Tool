@@ -124,6 +124,99 @@ export function serializeSessionBoardCard(card = {}) {
     };
 }
 
+export function getSessionBoardChanges(previousCards = [], nextCards = []) {
+    const previousByKey = new Map((previousCards || []).map((card) => {
+        const key = card?.id || `${card?.name || 'session'}:${card?.listId || 'unknown'}`;
+        return [key, serializeSessionBoardCard(card)];
+    }));
+    const nextByKey = new Map((nextCards || []).map((card) => {
+        const key = card?.id || `${card?.name || 'session'}:${card?.listId || 'unknown'}`;
+        return [key, serializeSessionBoardCard(card)];
+    }));
+
+    const added = [];
+    const removed = [];
+    const updated = [];
+
+    for (const [key, card] of nextByKey.entries()) {
+        const previousCard = previousByKey.get(key);
+        if (!previousCard) {
+            added.push(card);
+            continue;
+        }
+
+        const changed = JSON.stringify({
+            name: previousCard.name,
+            listId: previousCard.listId,
+            listName: previousCard.listName,
+            desc: previousCard.desc,
+            url: previousCard.url,
+            type: previousCard.type,
+        }) !== JSON.stringify({
+            name: card.name,
+            listId: card.listId,
+            listName: card.listName,
+            desc: card.desc,
+            url: card.url,
+            type: card.type,
+        });
+
+        if (changed) {
+            updated.push(card);
+        }
+    }
+
+    for (const [key, card] of previousByKey.entries()) {
+        if (!nextByKey.has(key)) {
+            removed.push(card);
+        }
+    }
+
+    return { added, removed, updated };
+}
+
+export async function notifySessionBoardChanges({ client, guildId, guildConfig, previousCards = [], nextCards = [] }) {
+    if (!client || !guildId) {
+        return false;
+    }
+
+    const config = guildConfig?.sessionBoard || guildConfig || {};
+    const announcementChannelId = config.announcementChannelId || null;
+    const announceEveryone = Boolean(config.announceEveryone);
+
+    if (!announcementChannelId) {
+        return false;
+    }
+
+    const guild = client.guilds?.cache?.get(guildId);
+    if (!guild) {
+        return false;
+    }
+
+    const channel = guild.channels?.cache?.get(announcementChannelId);
+    if (!channel || typeof channel.send !== 'function') {
+        return false;
+    }
+
+    const changes = getSessionBoardChanges(previousCards, nextCards);
+    const hasChanges = changes.added.length > 0 || changes.removed.length > 0 || changes.updated.length > 0;
+
+    if (!hasChanges) {
+        return false;
+    }
+
+    const changeSummary = [
+        ...(changes.added.length > 0 ? [`Added: ${changes.added.map((card) => card.name).slice(0, 3).join(', ')}`] : []),
+        ...(changes.updated.length > 0 ? [`Updated: ${changes.updated.map((card) => card.name).slice(0, 3).join(', ')}`] : []),
+        ...(changes.removed.length > 0 ? [`Removed: ${changes.removed.map((card) => card.name).slice(0, 3).join(', ')}`] : []),
+    ];
+
+    const prefix = announceEveryone ? '@everyone ' : '';
+    const message = `${prefix}Session board changed. ${changeSummary.join(' | ') || 'Board state updated.'}`;
+    await channel.send(message).catch(() => {});
+    return true;
+}
+
 export async function refreshSessionBoardCache({ client, guildId, guildConfig } = {}) {
     if (!client || !guildId) {
         return null;
@@ -131,6 +224,7 @@ export async function refreshSessionBoardCache({ client, guildId, guildConfig } 
 
     const currentConfig = guildConfig || await getGuildConfig(client, guildId, { context: 'sessionboard-refresh' });
     const sessionBoardConfig = currentConfig?.sessionBoard || {};
+    const previousCards = Array.isArray(sessionBoardConfig.cards) ? sessionBoardConfig.cards : [];
     const boardId = sessionBoardConfig.boardId || process.env.TRELLO_BOARD_ID;
     const apiKey = sessionBoardConfig.apiKey || process.env.TRELLO_API_KEY;
     const token = sessionBoardConfig.token || process.env.TRELLO_TOKEN;
@@ -154,6 +248,20 @@ export async function refreshSessionBoardCache({ client, guildId, guildConfig } 
             refreshIntervalMs: SESSION_BOARD_REFRESH_INTERVAL_MS,
         },
     }, { context: 'sessionboard-refresh' });
+
+    await notifySessionBoardChanges({
+        client,
+        guildId,
+        guildConfig: {
+            ...currentConfig,
+            sessionBoard: {
+                ...sessionBoardConfig,
+                cards: safeCards,
+            },
+        },
+        previousCards,
+        nextCards: safeCards,
+    });
 
     return safeCards;
 }

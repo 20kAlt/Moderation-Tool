@@ -69,6 +69,8 @@ export const DEFAULT_GUILD_CONFIG = {
         cancelledListId: null,
         hostRoleId: null,
         coHostRoleIds: [],
+        announcementChannelId: null,
+        announceEveryone: false,
         cards: [],
         lastSyncedAt: null,
         refreshIntervalMs: 5 * 60 * 1000,

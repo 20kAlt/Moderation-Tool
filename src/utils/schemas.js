@@ -104,6 +104,8 @@ const SessionBoardConfigSchema = z
     cancelledListId: z.string().nullable().optional(),
     hostRoleId: z.string().nullable().optional(),
     coHostRoleIds: z.array(z.string()).default([]),
+    announcementChannelId: z.string().nullable().optional(),
+    announceEveryone: z.boolean().default(false),
     cards: z.array(z.object({
       id: z.string().nullable().optional(),
       shortLink: z.string().nullable().optional(),
@@ -129,6 +131,8 @@ const SessionBoardConfigSchema = z
     cancelledListId: null,
     hostRoleId: null,
     coHostRoleIds: [],
+    announcementChannelId: null,
+    announceEveryone: false,
     cards: [],
     lastSyncedAt: null,
     refreshIntervalMs: 5 * 60 * 1000,
