@@ -253,13 +253,29 @@ function ensureAutoRefresh(client) {
   }, AUTO_REFRESH_INTERVAL_MS);
 }
 
-export async function fetchSessionBoardStatus({ apiKey = process.env.TRELLO_API_KEY, token = process.env.TRELLO_TOKEN, boardId = process.env.TRELLO_BOARD_ID } = {}) {
-  const resolvedBoardId = boardId || process.env.TRELLO_BOARD_ID;
-  if (!apiKey || !resolvedBoardId) {
-    throw new Error('Trello API key and board ID are required. Set TRELLO_API_KEY and TRELLO_BOARD_ID in your environment.');
+export function getGuildSessionBoardConfig(guildConfig = {}) {
+  const sessionBoard = guildConfig.sessionBoard || {};
+  return {
+    apiKey: sessionBoard.apiKey || null,
+    token: sessionBoard.token || null,
+    boardId: sessionBoard.boardId || null,
+    channelId: sessionBoard.channelId || null,
+    autoUpdate: Boolean(sessionBoard.autoUpdate),
+    messageId: sessionBoard.messageId || null,
+  };
+}
+
+export async function fetchSessionBoardStatus({ apiKey = process.env.TRELLO_API_KEY, token = process.env.TRELLO_TOKEN, boardId = process.env.TRELLO_BOARD_ID, guildConfig = null } = {}) {
+  const guildSessionConfig = getGuildSessionBoardConfig(guildConfig);
+  const resolvedApiKey = apiKey || guildSessionConfig.apiKey || null;
+  const resolvedToken = token || guildSessionConfig.token || null;
+  const resolvedBoardId = boardId || guildSessionConfig.boardId || process.env.TRELLO_BOARD_ID || null;
+
+  if (!resolvedApiKey || !resolvedBoardId) {
+    throw new Error('Trello API key and board ID are required for this server. Set them with /sessionboard or save them to this server configuration.');
   }
 
-  const data = await fetchTrelloBoardData(apiKey, token, resolvedBoardId);
+  const data = await fetchTrelloBoardData(resolvedApiKey, resolvedToken, resolvedBoardId);
   if (!data) {
     throw new Error('Unable to load Trello board data.');
   }
@@ -309,9 +325,18 @@ export async function refreshSessionBoardMessage(client, tracker) {
   return existingMessage;
 }
 
-export async function createLiveSessionBoard(client, { guildId, channelId, boardId, apiKey = process.env.TRELLO_API_KEY, token = process.env.TRELLO_TOKEN, autoUpdate = false } = {}) {
+export async function createLiveSessionBoard(client, { guildId, channelId, boardId, apiKey = process.env.TRELLO_API_KEY, token = process.env.TRELLO_TOKEN, autoUpdate = false, guildConfig = null } = {}) {
   if (!guildId || !channelId || !boardId) {
     throw new Error('Guild ID, channel ID, and board ID are required to install a live session board.');
+  }
+
+  const guildSessionConfig = getGuildSessionBoardConfig(guildConfig);
+  const resolvedApiKey = apiKey || guildSessionConfig.apiKey || null;
+  const resolvedToken = token || guildSessionConfig.token || null;
+  const resolvedBoardId = boardId || guildSessionConfig.boardId || null;
+
+  if (!resolvedApiKey || !resolvedBoardId) {
+    throw new Error('This server is missing a Trello API key and board ID. Save them with /sessionboard.');
   }
 
   const channel = await client.channels.fetch(channelId).catch(() => null);
@@ -323,15 +348,15 @@ export async function createLiveSessionBoard(client, { guildId, channelId, board
   const tracker = {
     guildId,
     channelId,
-    boardId,
-    apiKey,
-    token,
+    boardId: resolvedBoardId,
+    apiKey: resolvedApiKey,
+    token: resolvedToken,
     messageId: BOARD_TRACKERS.get(trackerKey)?.messageId || null,
   };
 
   BOARD_TRACKERS.set(trackerKey, tracker);
 
-  const status = await fetchSessionBoardStatus({ apiKey, token, boardId });
+  const status = await fetchSessionBoardStatus({ apiKey: resolvedApiKey, token: resolvedToken, boardId: resolvedBoardId });
   const embed = buildSessionBoardEmbed({
     boardName: status.boardName,
     boardUrl: status.boardUrl,

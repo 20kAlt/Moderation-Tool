@@ -16,4 +16,13 @@ export const GUILD_CONFIG_DEFAULTS = {
         enabled: true,
         words: [],
     },
+    sessionBoard: {
+        enabled: false,
+        apiKey: null,
+        token: null,
+        boardId: null,
+        channelId: null,
+        autoUpdate: false,
+        messageId: null,
+    },
 };
