@@ -114,7 +114,7 @@ export default {
                 description: `Live Trello session data for ${status.boardName}. This server-only board refreshes every 5 minutes when auto-update is enabled.`,
                 color: 'success',
                 fields: status.activeCards.length > 0
-                    ? status.activeCards.slice(0, 10).map((card) => {
+                    ? status.activeCards.map((card) => {
                         const cardFields = [
                             `Type: ${card.type || 'Unknown'}`,
                             `Status: ${card.status}`,

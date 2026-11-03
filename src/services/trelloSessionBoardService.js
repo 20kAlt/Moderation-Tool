@@ -95,20 +95,23 @@ function parseCardFields(card = {}) {
 
   const lines = text.split(/\r?\n|\|/g);
   for (const line of lines) {
-    const match = line.match(/^(?:host|co-host|co host|user id|time|status)\s*[:=-]\s*(.+)$/i);
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    const match = trimmed.match(/^(?:host|co-host|co host|user id|time|status|due|due date)\s*[:=-]\s*(.+)$/i);
     if (!match) continue;
 
     const rawValue = match[1].trim();
     if (!rawValue) continue;
 
-    const key = line.trim().split(/[:=-]/)[0].trim().toLowerCase();
+    const key = trimmed.split(/[:=-]/)[0].trim().toLowerCase();
     if (key.includes('co-host') || key.includes('co host')) {
       fieldMap.coHost = rawValue;
     } else if (key.includes('host')) {
       fieldMap.host = rawValue;
     } else if (key.includes('user')) {
       fieldMap.userId = rawValue;
-    } else if (key.includes('time')) {
+    } else if (key.includes('time') || key.includes('due')) {
       fieldMap.time = rawValue;
     } else if (key.includes('status')) {
       fieldMap.status = canonicalStatus(rawValue);
@@ -130,7 +133,18 @@ function parseCardFields(card = {}) {
     fieldMap.userId = inlineUserId[1].trim();
   }
 
-  const inlineTime = /(?:time|shift\s*time|session\s*time|start\s*time|start\s+at)\s*[:=-]\s*([^\n|]+)/i.exec(text);
+  const dueDate = card.due ? new Date(card.due) : null;
+  if (fieldMap.time === 'Not listed' && dueDate && !Number.isNaN(dueDate.getTime())) {
+    fieldMap.time = dueDate.toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZoneName: 'short',
+    });
+  }
+
+  const inlineTime = /(?:time|shift\s*time|session\s*time|start\s*time|start\s+at|due\s*date)\s*[:=-]\s*([^\n|]+)/i.exec(text);
   if (inlineTime && fieldMap.time === 'Not listed') {
     fieldMap.time = inlineTime[1].trim();
   }
@@ -152,10 +166,22 @@ function resolveBoardType(card, listNameMap) {
     }
   }
 
+  if (combinedText.includes('shift')) {
+    return 'Shift';
+  }
+
   return 'Unknown';
 }
 
 function resolveBoardStatus(card, listNameMap) {
+  const labelNames = Array.isArray(card.labels) ? card.labels.map((label) => label?.name).filter(Boolean) : [];
+  for (const labelName of labelNames) {
+    const labelStatus = canonicalStatus(labelName);
+    if (labelStatus !== 'Unknown') {
+      return labelStatus;
+    }
+  }
+
   const listName = listNameMap.get(card.idList) || '';
   const statusFromList = canonicalStatus(listName);
   if (statusFromList !== 'Unknown') {
@@ -185,7 +211,7 @@ function buildSessionBoardEmbed({ boardName, boardUrl, cards, lastUpdated }) {
     ? `Live Trello session cards for ${safeBoardName}. Refreshes every 5 minutes.`
     : 'No shifts are planned. Check back later.';
 
-  const lines = trackedCards.slice(0, 12).map((card) => {
+  const lines = trackedCards.map((card) => {
     const fields = parseCardFields(card);
     const host = fields.host || 'Unknown';
     const coHost = fields.coHost || 'Not listed';
@@ -230,7 +256,7 @@ async function fetchTrelloBoardData(apiKey, token, boardId) {
   const [boardResponse, listResponse, cardResponse] = await Promise.all([
     axios.get(`https://api.trello.com/1/boards/${boardId}`, { params: { ...params, fields: 'name,url' }, timeout: 10000 }),
     axios.get(`https://api.trello.com/1/boards/${boardId}/lists`, { params: { ...params, fields: 'name,id' }, timeout: 10000 }),
-    axios.get(`https://api.trello.com/1/boards/${boardId}/cards`, { params: { ...params, fields: 'name,desc,idList,url,shortUrl' }, timeout: 10000 }),
+    axios.get(`https://api.trello.com/1/boards/${boardId}/cards`, { params: { ...params, fields: 'name,desc,idList,url,shortUrl,labels,due' }, timeout: 10000 }),
   ]);
 
   const listNameMap = new Map((listResponse.data || []).map((list) => [list.id, list.name]));
