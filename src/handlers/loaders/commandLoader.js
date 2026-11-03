@@ -266,11 +266,16 @@ function prepareCommandsForRegistration(commands) {
 }
 
 function buildGlobalCommandBadge(commands) {
-    const preferredNames = new Set(['help', 'ping', 'stats', 'support', 'uptime', 'commands', 'credits', 'sessionboard']);
+    const preferredNames = new Set(['help', 'ping', 'stats', 'support', 'uptime', 'commands', 'credits']);
     const preferredCommands = commands.filter((command) => preferredNames.has(command.name));
     const globalCommands = preferredCommands.length > 0 ? preferredCommands : commands;
 
     return globalCommands.slice(0, 10);
+}
+
+function filterDuplicateGuildCommands(commands, globalBadgeCommands) {
+    const globalNames = new Set(globalBadgeCommands.map((command) => command.name));
+    return commands.filter((command) => !globalNames.has(command.name));
 }
 
 async function registerGuildCommandPayload(client, clientId, guildId, commands) {
@@ -308,6 +313,7 @@ export async function registerCommands(client, options = {}) {
         const commandsToRegister = prepareCommandsForRegistration(commands);
 
         const globalBadgeCommands = buildGlobalCommandBadge(commandsToRegister);
+        const guildCommandsToRegister = filterDuplicateGuildCommands(commandsToRegister, globalBadgeCommands);
 
         if (globalBadgeCommands.length > 0) {
             logger.info(`Registering ${globalBadgeCommands.length} global slash commands to keep the Discord command badge visible`);
@@ -315,7 +321,7 @@ export async function registerCommands(client, options = {}) {
         }
 
         for (const guild of client.guilds.cache.values()) {
-            await registerGuildCommandPayload(client, clientId, guild.id, commandsToRegister);
+            await registerGuildCommandPayload(client, clientId, guild.id, guildCommandsToRegister);
         }
 
         logger.info(`Registered slash commands for ${client.guilds.cache.size} guild(s); command badge is maintained via global registration`);
