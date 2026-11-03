@@ -131,8 +131,8 @@ export default {
                     })
                     : [
                         {
-                            name: 'No active session cards',
-                            value: 'No Trello cards for shift training, promotional shift, show, canceled, planned, delayed, or ongoing were found on this board.',
+                            name: 'No shifts planned',
+                            value: 'No shifts are planned. Check back later.',
                         },
                     ],
             });

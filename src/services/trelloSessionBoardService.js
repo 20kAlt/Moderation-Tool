@@ -34,6 +34,20 @@ function normalizeText(value = '') {
     .trim();
 }
 
+function normalizeBoardReference(value = '') {
+  if (!value) return '';
+  const trimmed = String(value).trim();
+  if (!trimmed) return '';
+
+  const urlMatch = trimmed.match(/trello\.com\/(?:b|board)\/([^/?#]+)/i)
+    || trimmed.match(/trello\.com\/(?:b|board)\/([^\s]+)$/i);
+  if (urlMatch) {
+    return urlMatch[1].trim();
+  }
+
+  return trimmed.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+}
+
 function canonicalStatus(value = '') {
   const normalized = normalizeText(value);
   const direct = STATUS_ALIASES.get(normalized);
@@ -169,7 +183,7 @@ function buildSessionBoardEmbed({ boardName, boardUrl, cards, lastUpdated }) {
   const safeBoardName = boardName || 'Trello Session Board';
   const description = trackedCards.length > 0
     ? `Live Trello session cards for ${safeBoardName}. Refreshes every 5 minutes.`
-    : `No active Trello session cards were found for ${safeBoardName}.`;
+    : 'No shifts are planned. Check back later.';
 
   const lines = trackedCards.slice(0, 12).map((card) => {
     const fields = parseCardFields(card);
@@ -269,7 +283,7 @@ export async function fetchSessionBoardStatus({ apiKey = process.env.TRELLO_API_
   const guildSessionConfig = getGuildSessionBoardConfig(guildConfig);
   const resolvedApiKey = apiKey || guildSessionConfig.apiKey || null;
   const resolvedToken = token || guildSessionConfig.token || null;
-  const resolvedBoardId = boardId || guildSessionConfig.boardId || process.env.TRELLO_BOARD_ID || null;
+  const resolvedBoardId = normalizeBoardReference(boardId || guildSessionConfig.boardId || process.env.TRELLO_BOARD_ID || null);
 
   if (!resolvedApiKey || !resolvedBoardId) {
     throw new Error('Trello API key and board ID are required for this server. Set them with /sessionboard or save them to this server configuration.');
@@ -333,7 +347,7 @@ export async function createLiveSessionBoard(client, { guildId, channelId, board
   const guildSessionConfig = getGuildSessionBoardConfig(guildConfig);
   const resolvedApiKey = apiKey || guildSessionConfig.apiKey || null;
   const resolvedToken = token || guildSessionConfig.token || null;
-  const resolvedBoardId = boardId || guildSessionConfig.boardId || null;
+  const resolvedBoardId = normalizeBoardReference(boardId || guildSessionConfig.boardId || null);
 
   if (!resolvedApiKey || !resolvedBoardId) {
     throw new Error('This server is missing a Trello API key and board ID. Save them with /sessionboard.');
