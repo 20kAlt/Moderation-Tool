@@ -30,6 +30,33 @@ test('logging channel changes remain visible when using the available in-memory 
   }
 });
 
+test('legacy log channel settings re-enable logging after a restart without a nested logging flag', async () => {
+  const originalState = {
+    initialized: db.initialized,
+    database: db.db,
+    useFallback: db.useFallback,
+  };
+  db.initialized = true;
+  db.useFallback = true;
+  db.db = new MemoryStorage();
+
+  try {
+    await db.set(getGuildConfigKey('guild-legacy'), {
+      logChannelId: 'legacy-audit-channel',
+      reportChannelId: 'legacy-report-channel',
+    });
+
+    const config = await getGuildConfigValueFromDb('guild-legacy');
+    assert.equal(config.logging.enabled, true);
+    assert.equal(config.logging.channels.audit, 'legacy-audit-channel');
+    assert.equal(config.logging.channels.reports, 'legacy-report-channel');
+  } finally {
+    db.initialized = originalState.initialized;
+    db.db = originalState.database;
+    db.useFallback = originalState.useFallback;
+  }
+});
+
 test('event logging accepts configured announcement channels', async () => {
   const originalState = {
     initialized: db.initialized,
@@ -88,3 +115,8 @@ test('event logging accepts configured announcement channels', async () => {
     db.useFallback = originalState.useFallback;
   }
 });
+
+async function getGuildConfigValueFromDb(guildId) {
+  const raw = await db.get(getGuildConfigKey(guildId));
+  return (await import('../src/utils/schemas.js')).normalizeGuildConfig(raw);
+}

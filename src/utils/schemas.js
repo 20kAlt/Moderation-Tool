@@ -180,11 +180,15 @@ function migrateLoggingConfig(raw = {}, legacy = {}) {
     channels: base.ignore?.channels ?? logIgnore?.channels ?? [],
   };
 
-  let enabled = base.enabled ?? false;
-  if (enableLogging === false) {
+  let enabled;
+  if (base.enabled !== undefined) {
+    enabled = Boolean(base.enabled);
+  } else if (enableLogging !== undefined) {
+    enabled = Boolean(enableLogging);
+  } else if (auditChannel || applicationsChannel || reportsChannel) {
+    enabled = true;
+  } else {
     enabled = false;
-  } else if (auditChannel && base.enabled === undefined && enableLogging !== false) {
-    enabled = base.enabled ?? Boolean(enableLogging);
   }
 
   const { channelId: _legacyChannelId, ignore: _ignore, channels: _channels, ...rest } = base;
