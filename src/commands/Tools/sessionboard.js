@@ -41,7 +41,7 @@ export default {
             subcommand
                 .setName('setup')
                 .setDescription('Connect the Trello board and role access for the session board')
-                .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+                .setDefaultMemberPermissions(null)
                 .addStringOption((option) =>
                     option
                         .setName('api_key')
