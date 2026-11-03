@@ -93,6 +93,13 @@ const ProtectionConfigSchema = z
   })
   .default({});
 
+const WordBlockerConfigSchema = z
+  .object({
+    enabled: z.boolean().default(true),
+    words: z.array(z.string().trim().min(1).max(64)).max(500).default([]),
+  })
+  .default({ enabled: true, words: [] });
+
 export const GuildConfigSchema = z
   .object({
     prefix: z.string().optional(),
@@ -109,6 +116,7 @@ export const GuildConfigSchema = z
     logIgnore: LogIgnoreSchema.optional(),
     disabledCommands: z.record(z.boolean()).optional(),
     disabledCategories: z.record(z.boolean()).optional(),
+    wordBlocker: WordBlockerConfigSchema.optional(),
     logging: LoggingConfigSchema.optional(),
     announcements: AnnouncementConfigSchema.optional(),
     ticketLogging: TicketLoggingSchema.optional(),

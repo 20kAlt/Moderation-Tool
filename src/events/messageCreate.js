@@ -24,6 +24,7 @@ import {
   isValidCountingMessage,
   recordCorrectCount,
 } from '../services/countingGameService.js';
+import { findBlockedWord, getBlockedWordConfig } from '../services/wordBlockerService.js';
 
 const MESSAGE_XP_RATE_LIMIT_ATTEMPTS = 12;
 const MESSAGE_XP_RATE_LIMIT_WINDOW_MS = 10000;
@@ -45,6 +46,11 @@ export default {
 
       const countingProcessed = await handleCountingGame(message, client);
       if (countingProcessed) {
+        return;
+      }
+
+      const blockedWordDetected = await handleBlockedWords(message, client);
+      if (blockedWordDetected) {
         return;
       }
 
@@ -110,6 +116,39 @@ async function handleAfkStatuses(message) {
     }
   } catch (error) {
     logger.error('Error handling AFK statuses:', error);
+  }
+}
+
+async function handleBlockedWords(message, client) {
+  try {
+    const { enabled, words } = await getBlockedWordConfig(client, message.guild.id);
+    if (!enabled || !Array.isArray(words) || words.length === 0) {
+      return false;
+    }
+
+    const detectedWord = findBlockedWord(message.content, words);
+    if (!detectedWord) {
+      return false;
+    }
+
+    logger.warn(`Blocked word detected for user ${message.author.tag} in guild ${message.guild.id}: ${detectedWord}`);
+
+    const warningEmbed = createEmbed({
+      title: 'Restricted Content Detected',
+      description: 'Your message was not sent because it contains a restricted term. Please remove the flagged word and try again.',
+      color: 'warning',
+    });
+
+    await message.reply({
+      embeds: [warningEmbed],
+      allowedMentions: { parse: [], repliedUser: false },
+    }).catch(() => {});
+
+    await message.delete().catch(() => {});
+    return true;
+  } catch (error) {
+    logger.error('Error checking blocked words:', error);
+    return false;
   }
 }
 
