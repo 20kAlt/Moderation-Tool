@@ -59,23 +59,6 @@ export const DEFAULT_GUILD_CONFIG = {
             trustedUserIds: [],
         },
     },
-    sessionBoard: {
-        enabled: false,
-        boardId: null,
-        apiKey: null,
-        token: null,
-        plannedListId: null,
-        ongoingListId: null,
-        cancelledListId: null,
-        hostRoleId: null,
-        coHostRoleIds: [],
-        announcementChannelId: null,
-        announceEveryone: false,
-        cards: [],
-        lastSyncedAt: null,
-        refreshIntervalMs: 5 * 60 * 1000,
-        defaultStatus: 'planned',
-    },
 };
 
 export const INTERACTION_TIMEOUTS = {

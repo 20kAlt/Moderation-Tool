@@ -93,52 +93,6 @@ const ProtectionConfigSchema = z
   })
   .default({});
 
-const SessionBoardConfigSchema = z
-  .object({
-    enabled: z.boolean().default(false),
-    boardId: z.string().nullable().optional(),
-    apiKey: z.string().nullable().optional(),
-    token: z.string().nullable().optional(),
-    plannedListId: z.string().nullable().optional(),
-    ongoingListId: z.string().nullable().optional(),
-    cancelledListId: z.string().nullable().optional(),
-    hostRoleId: z.string().nullable().optional(),
-    coHostRoleIds: z.array(z.string()).default([]),
-    announcementChannelId: z.string().nullable().optional(),
-    announceEveryone: z.boolean().default(false),
-    cards: z.array(z.object({
-      id: z.string().nullable().optional(),
-      shortLink: z.string().nullable().optional(),
-      name: z.string().default('Roblox Session'),
-      url: z.string().nullable().optional(),
-      desc: z.string().optional().default(''),
-      listId: z.string().nullable().optional(),
-      listName: z.string().nullable().optional(),
-      type: z.enum(['session', 'training', 'shift']).default('session'),
-      updatedAt: z.string().nullable().optional(),
-    })).default([]),
-    lastSyncedAt: z.string().nullable().optional(),
-    refreshIntervalMs: z.number().int().positive().default(5 * 60 * 1000),
-    defaultStatus: z.enum(['planned', 'ongoing', 'cancelled']).default('planned'),
-  })
-  .default({
-    enabled: false,
-    boardId: null,
-    apiKey: null,
-    token: null,
-    plannedListId: null,
-    ongoingListId: null,
-    cancelledListId: null,
-    hostRoleId: null,
-    coHostRoleIds: [],
-    announcementChannelId: null,
-    announceEveryone: false,
-    cards: [],
-    lastSyncedAt: null,
-    refreshIntervalMs: 5 * 60 * 1000,
-    defaultStatus: 'planned',
-  });
-
 export const GuildConfigSchema = z
   .object({
     prefix: z.string().optional(),
@@ -161,7 +115,6 @@ export const GuildConfigSchema = z
     enableLogging: z.boolean().optional(),
     verification: VerificationConfigSchema,
     protection: ProtectionConfigSchema,
-    sessionBoard: SessionBoardConfigSchema.optional(),
   })
   .passthrough();
 

@@ -234,7 +234,7 @@ function validateCommands(commands) {
 }
 
 function prioritizeCommands(commands) {
-    const priorityNames = new Set(['help', 'ping', 'stats', 'support', 'uptime', 'commands', 'credits', 'sessionboard']);
+    const priorityNames = new Set(['help', 'ping', 'stats', 'support', 'uptime', 'commands', 'credits']);
 
     return [...commands].sort((left, right) => {
         const leftPriority = priorityNames.has(left.name) ? 1 : 0;
