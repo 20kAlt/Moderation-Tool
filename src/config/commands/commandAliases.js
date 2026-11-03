@@ -97,6 +97,11 @@ export const commandAliases = {
     'ss': 'serverstats',
     'sstats': 'serverstats',
 
+    'sessionboard': 'sessionboard',
+    'board': 'sessionboard',
+    'sessions': 'sessionboard',
+    'session': 'sessionboard',
+
     'rr': 'reactroles',
     'reactionroles': 'reactroles',
 
