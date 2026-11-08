@@ -3,7 +3,7 @@ import { successEmbed } from '../../utils/embeds.js';
 import { isBotOwner } from '../../config/bot.js';
 import { logEvent } from '../../utils/moderation.js';
 import { logger } from '../../utils/logger.js';
-import { sanitizeMarkdown } from '../../utils/validation.js';
+import { sanitizeInput } from '../../utils/validation.js';
 
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { replyUserError, ErrorTypes } from '../../utils/errorHandler.js';
@@ -52,28 +52,31 @@ export default {
         }
 
     const targetUser = interaction.options.getUser("user");
-        const message = interaction.options.getString("message");
+        const rawMessage = interaction.options.getString("message");
         const anonymous = interaction.options.getBoolean("anonymous") || false;
 
         try {
-            
-            if (message.length > 2000) {
-                return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Messages must be under 2000 characters.' });
+            const message = sanitizeInput(rawMessage, 2000);
+
+            if (!message) {
+                return await replyUserError(interaction, { type: ErrorTypes.VALIDATION, message: 'Message cannot be empty.' });
             }
 
             if (targetUser.bot) {
                 return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'You cannot send DMs to bot accounts.' });
             }
 
-            const sanitized = sanitizeMarkdown(message);
+            const header = anonymous ? 'Message from the Staff Team' : `Message from ${interaction.user.tag}`;
+            const fullMessage = `${header}\n\n${message}`;
 
             const dmChannel = await targetUser.createDM();
             
             await dmChannel.send({
+                content: fullMessage,
                 embeds: [
                     successEmbed(
-                        anonymous ? "Message from the Staff Team" : `Message from ${interaction.user.tag}`,
-                        sanitized
+                        header,
+                        message
                     ).setFooter({
                         text: `You cannot reply to this message. | Logger ID: ${interaction.id}`
                     })
@@ -92,7 +95,7 @@ export default {
                         userId: targetUser.id,
                         moderatorId: interaction.user.id,
                         anonymous,
-                        messageLength: sanitized.length
+                        messageLength: message.length
                     }
                 }
             });

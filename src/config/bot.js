@@ -1,5 +1,79 @@
 import { required } from 'zod/v4-mini';
+import fs from 'node:fs';
+import path from 'node:path';
 import { logger } from '../utils/logger.js';
+
+const DEFAULT_CONFIG_PATH = process.env.BOT_CONFIG_PATH
+  ? path.resolve(process.cwd(), process.env.BOT_CONFIG_PATH)
+  : path.resolve(process.cwd(), '.bot-config.json');
+
+function deepMerge(baseValue, incomingValue) {
+  if (Array.isArray(incomingValue)) {
+    return [...incomingValue];
+  }
+
+  if (incomingValue && typeof incomingValue === 'object' && !Array.isArray(incomingValue)) {
+    const merged = { ...(baseValue && typeof baseValue === 'object' && !Array.isArray(baseValue) ? baseValue : {}) };
+
+    for (const [key, value] of Object.entries(incomingValue)) {
+      if (value && typeof value === 'object' && !Array.isArray(value) && merged[key] && typeof merged[key] === 'object' && !Array.isArray(merged[key])) {
+        merged[key] = deepMerge(merged[key], value);
+      } else {
+        merged[key] = value;
+      }
+    }
+
+    return merged;
+  }
+
+  return incomingValue;
+}
+
+export function getPersistedBotConfigPath() {
+  return DEFAULT_CONFIG_PATH;
+}
+
+export function loadPersistedBotConfig() {
+  try {
+    if (!fs.existsSync(DEFAULT_CONFIG_PATH)) {
+      return {};
+    }
+
+    const raw = fs.readFileSync(DEFAULT_CONFIG_PATH, 'utf8');
+    if (!raw.trim()) {
+      return {};
+    }
+
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (error) {
+    logger.warn('Unable to load persisted bot configuration:', error.message);
+    return {};
+  }
+}
+
+export function saveBotConfig(config = botConfig) {
+  try {
+    const directory = path.dirname(DEFAULT_CONFIG_PATH);
+    fs.mkdirSync(directory, { recursive: true });
+    fs.writeFileSync(DEFAULT_CONFIG_PATH, JSON.stringify(config ?? {}, null, 2), 'utf8');
+    return DEFAULT_CONFIG_PATH;
+  } catch (error) {
+    logger.warn('Unable to save bot configuration:', error.message);
+    return null;
+  }
+}
+
+export function reloadBotConfig() {
+  const savedConfig = loadPersistedBotConfig();
+  const merged = deepMerge(botConfig, savedConfig);
+  Object.keys(botConfig).forEach((key) => {
+    if (key in merged) {
+      botConfig[key] = merged[key];
+    }
+  });
+  return botConfig;
+}
 
 export const botConfig = {
   // =========================
@@ -544,6 +618,24 @@ if (configErrors.length > 0) {
 }
 
 export const BotConfig = botConfig;
+reloadBotConfig();
+
+botConfig.save = saveBotConfig;
+botConfig.load = loadPersistedBotConfig;
+botConfig.reload = reloadBotConfig;
+
+if (typeof process !== 'undefined') {
+  const persistAndExit = (code = 0) => {
+    saveBotConfig(botConfig);
+    if (typeof process.exit === 'function') {
+      process.exit(code);
+    }
+  };
+
+  process.once('beforeExit', () => saveBotConfig(botConfig));
+  process.once('SIGINT', () => persistAndExit(0));
+  process.once('SIGTERM', () => persistAndExit(0));
+}
 
 const COMMAND_CATEGORY_FEATURE_MAP = {
   birthday: "birthday",
