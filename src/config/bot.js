@@ -29,6 +29,24 @@ function deepMerge(baseValue, incomingValue) {
   return incomingValue;
 }
 
+function getBooleanEnv(name, fallback = false) {
+  const value = process.env?.[name];
+  if (value === undefined || value === null || value === '') {
+    return fallback;
+  }
+
+  return ["1", "true", "yes", "on"].includes(String(value).trim().toLowerCase());
+}
+
+function getStringEnv(name, fallback = '') {
+  const value = process.env?.[name];
+  if (value === undefined || value === null || value === '') {
+    return fallback;
+  }
+
+  return String(value).trim() || fallback;
+}
+
 export function getPersistedBotConfigPath() {
   return DEFAULT_CONFIG_PATH;
 }
@@ -67,9 +85,17 @@ export function saveBotConfig(config = botConfig) {
 export function reloadBotConfig() {
   const savedConfig = loadPersistedBotConfig();
   const merged = deepMerge(botConfig, savedConfig);
+  const envOverrides = {
+    commands: {
+      maintenanceMode: getBooleanEnv('MAINTENANCE_MODE', merged.commands?.maintenanceMode ?? false),
+      prefix: getStringEnv('BOT_PREFIX', getStringEnv('COMMAND_PREFIX', merged.commands?.prefix ?? '?')),
+    },
+  };
+
+  const finalConfig = deepMerge(merged, envOverrides);
   Object.keys(botConfig).forEach((key) => {
-    if (key in merged) {
-      botConfig[key] = merged[key];
+    if (key in finalConfig) {
+      botConfig[key] = finalConfig[key];
     }
   });
   return botConfig;
@@ -133,11 +159,11 @@ export const botConfig = {
     testGuildId: process.env.TEST_GUILD_ID,
 
     // When true (or MAINTENANCE_MODE=true), only bot owners can run commands.
-    maintenanceMode: process.env.MAINTENANCE_MODE === "false",
+    maintenanceMode: getBooleanEnv('MAINTENANCE_MODE', false),
 
     // Default command prefix for text-based commands (e.g., "?" for "?ping").
     // Supports both slash commands and prefix commands.
-    prefix: "?", // prefix of the bot 
+    prefix: getStringEnv('BOT_PREFIX', getStringEnv('COMMAND_PREFIX', '?')),
   },
 
   // =========================
@@ -663,7 +689,7 @@ function normalizeCategoryKey(category) {
 }
 
 export function getCommandPrefix() {
-  return "?";
+  return String(botConfig.commands?.prefix ?? "?").trim() || "?";
 }
 
 export function getBotOwners() {
@@ -681,7 +707,8 @@ export function isBotOwner(userId) {
 }
 
 export function isMaintenanceMode() {
-  return botConfig.commands?.maintenanceMode === true;
+  const enabled = botConfig.commands?.maintenanceMode;
+  return enabled === true || (typeof enabled === 'string' && enabled.trim().toLowerCase() === 'true');
 }
 
 export function getBotMessage(key, replacements = {}) {
