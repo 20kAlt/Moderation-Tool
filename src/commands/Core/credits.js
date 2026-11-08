@@ -9,7 +9,7 @@ const CREDITS_FILE = new URL('../../../credits.json', import.meta.url);
 export default {
   data: new SlashCommandBuilder()
     .setName('credits')
-    .setDescription('Shows bot ownership and asset rights information 1111'),
+    .setDescription('Shows bot ownership and asset rights information'),
 
   async execute(interaction) {
     try {
