@@ -4,7 +4,7 @@ import { logger } from '../../utils/logger.js';
 
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
-const WEBSITE_URL = 'https://moderation-tool-website--20k1.replit.app/';
+const WEBSITE_URL = '';
 
 export default {
   data: new SlashCommandBuilder()
