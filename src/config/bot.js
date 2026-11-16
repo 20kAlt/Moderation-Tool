@@ -126,7 +126,7 @@ export const botConfig = {
       {
         name: "Watching", // required by Discord API, not shown in the client
         state: "?configwizard",     // this is what people actually see
-        type: 0,            // Custom
+        type: 4,            // Custom
       },
     ],
   },
@@ -138,7 +138,7 @@ export const botConfig = {
     enabled: process.env.ANTI_NUKE_ENABLED !== "false",
     allowedBotIds: process.env.ANTI_NUKE_ALLOWED_BOT_IDS?.split(",").map((id) => id.trim()).filter(Boolean) || [],
     suspiciousNameTerms: ["nuke", "nuker", "raid", "server wipe", "server-wipe", "massban", "mass ban"],
-    blockDangerousPermissions: true, // keep true 
+    blockDangerousPermissions: false, 
   },
 
   // =========================
