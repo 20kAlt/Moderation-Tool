@@ -4,7 +4,7 @@ import { logger } from '../../utils/logger.js';
 
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
-const WEBSITE_URL = '';
+const WEBSITE_URL = 'https://moderationtool.freesrv.com';
 
 export default {
   data: new SlashCommandBuilder()
