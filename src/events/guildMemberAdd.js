@@ -7,7 +7,7 @@ import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 import { getServerCounters, updateCounter } from '../services/serverstatsService.js';
 import { setBirthday as dbSetBirthday } from '../utils/database.js';
 import { logger } from '../utils/logger.js';
-import { evaluateRaidProtection } from '../services/protectionService.js';
+import { evaluateRaidProtection, isAntiNukeEnabled } from '../services/protectionService.js';
 import { assignAutoRole } from '../services/autoRoleService.js';
 
 export default {
@@ -18,9 +18,10 @@ export default {
     try {
         const { guild, user } = member;
         const memberCount = guild.memberCount;
+        const config = await getGuildConfig(member.client, guild.id);
 
         const antiNukeConfig = botConfig.antiNuke;
-        if (user.bot && antiNukeConfig?.enabled) {
+        if (user.bot && isAntiNukeEnabled(config)) {
             const isAllowedBot = antiNukeConfig.allowedBotIds?.includes(user.id);
             const botName = `${user.username} ${member.displayName}`.toLowerCase();
             const suspiciousName = antiNukeConfig.suspiciousNameTerms?.some((term) =>
@@ -77,7 +78,6 @@ export default {
             }
         }
         
-        const config = await getGuildConfig(member.client, guild.id);
         await evaluateRaidProtection(member.client, guild, user, config);
         
         const welcomeConfig = await getWelcomeConfig(member.client, guild.id);

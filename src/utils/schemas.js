@@ -84,7 +84,7 @@ const ProtectionConfigSchema = z
       windowSeconds: z.number().int().min(5).max(60).default(10),
     }).default({}),
     antiNuke: z.object({
-      enabled: z.boolean().default(true),
+      enabled: z.boolean().default(false),
       actionThreshold: z.number().int().min(2).max(20).default(3),
       windowSeconds: z.number().int().min(5).max(60).default(10),
       timeoutMinutes: z.number().int().min(1).max(60).default(30),

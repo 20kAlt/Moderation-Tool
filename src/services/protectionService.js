@@ -1,10 +1,17 @@
 import { EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 import { getGuildConfig } from './config/guildConfig.js';
 import { resolveLogChannel } from './loggingService.js';
+import { botConfig } from '../config/bot.js';
 import { logger } from '../utils/logger.js';
 
 const raidJoinHistory = new Map();
 const antiNukeActionHistory = new Map();
+
+export function isAntiNukeEnabled(config) {
+    return botConfig.antiNuke?.enabled !== false &&
+        config?.protection?.enabled === true &&
+        config.protection.antiNuke?.enabled === true;
+}
 
 async function getAlertChannelForGuild(guild, channelId) {
     if (!guild || !channelId) return null;
@@ -94,7 +101,7 @@ export async function recordAntiNukeAction(client, guild, actorId, actionLabel, 
 
     const config = configOverride || await getGuildConfig(client, guild.id);
     const protection = config?.protection || {};
-    if (!protection.enabled || !protection.antiNuke?.enabled) {
+    if (!isAntiNukeEnabled(config)) {
         return false;
     }
 

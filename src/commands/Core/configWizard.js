@@ -70,6 +70,9 @@ function buildDashboardEmbed(config, guild) {
     const alertChannelFallback = !config.protection?.alertChannelId && protectionAlertChannelId
         ? ' (log channel fallback)'
         : '';
+    const antiNukeActive = botConfig.antiNuke?.enabled !== false &&
+        config.protection?.enabled &&
+        config.protection?.antiNuke?.enabled === true;
 
     return createEmbed({
         title: '⚙️ Server Configuration',
@@ -93,7 +96,7 @@ function buildDashboardEmbed(config, guild) {
             },
             {
                 name: '🛡️ Protection',
-                value: `Enabled: **${config.protection?.enabled ? 'Yes' : 'No'}**\nAlert: ${protectionAlertChannel}${alertChannelFallback}\nRaid: **${config.protection?.raid?.joinThreshold ?? 8} / ${config.protection?.raid?.windowSeconds ?? 10}s**\nAnti-nuke: **${config.protection?.enabled && config.protection?.antiNuke?.enabled !== false ? 'Active' : 'Inactive'}** (switch: ${config.protection?.antiNuke?.enabled === false ? 'Off' : 'On'}) · ${config.protection?.antiNuke?.actionThreshold ?? 3} / ${config.protection?.antiNuke?.windowSeconds ?? 10}s`,
+                value: `Enabled: **${config.protection?.enabled ? 'Yes' : 'No'}**\nAlert: ${protectionAlertChannel}${alertChannelFallback}\nRaid: **${config.protection?.raid?.joinThreshold ?? 8} / ${config.protection?.raid?.windowSeconds ?? 10}s**\nAnti-nuke: **${antiNukeActive ? 'Active' : 'Inactive'}** (switch: ${config.protection?.antiNuke?.enabled === true ? 'On' : 'Off'}) · ${config.protection?.antiNuke?.actionThreshold ?? 3} / ${config.protection?.antiNuke?.windowSeconds ?? 10}s`,
                 inline: false,
             },
             {

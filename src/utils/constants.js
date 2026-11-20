@@ -52,7 +52,7 @@ export const DEFAULT_GUILD_CONFIG = {
             windowSeconds: 10,
         },
         antiNuke: {
-            enabled: true,
+            enabled: false,
             actionThreshold: 3,
             windowSeconds: 10,
             timeoutMinutes: 30,
